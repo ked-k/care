@@ -1,0 +1,193 @@
+@import 'tailwindcss';
+
+/* Enable class-based dark mode (`<html class="dark">`) for `dark:` utilities. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ |--------------------------------------------------------------------------
+ | Radmin design tokens
+ |--------------------------------------------------------------------------
+ | Ported from the original Bootstrap theme so the product keeps its look:
+ | dark sidebar, light top header, blue primary, red active accent.
+ */
+@theme {
+    --font-sans: 'Nunito', 'Nunito Sans', ui-sans-serif, system-ui, sans-serif;
+
+    /* Brand primary (was Bootstrap $primary / #007bff) */
+    --color-primary-50: #e9f3ff;
+    --color-primary-100: #cfe5ff;
+    --color-primary-200: #9ecbff;
+    --color-primary-300: #6db0ff;
+    --color-primary-400: #3d96ff;
+    --color-primary-500: #007bff;
+    --color-primary-600: #006fe6;
+    --color-primary-700: #0057b3;
+    --color-primary-800: #003f80;
+    --color-primary-900: #00284d;
+
+    /* Active / brand accent (was #eb525d) */
+    --color-accent-400: #ef6f78;
+    --color-accent-500: #eb525d;
+    --color-accent-600: #d83b47;
+
+    /* Dark sidebar palette (was #1e1e2d / #272d36 / #131923) */
+    --color-sidebar-header: #272d36;
+    --color-sidebar: #1e1e2d;
+    --color-sidebar-sub: #131923;
+    --color-sidebar-text: #ccd3e4;
+    --color-sidebar-icon: #525c71;
+    --color-sidebar-border: rgba(243, 243, 243, 0.12);
+
+    /* Top bar (themeable via the customizer) */
+    --color-topbar: #ffffff;
+    --color-topbar-text: #4a5361;
+
+    /* App surfaces */
+    --color-body: #f8fafc;
+}
+
+/* Brand gradient (logomark blue → violet) — used on the landing preview. */
+.brand-grad {
+    background-image: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+}
+
+/*
+ |--------------------------------------------------------------------------
+ | Dark mode
+ |--------------------------------------------------------------------------
+ | Toggled by adding `.dark` to <html>. Works app-wide with no markup
+ | changes because every utility resolves a CSS var: we remap the surface
+ | tokens and invert the gray ramp (bg-white → dark card, text-gray-700 →
+ | light, border-gray-100 → subtle dark, etc.).
+ */
+html.dark {
+    /*
+     | --color-white backs BOTH `bg-white` / `bg-white/x` (surfaces → must go
+     | dark) AND `text-white` (white text → must stay white). We remap the token
+     | to a dark surface here so every white surface (incl. frosted bg-white/80
+     | etc.) darkens, then force the `text-white` utilities back to real white in
+     | the rules below.
+     */
+    --color-white: #1b1f2a;
+    --color-body: #12141c;
+
+    /*
+     | Topbar + sidebar in dark mode.
+     | These use !important so dark mode wins over the theme customizer, which
+     | writes these same tokens as inline styles on <html> (inline normally
+     | beats a stylesheet rule). In light mode the customizer's colors apply as
+     | usual; switching to dark forces the dark surfaces, light restores them.
+     */
+    --color-topbar: #1b1f2a !important;
+    --color-topbar-text: #e5e9f0 !important;
+    --color-sidebar: #171b26 !important;
+    --color-sidebar-header: #1e2330 !important;
+    --color-sidebar-sub: #0e1118 !important;
+    --color-sidebar-text: #cdd4e4 !important;
+    --color-sidebar-icon: #6b748c !important;
+    --color-sidebar-border: rgba(255, 255, 255, 0.08) !important;
+
+    --color-gray-50: #232838;
+    --color-gray-100: #2b3142;
+    --color-gray-200: #353c4f;
+    --color-gray-300: #434b60;
+    --color-gray-400: #8b93a7;
+    --color-gray-500: #a2aabd;
+    --color-gray-600: #bdc4d4;
+    --color-gray-700: #d9dee8;
+    --color-gray-800: #e9edf4;
+    --color-gray-900: #f5f7fa;
+    --color-gray-950: #ffffff;
+    color-scheme: dark;
+}
+
+/*
+ | Dark mode: keep the `text-white` utilities truly white. Because --color-white
+ | is remapped to a dark surface (for bg-white), white TEXT would otherwise be
+ | dragged dark and disappear on coloured/dark elements (buttons, gradient
+ | cards, sidebar, badges). These overrides restore real white.
+ */
+html.dark .text-white { color: #fff; }
+html.dark .text-white\/90 { color: rgb(255 255 255 / 0.90); }
+html.dark .text-white\/85 { color: rgb(255 255 255 / 0.85); }
+html.dark .text-white\/80 { color: rgb(255 255 255 / 0.80); }
+html.dark .text-white\/70 { color: rgb(255 255 255 / 0.70); }
+html.dark .text-white\/60 { color: rgb(255 255 255 / 0.60); }
+html.dark .text-white\/40 { color: rgb(255 255 255 / 0.40); }
+html.dark .text-white\/20 { color: rgb(255 255 255 / 0.20); }
+
+/*
+ | Dark mode text scale — explicit (no var()) so readability never depends on
+ | CSS-variable resolution. Mirrors the inverted gray ramp and keeps hierarchy
+ | (900 strongest → 400 muted). Covers both `.dark` (legacy) and `html.dark`.
+ */
+html.dark .text-gray-900, .dark .text-gray-900 { color: #f5f7fa; }
+html.dark .text-gray-800, .dark .text-gray-800 { color: #e9edf4; }
+html.dark .text-gray-700, .dark .text-gray-700 { color: #d9dee8; }
+html.dark .text-gray-600, .dark .text-gray-600 { color: #c3cad9; }
+html.dark .text-gray-500, .dark .text-gray-500 { color: #a7afc0; }
+html.dark .text-gray-400, .dark .text-gray-400 { color: #8b93a7; }
+html.dark .text-black,     .dark .text-black     { color: #f1f5f9; }
+
+/*
+ | Dark mode form controls. Preflight resets these to `color: inherit`, which can
+ | render dark/invisible — and native <option>/<optgroup> popups don't pick up
+ | utility classes. Force light text on fields and a dark popup background.
+ | NOTE: `button` is intentionally excluded so `text-white` on coloured buttons
+ | stays white.
+ */
+html.dark input,
+html.dark select,
+html.dark textarea,
+html.dark optgroup,
+html.dark option,
+.dark input,
+.dark select,
+.dark textarea,
+.dark optgroup,
+.dark option { color: #e2e8f0; }
+
+html.dark option,
+html.dark optgroup,
+.dark option,
+.dark optgroup { background-color: #1b1f2a; }
+
+@layer base {
+    body {
+        background-color: var(--color-body);
+        font-family: var(--font-sans);
+        color: var(--color-gray-700);
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+
+    /* Alpine: hide elements until initialised (used by tabs/menus) */
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+/*
+ | Thin custom scrollbar for the sidebar / scroll regions.
+ */
+@layer utilities {
+    .scrollbar-thin {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+    }
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.15);
+        border-radius: 9999px;
+    }
+}
+
+/*
+ | Chartist: readable axis/value labels + subtle grid lines in BOTH light and
+ | dark mode (Chartist renders its own SVG text/grid with faint defaults).
+ */
+.ct-label { fill: #94a3b8; color: #94a3b8; font-size: 12px; }
+.ct-grid { stroke: rgba(148, 163, 184, 0.18); }
