@@ -66,8 +66,7 @@
             </table>
         </x-table>
     </x-card>
-    <x-button wire:click="createPeriods">{{ __('Create & open builder') }}</x-button>
-    <button wire:click="doesNotExist">Test</button>
+
     <x-drawer name="new-rota-period" title="{{ __('New rota period') }}" width="w-[28rem]">
         <div class="space-y-4">
             <x-form.input type="date" name="newWeekCommencing" label="{{ __('Week commencing') }}"
