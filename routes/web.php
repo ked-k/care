@@ -9,6 +9,7 @@ use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RolesController;
 use App\Http\Controllers\UserController;
 use App\Livewire\Care\CarePlanManagerComponent;
+use App\Livewire\Dashboard\AnalyticsDashboardComponent;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -21,8 +22,9 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
-Route::get('/', function () {return view('home');});
+// Route::get('/', function () {return view('home');});
 
+Route::get('/', [LoginController::class, 'showLoginForm'])->name('index');
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('login', [LoginController::class, 'login']);
 Route::post('register', [RegisterController::class, 'register']);
@@ -40,9 +42,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/clear-cache', [HomeController::class, 'clearCache']);
 
     // dashboard route
-    Route::get('/dashboard', function () {
-        return view('pages.dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', AnalyticsDashboardComponent::class)->name('dashboard');
 
     //only those have manage_user permission will get access
     Route::group(['middleware' => 'can:manage_user'], function () {

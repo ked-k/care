@@ -42,7 +42,7 @@ return [
     |----------------------------------------------------------------------
     */
     'care' => [
-        ['label' => 'Dashboard', 'icon' => 'ik ik-home', 'route' => 'care-management.dashboard', 'active' => 'care-management.dashboard'],
+        ['label' => 'Dashboard', 'icon' => 'ik ik-home', 'route' => 'dashboard', 'active' => 'dashboard'],
 
         ['label' => 'Care Management', 'icon' => 'ik ik-file', 'active' => 'care-management/manage*', 'children' => [
             ['label' => 'Care Plans', 'icon' => 'ik ik-file-text', 'route' => 'care-plans.index', 'active' => 'care-plans.index'],
