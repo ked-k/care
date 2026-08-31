@@ -51,6 +51,15 @@ return [
 
         ['label' => 'Safeguarding', 'icon' => 'ik ik-shield', 'route' => 'safeguarding.index', 'active' => 'safeguarding*'],
 
+        ['label' => 'Compliance & Governance', 'icon' => 'ik ik-check-square', 'active' => 'policies*|training*|compliance*|audits*|data-protection*', 'children' => [
+            ['label' => 'Policies', 'icon' => 'ik ik-file-text', 'route' => 'policies.index', 'active' => 'policies.index'],
+            ['label' => 'Training', 'icon' => 'ik ik-award', 'route' => 'training.index', 'active' => 'training.index'],
+            ['label' => 'Compliance Dashboard', 'icon' => 'ik ik-check-square', 'route' => 'compliance.dashboard', 'active' => 'compliance.dashboard'],
+            ['label' => 'Audit Log', 'icon' => 'ik ik-list', 'route' => 'audits.index', 'active' => 'audits.index', 'can' => 'compliance.manage'],
+            ['label' => 'Subject Access Requests', 'icon' => 'ik ik-file', 'route' => 'data-protection.sar', 'active' => 'data-protection.sar'],
+            ['label' => 'Data Breaches', 'icon' => 'ik ik-alert-triangle', 'route' => 'data-protection.breaches', 'active' => 'data-protection.breaches'],
+        ]],
+
         ['label' => 'Rota Management', 'icon' => 'ik ik-file', 'active' => 'rota*', 'children' => [
             ['label' => 'Rota Plans', 'icon' => 'ik ik-file-text', 'route' => 'rota.index', 'active' => 'rota.index'],
             ['label' => 'Time sheets', 'icon' => 'ik ik-clipboard', 'route' => 'timesheets.index', 'active' => 'timesheets.index'],

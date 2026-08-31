@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\AuditLogger;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -93,6 +94,7 @@ class SafeguardingReport extends Model
     {
         $this->appendLog('reported', $by, $note);
         $this->save();
+        AuditLogger::log('SAFEGUARDING_REPORTED', $this, [], $by->id);
     }
 
     public function escalate(User $by, User $to, ?string $note = null): void
@@ -100,6 +102,7 @@ class SafeguardingReport extends Model
         $this->escalated_to = $to->id;
         $this->appendLog('escalated', $by, $note, $to);
         $this->save();
+        AuditLogger::log('SAFEGUARDING_ESCALATED', $this, ['to' => $to->name], $by->id);
     }
 
     /**
@@ -120,6 +123,7 @@ class SafeguardingReport extends Model
         $this->status = self::STATUS_RESOLVED;
         $this->appendLog('resolved', $by, $resolutionNote);
         $this->save();
+        AuditLogger::log('SAFEGUARDING_RESOLVED', $this, [], $by->id);
     }
 
     public function canClose(): bool
@@ -132,6 +136,7 @@ class SafeguardingReport extends Model
         $this->status = self::STATUS_CLOSED;
         $this->appendLog('closed', $by, $note);
         $this->save();
+        AuditLogger::log('SAFEGUARDING_CLOSED', $this, [], $by->id);
     }
 
     public function statusColor(): string

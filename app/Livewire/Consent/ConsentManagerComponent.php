@@ -4,6 +4,7 @@ namespace App\Livewire\Consent;
 
 use App\Models\Consent;
 use App\Models\ServiceUser;
+use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -66,7 +67,7 @@ class ConsentManagerComponent extends Component
             'formNotes' => 'nullable|string|max:2000',
         ]);
 
-        Consent::create([
+        $consent = Consent::create([
             'service_user_id' => $this->serviceUserId,
             'consent_type' => $this->formConsentType,
             'granted' => $this->formGranted,
@@ -76,6 +77,8 @@ class ConsentManagerComponent extends Component
             'notes' => $this->formNotes ?: null,
             'created_by' => Auth::id(),
         ]);
+
+        AuditLogger::log('CONSENT_RECORDED', $consent, ['type' => $this->formConsentType, 'granted' => $this->formGranted]);
 
         $this->dispatch('close-drawer', 'consent-form');
         $this->dispatch('toast', message: 'Consent recorded.', type: 'success');
@@ -99,6 +102,8 @@ class ConsentManagerComponent extends Component
             'notes' => trim(($consent->notes ? $consent->notes."\n" : '')."Revoked: {$this->revokeNotes}"),
             'updated_by' => Auth::id(),
         ]);
+
+        AuditLogger::log('CONSENT_REVOKED', $consent, ['type' => $consent->consent_type]);
 
         $this->dispatch('close-drawer', 'consent-revoke');
         $this->dispatch('toast', message: 'Consent revoked.', type: 'warning');

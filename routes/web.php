@@ -90,6 +90,7 @@ Route::group(['middleware' => ['auth', 'not-family']], function () {
     include ('static-data.php');
     include ('task-management.php');
     include ('safeguarding-consent-family.php');
+    include ('compliance-governance.php');
     // get permissions
     Route::get('get-role-permissions-badge', [PermissionController::class, 'getPermissionBadgeByRole']);
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Providers\RouteServiceProvider;
+use App\Services\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -41,6 +42,8 @@ class LoginController extends Controller
 
         if (Auth::attempt($credentials, $request->boolean('item_checkbox'))) {
             $request->session()->regenerate();
+
+            AuditLogger::log('LOGIN_SUCCESS', Auth::user());
 
             // Family-role logins never land in the staff app — send them
             // straight to their own portal regardless of what was "intended".

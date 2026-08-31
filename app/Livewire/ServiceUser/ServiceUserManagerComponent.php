@@ -2,6 +2,7 @@
 namespace App\Livewire\ServiceUser;
 
 use App\Models\ServiceUser;
+use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -91,9 +92,12 @@ class ServiceUserManagerComponent extends Component
         ];
 
         if ($this->editingServiceUserId) {
-            ServiceUser::whereKey($this->editingServiceUserId)->update($data);
+            $su = ServiceUser::findOrFail($this->editingServiceUserId);
+            $su->update($data);
+            AuditLogger::log('SERVICE_USER_UPDATED', $su);
         } else {
-            ServiceUser::create($data);
+            $su = ServiceUser::create($data);
+            AuditLogger::log('SERVICE_USER_CREATED', $su);
         }
 
         $this->resetForm();
@@ -107,9 +111,11 @@ class ServiceUserManagerComponent extends Component
 
         if ($su->trashed()) {
             $su->restore();
+            AuditLogger::log('SERVICE_USER_REACTIVATED', $su);
             $this->dispatch('toast', message: 'Service user reactivated.', type: 'success');
         } else {
             $su->delete();
+            AuditLogger::log('SERVICE_USER_DEACTIVATED', $su);
             $this->dispatch('toast', message: 'Service user marked inactive.', type: 'success');
         }
     }

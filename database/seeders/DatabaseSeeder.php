@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             RolePermissionSeeder::class,
             SafeguardingConsentFamilySeeder::class,
+            ComplianceGovernanceSeeder::class,
         ]);
     }
 }

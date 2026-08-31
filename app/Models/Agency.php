@@ -49,4 +49,24 @@ class Agency extends Model
     {
         return $this->hasMany(EmployeePayProfile::class);
     }
+
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
+
+    public function policies(): HasMany
+    {
+        return $this->hasMany(Policy::class);
+    }
+
+    public function complianceChecks(): HasMany
+    {
+        return $this->hasMany(ComplianceCheck::class);
+    }
+
+    public function breachReports(): HasMany
+    {
+        return $this->hasMany(BreachReport::class);
+    }
 }
