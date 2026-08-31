@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/my-rota', MyRotaComponent::class)->name('rota.mine');
 
+Route::get('/profile', \App\Livewire\Profile\ProfileComponent::class)->name('profile.show');
+
 Route::get('/service-users/{serviceUserId}/assessments', AssessmentIndexComponent::class)
     ->name('assessments.manage');
 

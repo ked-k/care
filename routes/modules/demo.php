@@ -20,7 +20,7 @@ Route::get('/layout-edit-item', function () { return view('pages.layout-edit-ite
 Route::get('/layouts', function () { return view('pages.layouts'); });
 
 Route::get('/navbar', function () { return view('pages.navbar'); });
-// Route::get('/profile', function () { return view('pages.profile'); });
+Route::get('/ui-profile', function () { return view('pages.profile'); });
 Route::get('/project', function () { return view('pages.project'); });
 Route::get('/view', function () { return view('pages.view'); });
 
