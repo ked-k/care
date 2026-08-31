@@ -51,4 +51,29 @@ class ServiceUser extends Model
             ->withPivot('is_primary_carer')
             ->withTimestamps();
     }
+
+    public function safeguardingReports(): HasMany
+    {
+        return $this->hasMany(SafeguardingReport::class);
+    }
+
+    public function consents(): HasMany
+    {
+        return $this->hasMany(Consent::class);
+    }
+
+    public function familyMembers(): HasMany
+    {
+        return $this->hasMany(FamilyMember::class);
+    }
+
+    public function careTimelineEntries(): HasMany
+    {
+        return $this->hasMany(CareTimelineEntry::class);
+    }
+
+    public function carePlans(): HasMany
+    {
+        return $this->hasMany(CarePlan::class);
+    }
 }

@@ -42,6 +42,12 @@ class LoginController extends Controller
         if (Auth::attempt($credentials, $request->boolean('item_checkbox'))) {
             $request->session()->regenerate();
 
+            // Family-role logins never land in the staff app — send them
+            // straight to their own portal regardless of what was "intended".
+            if (Auth::user()->hasRole('Family')) {
+                return redirect()->route('family.portal');
+            }
+
             return redirect()->intended($this->redirectTo);
         }
 

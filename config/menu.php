@@ -49,6 +49,8 @@ return [
             ['label' => 'Tasks', 'icon' => 'ik ik-clipboard', 'route' => 'tasks.index', 'active' => 'tasks.index*'],
         ]],
 
+        ['label' => 'Safeguarding', 'icon' => 'ik ik-shield', 'route' => 'safeguarding.index', 'active' => 'safeguarding*'],
+
         ['label' => 'Rota Management', 'icon' => 'ik ik-file', 'active' => 'rota*', 'children' => [
             ['label' => 'Rota Plans', 'icon' => 'ik ik-file-text', 'route' => 'rota.index', 'active' => 'rota.index'],
             ['label' => 'Time sheets', 'icon' => 'ik ik-clipboard', 'route' => 'timesheets.index', 'active' => 'timesheets.index'],

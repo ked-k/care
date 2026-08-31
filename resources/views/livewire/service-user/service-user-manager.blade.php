@@ -53,6 +53,10 @@
                                 @unless ($su->trashed())
                                     <a href="{{ route('medications.manage', $su->id) }}" wire:navigate
                                         class="text-primary-600 hover:underline text-sm font-medium">{{ __('Medications') }}</a>
+                                    <a href="{{ route('consents.manage', $su->id) }}" wire:navigate
+                                        class="text-primary-600 hover:underline text-sm font-medium">{{ __('Consents') }}</a>
+                                    <a href="{{ route('family.manage', $su->id) }}" wire:navigate
+                                        class="text-primary-600 hover:underline text-sm font-medium">{{ __('Family') }}</a>
                                     <button type="button" wire:click="openEditForm('{{ $su->id }}')"
                                         @click="$dispatch('open-drawer', 'service-user-form')"
                                         class="text-primary-600 hover:underline text-sm font-medium">{{ __('Edit') }}</button>

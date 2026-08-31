@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Task;
 
+use App\Models\CareTimelineEntry;
 use App\Models\MediaFile;
 use App\Models\Task;
 use App\Models\TaskLog;
@@ -80,7 +81,7 @@ class TaskListComponent extends Component
 
     public function completeTask(): void
     {
-        $task = Task::findOrFail($this->completingTaskId);
+        $task = Task::with('carePlan.serviceUser')->findOrFail($this->completingTaskId);
 
         $this->validate([
             'completeStatus' => 'required|in:completed,refused,skipped',
@@ -117,9 +118,44 @@ class TaskListComponent extends Component
             $this->storeSignature($log->id);
         }
 
+        $this->recordTimelineEntry($task, $log);
+
         $this->completingTaskId = null;
         $this->dispatch('close-drawer', 'task-complete-form');
         $this->dispatch('toast', message: 'Task updated.', type: 'success');
+    }
+
+    /**
+     * Feeds the previously-unused care_timeline_entries table (and, through
+     * it, the family portal) from real task activity — every completed,
+     * refused, or skipped task becomes a family-visible timeline entry.
+     */
+    protected function recordTimelineEntry(Task $task, TaskLog $log): void
+    {
+        $serviceUser = $task->carePlan?->serviceUser;
+
+        if (! $serviceUser) {
+            return;
+        }
+
+        $verb = match ($log->status) {
+            'completed' => 'completed',
+            'refused' => 'was refused by the service user for',
+            'skipped' => 'skipped',
+            default => $log->status,
+        };
+
+        $content = trim("{$task->title} — {$verb}." . ($log->notes ? " {$log->notes}" : ''));
+
+        CareTimelineEntry::create([
+            'service_user_id' => $serviceUser->id,
+            'entry_type' => $task->type ?: 'task',
+            'content' => $content,
+            'media_id' => $log->photo_id,
+            'visible_to_family' => true,
+            'metadata' => ['task_id' => $task->id, 'task_log_id' => $log->id, 'status' => $log->status],
+            'created_by' => Auth::id(),
+        ]);
     }
 
     protected function storeSignature(string $taskLogId): void

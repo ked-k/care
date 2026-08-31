@@ -63,5 +63,13 @@ class Kernel extends HttpKernel
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+
+        // Added for safeguarding/consent/family-portal work:
+        // spatie/laravel-permission ships these but the app never registered
+        // route-level aliases for them (only the 'can:' gate check was used).
+        'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+        'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+        'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+        'not-family' => \App\Http\Middleware\EnsureNotFamilyMember::class,
     ];
 }

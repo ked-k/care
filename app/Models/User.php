@@ -1,11 +1,6 @@
 <?php
 namespace App\Models;
 
-use App\Models\care\Agency;
-use App\Models\care\CarePlan;
-use App\Models\care\ServiceUser;
-use App\Models\care\Shift;
-use App\Models\care\Task;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -81,6 +76,35 @@ class User extends Authenticatable
     public function payProfile()
     {
         return $this->hasOne(EmployeePayProfile::class, 'user_id');
+    }
+
+    public function safeguardingReportsFiled()
+    {
+        return $this->hasMany(SafeguardingReport::class, 'reported_by');
+    }
+
+    public function safeguardingReportsEscalatedToMe()
+    {
+        return $this->hasMany(SafeguardingReport::class, 'escalated_to');
+    }
+
+    public function consentsGranted()
+    {
+        return $this->hasMany(Consent::class, 'granted_by');
+    }
+
+    /**
+     * The service users this user is linked to as a family member (role
+     * "Family"). Empty for staff accounts.
+     */
+    public function familyLinks()
+    {
+        return $this->hasMany(FamilyMember::class, 'user_id');
+    }
+
+    public function isFamilyMember(): bool
+    {
+        return $this->hasRole('Family');
     }
 
     // Accessors

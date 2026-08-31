@@ -36,7 +36,11 @@ Route::post('password/email', [ForgotPasswordController::class, 'sendResetLinkEm
 Route::get('password/reset/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
 Route::post('password/reset', [ResetPasswordController::class, 'reset'])->name('password.update');
 
-Route::group(['middleware' => 'auth'], function () {
+// Family portal — deliberately outside the staff 'auth' group below. See
+// routes/family-portal.php for why.
+include('family-portal.php');
+
+Route::group(['middleware' => ['auth', 'not-family']], function () {
     // logout route
     Route::get('/logout', [LoginController::class, 'logout']);
     Route::get('/clear-cache', [HomeController::class, 'clearCache']);
@@ -85,6 +89,7 @@ Route::group(['middleware' => 'auth'], function () {
     include ('medication-management.php');
     include ('static-data.php');
     include ('task-management.php');
+    include ('safeguarding-consent-family.php');
     // get permissions
     Route::get('get-role-permissions-badge', [PermissionController::class, 'getPermissionBadgeByRole']);
 
