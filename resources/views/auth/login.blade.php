@@ -12,7 +12,7 @@
             <label for="email" class="mb-1.5 block text-sm font-medium text-gray-700">{{ __('Email address') }}</label>
             <div class="relative">
                 <i class="ik ik-mail pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <input id="email" type="email" name="email" placeholder="you@example.com" value="{{ old('email', 'admin@test.com') }}" required autocomplete="email" autofocus
+                <input id="email" type="email" name="email" placeholder="you@example.com" value="{{ old('email', 'superadmin@affinityhealthcare.test') }}" required autocomplete="email" autofocus
                        @class([
                            $inputCls,
                            'border-gray-200 focus:border-primary-400 focus:ring-primary-100' => ! $errors->has('email'),
@@ -30,7 +30,7 @@
             </div>
             <div class="relative">
                 <i class="ik ik-lock pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <input id="password" name="password" placeholder="••••••••" value="1234" required :type="show ? 'text' : 'password'"
+                <input id="password" name="password" placeholder="••••••••" value="Password123!" required :type="show ? 'text' : 'password'"
                        @class([
                            str_replace('pr-3', 'pr-11', $inputCls),
                            'border-gray-200 focus:border-primary-400 focus:ring-primary-100' => ! $errors->has('password'),

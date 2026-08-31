@@ -19,6 +19,11 @@
                 <div><span class="block text-xs text-gray-400">{{ __('Phone') }}</span><span class="font-medium text-gray-700">{{ $phone }}</span></div>
                 <div><span class="block text-xs text-gray-400">{{ __('Address') }}</span><span class="font-medium text-gray-700">{{ $address }}</span></div>
             </div>
+            <div class="mt-4">
+                @can('manage_role')
+                    <livewire:profile.user-role-manager :user-id="Auth::id()" />
+                @endcan
+            </div>
         </x-card>
     </div>
 

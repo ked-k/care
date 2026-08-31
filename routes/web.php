@@ -35,7 +35,7 @@ Route::get('password/forget', function () {
 Route::post('password/email', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
 Route::get('password/reset/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
 Route::post('password/reset', [ResetPasswordController::class, 'reset'])->name('password.update');
-
+ Route::get('/logout', [LoginController::class, 'logout']);
 
 // Family portal — deliberately outside the staff 'auth' group below. See
 // routes/family-portal.php for why.
@@ -43,7 +43,7 @@ include __DIR__ . '/family-portal.php';
 
 Route::group(['middleware' => ['auth', 'not-family']], function () {
     // logout route
-    Route::get('/logout', [LoginController::class, 'logout']);
+
     Route::get('/clear-cache', [HomeController::class, 'clearCache']);
 
     // dashboard route
