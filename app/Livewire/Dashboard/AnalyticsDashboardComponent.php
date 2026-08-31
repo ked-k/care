@@ -2,7 +2,7 @@
 namespace App\Livewire\Dashboard;
 
 use App\Models\CarePlan;
-use App\Models\care\SafeguardingReport;
+use App\Models\SafeguardingReport;
 use App\Models\MedicationAdministration;
 use App\Models\PayrollRun;
 use App\Models\ServiceUser;
@@ -100,20 +100,32 @@ class AnalyticsDashboardComponent extends Component
     // ---------- Safeguarding ----------
     protected function safeguardingStats(): array
     {
+        // Batch 5 fix: this used to import App\Models\care\SafeguardingReport
+        // (the stale stub in the leftover app/Models/care directory, see
+        // CHANGES4.md) instead of the real App\Models\SafeguardingReport —
+        // it happened to share the same table so this never crashed, but it
+        // also filtered on a status value ('escalated') that has never
+        // existed on the real model: escalation is tracked separately via
+        // `escalated_to`, not as a status (see SafeguardingReport::escalate()),
+        // so this bucket was silently always zero. "Escalated" is now a
+        // report that has an escalated_to set and hasn't been resolved or
+        // closed yet, rather than a status match.
         $reports = SafeguardingReport::whereHas('reportedBy', fn($q) => $q->where('agency_id', $this->agencyId()))
-            ->get(['status']);
+            ->get(['status', 'escalated_to']);
 
         $counts = [
             'open'          => $reports->where('status', 'open')->count(),
-            'escalated'     => $reports->where('status', 'escalated')->count(),
             'investigating' => $reports->where('status', 'investigating')->count(),
             'resolved'      => $reports->where('status', 'resolved')->count(),
             'closed'        => $reports->where('status', 'closed')->count(),
         ];
+        $counts['escalated'] = $reports->whereNotNull('escalated_to')
+            ->whereIn('status', ['open', 'investigating'])
+            ->count();
 
         return $counts + [
-            'total'            => array_sum($counts),
-            'total_open_cases' => $counts['open'] + $counts['escalated'] + $counts['investigating'],
+            'total'            => $reports->count(),
+            'total_open_cases' => $counts['open'] + $counts['investigating'],
         ];
     }
 

@@ -20,9 +20,9 @@ class PayslipShowComponent extends Component
         'deduction' => ['paye', 'nssf', 'loan_repayment', 'other'],
     ];
 
-    public function mount(string $payslipId): void
+    public function mount(string $payslip): void
     {
-        $this->payslipId = $payslipId;
+        $this->payslipId = $payslip;
     }
 
     protected function payslip(): Payslip
