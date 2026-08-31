@@ -22,7 +22,7 @@ class StaffManagerComponent extends Component
     public string $formName     = '';
     public string $formEmail    = '';
     public string $formPassword = '';
-    public string $formRole     = 'carer';
+    public string $formRole     = 'Carer';
     public bool $formIsActive   = true;
 
     // Pay profile fields
@@ -43,7 +43,10 @@ class StaffManagerComponent extends Component
 
     public function mount(): void
     {
-        // abort_unless(Auth::user()->hasAnyRole(['admin', 'manager']), 403);
+        // Batch 4: this was commented out — any authenticated staff member,
+        // including a Carer, could open Staff Management and create/edit
+        // any staff member, including assigning themselves an Admin role.
+        abort_unless(Auth::user()->can('manage_user') || Auth::user()->hasRole(['Admin', 'Super Admin']), 403);
 
         $this->roleOptions    = Role::pluck('name', 'name')->toArray();
         $this->managerOptions = User::where('agency_id', Auth::user()->agency_id)
@@ -70,7 +73,7 @@ class StaffManagerComponent extends Component
         $this->formName      = $user->name;
         $this->formEmail     = $user->email;
         $this->formPassword  = '';
-        $this->formRole      = $user->roles->first()?->name ?? 'carer';
+        $this->formRole      = $user->roles->first()?->name ?? 'Carer';
         $this->formIsActive  = (bool) $user->is_active;
 
         $this->formEmployeeNo                   = $profile?->employee_no ?? '';
@@ -95,7 +98,7 @@ class StaffManagerComponent extends Component
             'formEmployeeNo', 'formJobTitle', 'formManagerId', 'formBankName',
             'formBankAccountNo', 'formMobileMoneyNumber',
         ]);
-        $this->formRole                         = 'carer';
+        $this->formRole                         = 'Carer';
         $this->formIsActive                     = true;
         $this->formEmploymentType               = 'full_time';
         $this->formHourlyRate                   = 0;

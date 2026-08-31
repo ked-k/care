@@ -44,6 +44,8 @@ return [
     'care' => [
         ['label' => 'Dashboard', 'icon' => 'ik ik-home', 'route' => 'dashboard', 'active' => 'dashboard'],
 
+        ['label' => 'Notifications', 'icon' => 'ik ik-bell', 'route' => 'notifications.index', 'active' => 'notifications*'],
+
         ['label' => 'Care Management', 'icon' => 'ik ik-file', 'active' => 'care-management/manage*', 'children' => [
             ['label' => 'Care Plans', 'icon' => 'ik ik-file-text', 'route' => 'care-plans.index', 'active' => 'care-plans.index'],
             ['label' => 'Tasks', 'icon' => 'ik ik-clipboard', 'route' => 'tasks.index', 'active' => 'tasks.index*'],
@@ -60,15 +62,16 @@ return [
             ['label' => 'Data Breaches', 'icon' => 'ik ik-alert-triangle', 'route' => 'data-protection.breaches', 'active' => 'data-protection.breaches'],
         ]],
 
-        ['label' => 'Rota Management', 'icon' => 'ik ik-file', 'active' => 'rota*', 'children' => [
-            ['label' => 'Rota Plans', 'icon' => 'ik ik-file-text', 'route' => 'rota.index', 'active' => 'rota.index'],
+        ['label' => 'Rota Management', 'icon' => 'ik ik-file', 'active' => 'rota*|my-rota', 'children' => [
+            ['label' => 'My Rota', 'icon' => 'ik ik-calendar', 'route' => 'rota.mine', 'active' => 'my-rota'],
+            ['label' => 'Rota Plans', 'icon' => 'ik ik-file-text', 'route' => 'rota.index', 'active' => 'rota.index', 'can' => 'manage_rota'],
             ['label' => 'Time sheets', 'icon' => 'ik ik-clipboard', 'route' => 'timesheets.index', 'active' => 'timesheets.index'],
             ['label' => 'Payroll', 'icon' => 'ik ik-clipboard', 'route' => 'payroll.index', 'active' => 'payroll.index'],
         ]],
         ['label' => 'User Management', 'icon' => 'ik ik-file', 'active' => 'rota*', 'children' => [
             ['label' => 'Service Users', 'icon' => 'ik ik-file-text', 'route' => 'service-users.index', 'active' => 'service-users.index'],
-            ['label' => 'Staffs', 'icon' => 'ik ik-clipboard', 'route' => 'staff.index', 'active' => 'staff.index'],
-            ['label' => 'Agencies', 'icon' => 'ik ik-clipboard', 'route' => 'agency.settings', 'active' => 'agency.settings'],
+            ['label' => 'Staffs', 'icon' => 'ik ik-clipboard', 'route' => 'staff.index', 'active' => 'staff.index', 'can' => 'manage_user'],
+            ['label' => 'Agencies', 'icon' => 'ik ik-clipboard', 'route' => 'agency.settings', 'active' => 'agency.settings', 'can' => 'manage_user'],
         ]],
 
     ],

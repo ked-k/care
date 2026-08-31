@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\AuditLogger;
+use App\Services\NotificationService;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -103,6 +104,15 @@ class SafeguardingReport extends Model
         $this->appendLog('escalated', $by, $note, $to);
         $this->save();
         AuditLogger::log('SAFEGUARDING_ESCALATED', $this, ['to' => $to->name], $by->id);
+
+        NotificationService::send(
+            userId: $to->id,
+            type: 'safeguarding_escalated',
+            title: 'Safeguarding concern escalated to you',
+            message: "{$by->name} escalated a safeguarding report".($note ? ": {$note}" : '.'),
+            priority: 'high',
+            data: ['safeguarding_report_id' => $this->id],
+        );
     }
 
     /**

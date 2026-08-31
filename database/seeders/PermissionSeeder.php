@@ -1,46 +1,35 @@
 <?php
+
 namespace Database\Seeders;
 
-use DB;
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Permission;
 
+/**
+ * Batch 4 (Role & Data Cleanup): rewritten from raw, hardcoded-ID
+ * DB::table() inserts that included two permissions never referenced
+ * anywhere in this codebase ("manage_sales", "manage_projects" — leftovers
+ * from the CRM starter template) to idempotent Permission::firstOrCreate()
+ * calls, and adds two permissions the app already checks in code but that
+ * no seeder ever created:
+ *   - "manage_rota" — new; used by RotaBuilder/RotaPeriodIndex's new
+ *     mount() guard (see CHANGES4.md — previously either component had no
+ *     authorization check at all).
+ *   - "manage_tasks" — TaskListComponent has checked $user->can('manage_tasks')
+ *     since Batch 1, but until now nothing ever granted it, so every
+ *     non-Super-Admin user only ever saw their own tasks even if they
+ *     should have seen everyone's.
+ * "manage_role"/"manage_permission"/"manage_user" are kept — real,
+ * route-gated (routes/web.php) admin functionality.
+ *
+ * Safe to re-run: firstOrCreate is a no-op for permissions that already exist.
+ */
 class PermissionSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
-    public function run()
+    public function run(): void
     {
-        // DB::table('permissions')->truncate();
-
-        DB::table('permissions')->insert([
-            [
-                'id'         => 2,
-                'name'       => 'manage_role',
-                'guard_name' => 'web',
-            ],
-            [
-                'id'         => 3,
-                'name'       => 'manage_permission',
-                'guard_name' => 'web',
-            ],
-            [
-                'id'         => 4,
-                'name'       => 'manage_user',
-                'guard_name' => 'web',
-            ],
-            [
-                'id'         => 5,
-                'name'       => 'manage_sales',
-                'guard_name' => 'web',
-            ],
-            [
-                'id'         => 6,
-                'name'       => 'manage_projects',
-                'guard_name' => 'web',
-            ],
-        ]);
+        foreach (['manage_role', 'manage_permission', 'manage_user', 'manage_rota', 'manage_tasks'] as $name) {
+            Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
+        }
     }
 }

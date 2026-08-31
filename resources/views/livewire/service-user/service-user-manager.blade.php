@@ -57,6 +57,10 @@
                                         class="text-primary-600 hover:underline text-sm font-medium">{{ __('Consents') }}</a>
                                     <a href="{{ route('family.manage', $su->id) }}" wire:navigate
                                         class="text-primary-600 hover:underline text-sm font-medium">{{ __('Family') }}</a>
+                                    <a href="{{ route('assessments.manage', $su->id) }}" wire:navigate
+                                        class="text-primary-600 hover:underline text-sm font-medium">{{ __('Assessments') }}</a>
+                                    <a href="{{ route('timeline.manage', $su->id) }}" wire:navigate
+                                        class="text-primary-600 hover:underline text-sm font-medium">{{ __('Timeline') }}</a>
                                     <button type="button" wire:click="openEditForm('{{ $su->id }}')"
                                         @click="$dispatch('open-drawer', 'service-user-form')"
                                         class="text-primary-600 hover:underline text-sm font-medium">{{ __('Edit') }}</button>

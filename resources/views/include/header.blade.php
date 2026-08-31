@@ -48,48 +48,11 @@
                 @endcan
             </x-dropdown>
 
-            <!-- Notifications -->
-            <x-dropdown width="w-80">
-                <x-slot:trigger>
-                    <button class="relative flex h-9 w-9 items-center justify-center rounded-lg text-topbar-text/70 hover:bg-gray-500/10">
-                        <i class="ik ik-bell"></i>
-                        <span class="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-500 px-1 text-[10px] font-semibold text-white">3</span>
-                    </button>
-                </x-slot:trigger>
+            <!-- Notifications: real data via App\Models\Notification, replacing the template's hardcoded demo dropdown -->
+            @livewire('notification.notification-bell-component')
 
-                <div class="border-b border-gray-100 px-4 py-2 text-sm font-semibold text-gray-700">{{ __('Notifications') }}</div>
-                <div class="max-h-80 overflow-y-auto">
-                    <a href="#" class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50">
-                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600"><i class="ik ik-check"></i></span>
-                        <span class="min-w-0">
-                            <span class="block text-sm font-semibold text-gray-700">{{ __('Invitation accepted') }}</span>
-                            <span class="block truncate text-xs text-gray-500">{{ __('Your have been Invited ...') }}</span>
-                        </span>
-                    </a>
-                    <a href="#" class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50">
-                        <img src="{{ asset('img/users/1.jpg') }}" class="h-9 w-9 shrink-0 rounded-full object-cover" alt="">
-                        <span class="min-w-0">
-                            <span class="block text-sm font-semibold text-gray-700">{{ __('Steve Smith') }}</span>
-                            <span class="block truncate text-xs text-gray-500">{{ __('I slowly updated projects') }}</span>
-                        </span>
-                    </a>
-                    <a href="#" class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50">
-                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-100 text-primary-600"><i class="ik ik-calendar"></i></span>
-                        <span class="min-w-0">
-                            <span class="block text-sm font-semibold text-gray-700">{{ __('To Do') }}</span>
-                            <span class="block truncate text-xs text-gray-500">{{ __('Meeting with Nathan on Friday 8 AM ...') }}</span>
-                        </span>
-                    </a>
-                </div>
-                <a href="javascript:void(0);" class="block border-t border-gray-100 px-4 py-2 text-center text-sm font-medium text-primary-600 hover:bg-gray-50">{{ __('See all activity') }}</a>
-            </x-dropdown>
-
-            <!-- Chat drawer toggle -->
-            <button type="button" @click="chatOpen = true"
-                    class="relative flex h-9 w-9 items-center justify-center rounded-lg text-topbar-text/70 hover:bg-gray-500/10">
-                <i class="ik ik-message-square"></i>
-                <span class="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-green-500 px-1 text-[10px] font-semibold text-white">3</span>
-            </button>
+            <!-- Chat drawer toggle + unread badge now live inside the chat drawer component itself (see include/chat.blade.php) -->
+            @livewire('messaging.chat-drawer-component')
 
             <!-- App grid -->
             <button type="button" @click="$dispatch('open-apps-modal')"

@@ -13,6 +13,7 @@ use App\Models\TrainingProgress;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * The metrics here are named after the vision doc's example dashboard, but
@@ -148,6 +149,53 @@ class ComplianceDashboardComponent extends Component
             'pending_acknowledgments' => $pendingAcknowledgments,
             'open_data_incidents' => $openDataIncidents,
         ];
+    }
+
+    /**
+     * Same caveat as the audit log's export: no PDF/Excel library is
+     * installed and none can be added without shell/composer access, so
+     * this is a CSV snapshot of the dashboard metrics plus the current
+     * checklist — not a formatted PDF report.
+     */
+    public function exportCsv(): StreamedResponse
+    {
+        $this->authorizeManage();
+
+        $metrics = $this->metrics();
+        $checks = ComplianceCheck::where('agency_id', Auth::user()->agency_id)
+            ->orderByRaw("status = 'complete'")
+            ->orderBy('next_due_at')
+            ->get();
+
+        return response()->streamDownload(function () use ($metrics, $checks) {
+            $out = fopen('php://output', 'w');
+
+            fputcsv($out, ['Compliance Dashboard Snapshot', now()->format('Y-m-d H:i')]);
+            fputcsv($out, []);
+            fputcsv($out, ['Metric', 'Value']);
+            fputcsv($out, ['Care plans due for review', $metrics['care_plans_due']]);
+            fputcsv($out, ['Overdue reviews', $metrics['overdue_reviews']]);
+            fputcsv($out, ['Training compliance (%)', $metrics['training_compliance'] ?? 'n/a']);
+            fputcsv($out, ['Medication compliance (%)', $metrics['medication_compliance'] ?? 'n/a']);
+            fputcsv($out, ['Open safeguarding cases', $metrics['open_safeguarding']]);
+            fputcsv($out, ['Missed visits (this week)', $metrics['missed_visits']]);
+            fputcsv($out, ['Pending policy acknowledgments', $metrics['pending_acknowledgments']]);
+            fputcsv($out, ['Open data incidents', $metrics['open_data_incidents']]);
+            fputcsv($out, []);
+            fputcsv($out, ['Compliance Checklist']);
+            fputcsv($out, ['Category', 'Status', 'Next Due', 'Notes']);
+
+            foreach ($checks as $check) {
+                fputcsv($out, [
+                    $check->category,
+                    $check->isOverdue() ? 'Overdue' : ucfirst(str_replace('_', ' ', $check->status)),
+                    $check->next_due_at?->format('Y-m-d') ?? '',
+                    $check->notes,
+                ]);
+            }
+
+            fclose($out);
+        }, 'compliance-summary-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv']);
     }
 
     public function render()

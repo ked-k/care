@@ -39,7 +39,7 @@ Route::get('/carousel', function () { return view('pages.ui.carousel'); });
 Route::get('/icons', function () { return view('pages.ui.icons'); });
 Route::get('/modals', function () { return view('pages.ui.modals'); });
 Route::get('/navigation', function () { return view('pages.ui.navigation'); });
-Route::get('/notifications', function () { return view('pages.ui.notifications'); });
+Route::get('/ui-notifications', function () { return view('pages.ui.notifications'); });
 Route::get('/range-slider', function () { return view('pages.ui.range-slider'); });
 Route::get('/rating', function () { return view('pages.ui.rating'); });
 Route::get('/session-timeout', function () { return view('pages.ui.session-timeout'); });

@@ -3,7 +3,6 @@
 use App\Livewire\CarePlan\CarePlanIndexComponent;
 use App\Livewire\CarePlan\CarePlanShowComponent;
 use App\Livewire\Task\TaskListComponent;
-use App\Models\Shift;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -32,7 +31,10 @@ Route::get('/care-plans/{carePlanId}', CarePlanShowComponent::class)->name('care
 // "My tasks" for the logged-in carer, filterable by date.
 Route::get('/tasks', TaskListComponent::class)->name('tasks.index');
 
-// Tasks scoped to one shift — e.g. linked from the shift check-in screen.
-Route::get('/tasks/shift/{shift}', function (Shift $shift) {
-    return view('tasks.by-shift', compact('shift'));
-})->name('tasks.by-shift');
+// Tasks scoped to one shift — e.g. linked from the carer's My Rota page.
+// This previously pointed at a `tasks.by-shift` Blade view that was never
+// created (resources/views/tasks/ doesn't exist), so the route 404'd/errored
+// for anyone who followed it. TaskListComponent already accepts an optional
+// $shiftId in its mount() and scopes the list to that shift, so this now
+// just points the route at the real, working component instead.
+Route::get('/tasks/shift/{shiftId}', TaskListComponent::class)->name('tasks.by-shift');

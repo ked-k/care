@@ -16,6 +16,13 @@ class RotaPeriodIndex extends Component
 
     public string $newNotes = '';
 
+    public function mount(): void
+    {
+        // Batch 4: same gap as RotaBuilder (see its mount()) — this list/
+        // create screen had no authorization check either.
+        abort_unless(Auth::user()->can('manage_rota') || Auth::user()->hasRole(['Admin', 'Super Admin']), 403);
+    }
+
     public function createPeriod()
     {
         // dd('createPeriod');
@@ -35,7 +42,7 @@ class RotaPeriodIndex extends Component
 
     public function publish(string $rotaPeriodId): void
     {
-        RotaPeriod::findOrFail($rotaPeriodId)->update(['status' => 'published']);
+        RotaPeriod::findOrFail($rotaPeriodId)->publish();
         $this->dispatch('toast', message: 'Rota period published.', type: 'success');
     }
 

@@ -32,6 +32,12 @@ class RotaBuilder extends Component
 
     public function mount(string $rotaPeriodId): void
     {
+        // Batch 4: this had no authorization check at all — any
+        // authenticated staff member, including a Carer, could open the
+        // rota builder and edit anyone's shifts. Flagged as a known gap in
+        // CHANGES3.md; closed here.
+        abort_unless(Auth::user()->can('manage_rota') || Auth::user()->hasRole(['Admin', 'Super Admin']), 403);
+
         $this->rotaPeriodId = $rotaPeriodId;
         $this->loadOptions();
         $this->loadGrid();
@@ -189,9 +195,14 @@ class RotaBuilder extends Component
         $this->loadGrid();
     }
 
+    /**
+     * Notifying scheduled carers happens inside RotaPeriod::publish() itself
+     * (also called from RotaPeriodIndex), so both entry points behave the
+     * same and the notification logic lives in one place.
+     */
     public function publish(): void
     {
-        $this->period()->update(['status' => 'published']);
+        $this->period()->publish();
         $this->dispatch('toast', message: 'Rota published.', type: 'success');
     }
 

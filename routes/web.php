@@ -38,7 +38,7 @@ Route::post('password/reset', [ResetPasswordController::class, 'reset'])->name('
 
 // Family portal — deliberately outside the staff 'auth' group below. See
 // routes/family-portal.php for why.
-include('family-portal.php');
+include __DIR__ . '/family-portal.php';
 
 Route::group(['middleware' => ['auth', 'not-family']], function () {
     // logout route
@@ -74,36 +74,31 @@ Route::group(['middleware' => ['auth', 'not-family']], function () {
         Route::delete('/permission/delete/{id}', [PermissionController::class, 'delete']);
     });
 
-    //only those have manage_permission permission will get access
     Route::prefix('care-management')->name('care-management.')->group(function () {
         Route::get('/dashboard', CarePlanManagerComponent::class)->name('dashboard');
         Route::get('/plan', CarePlanManagerComponent::class)->name('plan');
-
-// // Tasks scoped to one shift — e.g. linked from the shift check-in screen.
-//         Route::get('/tasks/shift/{shift}', function (Shift $shift) {
-//             return view('tasks.by-shift', compact('shift'));
-//         })->name('tasks.by-shift');
-
     });
-    include ('rota-payroll.php');
-    include ('medication-management.php');
-    include ('static-data.php');
-    include ('task-management.php');
-    include ('safeguarding-consent-family.php');
-    include ('compliance-governance.php');
+    include __DIR__ . '/rota-payroll.php';
+    include __DIR__ . '/medication-management.php';
+    include __DIR__ . '/static-data.php';
+    include __DIR__ . '/task-management.php';
+    include __DIR__ . '/safeguarding-consent-family.php';
+    include __DIR__ . '/compliance-governance.php';
+    include __DIR__ . '/operational.php';
     // get permissions
     Route::get('get-role-permissions-badge', [PermissionController::class, 'getPermissionBadgeByRole']);
 
-    // Basic demo routes
-    include ('modules/demo.php');
-    // Inventory routes
-    include ('modules/inventory.php');
-    // Accounting routes
-    include ('modules/accounting.php');
-    // Reports routes
-    include ('modules/reports.php');
-    // Settings routes
-    include ('modules/settings.php');
+    // Batch 4 (Role & Data Cleanup): the five generic starter-template
+    // modules previously included here (demo/themekit pages, an
+    // inventory+POS module, an accounting module, a reports module, a
+    // settings module) have nothing to do with CareTrust — none of their
+    // routes were named or linked from anywhere in this app, and their
+    // sidebar entries were already commented out in config/menu.php. They
+    // were still reachable by anyone authenticated (not even Family-gated)
+    // if you knew or guessed the URL. Un-wired here rather than deleted —
+    // this session can't delete files on your machine — so
+    // routes/modules/*.php and their controllers/views are inert leftovers,
+    // safe to delete by hand. See CHANGES4.md.
 });
 
 Route::get('/register', function () {return view('auth.register');})->name('register');

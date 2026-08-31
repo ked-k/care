@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Agency;
 use App\Models\Shift;
+use App\Services\NotificationService;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -32,6 +33,30 @@ class RotaPeriod extends Model
     public function timesheets(): HasMany
     {
         return $this->hasMany(Timesheet::class);
+    }
+
+    /**
+     * Publishing is the moment a rota actually becomes visible to carers —
+     * App\Livewire\Rota\MyRotaComponent only ever shows published periods —
+     * so this is where every scheduled carer is notified, once per publish
+     * rather than once per shift edit. Centralised here since two different
+     * Livewire components (RotaBuilder and RotaPeriodIndex) can trigger a publish.
+     */
+    public function publish(): void
+    {
+        $this->update(['status' => 'published']);
+
+        $carerIds = $this->shifts()->whereNotNull('assigned_to')->distinct()->pluck('assigned_to');
+
+        foreach ($carerIds as $carerId) {
+            NotificationService::send(
+                userId: $carerId,
+                type: 'shift_assigned',
+                title: 'Your rota has been published',
+                message: 'Shifts for the week commencing '.$this->week_commencing->format('d M Y').' are now available.',
+                data: ['rota_period_id' => $this->id],
+            );
+        }
     }
 
     /**

@@ -26,7 +26,10 @@
         @include('include.footer')
     </main>
 
-    @include('include.chat')
+    {{-- The chat drawer (App\Livewire\Messaging\ChatDrawerComponent) is now
+         embedded directly from include/header.blade.php, alongside its
+         trigger button, so it can be a single Livewire instance shared by
+         both — see that file. include.chat is no longer used. --}}
     @include('include.modalmenu')
     <x-theme-customizer />
     <x-command-palette />

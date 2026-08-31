@@ -107,6 +107,17 @@ class User extends Authenticatable
         return $this->hasRole('Family');
     }
 
+    /**
+     * Named `appNotifications`, not `notifications`, because Notifiable
+     * (above) already defines a `notifications()` relation against
+     * Laravel's own DatabaseNotification model — a different table shape
+     * than App\Models\Notification. See that model's docblock.
+     */
+    public function appNotifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
+
     // Accessors
     public function getFullNameAttribute()
     {

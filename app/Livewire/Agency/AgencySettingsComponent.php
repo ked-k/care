@@ -16,7 +16,10 @@ class AgencySettingsComponent extends Component
 
     public function mount(): void
     {
-        // abort_unless(Auth::user()->hasAnyRole(['admin', 'manager']), 403);
+        // Batch 4: this was commented out — any authenticated staff member
+        // could open and change the agency's own settings (name, contact
+        // details, week-start day).
+        abort_unless(Auth::user()->can('manage_user') || Auth::user()->hasRole(['Admin', 'Super Admin']), 403);
 
         $agency = $this->agency();
 

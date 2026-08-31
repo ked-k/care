@@ -76,4 +76,9 @@ class ServiceUser extends Model
     {
         return $this->hasMany(CarePlan::class);
     }
+
+    public function assessments(): HasMany
+    {
+        return $this->hasMany(Assessment::class);
+    }
 }
