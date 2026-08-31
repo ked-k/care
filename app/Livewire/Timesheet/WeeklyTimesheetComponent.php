@@ -125,7 +125,12 @@ class WeeklyTimesheetComponent extends Component
             $end->addDay(); // shift crosses midnight
         }
 
-        return $end->diffInMinutes($start);
+        // Batch 6 fix: same Carbon 3 diffInMinutes() sign change as
+        // TimesheetEntry::recalculateHours() — pass absolute=true explicitly
+        // so this always returns a positive duration, matching what this
+        // method's callers (and its `int` return type) expect. Without it,
+        // every row's live total-hours preview computed to 0 while typing.
+        return $end->diffInMinutes($start, true);
     }
 
     /**

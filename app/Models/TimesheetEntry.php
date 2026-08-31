@@ -84,7 +84,16 @@ class TimesheetEntry extends Model
             if ($end->lessThanOrEqualTo($start)) {
                 $end->addDay();
             }
-            $minutes += $end->diffInMinutes($start);
+            // Batch 6 fix: diffInMinutes()'s $absolute parameter defaults to
+            // true in Carbon 2 (always positive) but to false in Carbon 3
+            // (signed, direction-dependent) — this app runs Carbon 3.13. With
+            // $end always chronologically after $start (guarded above), the
+            // unpatched call returned a *negative* minute count, which then
+            // clamped to 0 via max($minutes, 0) below — every timesheet entry
+            // computed to 0.00 hours no matter what was actually worked. The
+            // explicit `true` restores the intended always-positive duration
+            // regardless of Carbon version.
+            $minutes += $end->diffInMinutes($start, true);
         }
 
         if ($this->night_shift_start && $this->night_shift_end) {
@@ -93,7 +102,7 @@ class TimesheetEntry extends Model
             if ($end->lessThanOrEqualTo($start)) {
                 $end->addDay();
             }
-            $minutes += $end->diffInMinutes($start);
+            $minutes += $end->diffInMinutes($start, true);
         }
 
         $minutes -= $this->break_minutes;

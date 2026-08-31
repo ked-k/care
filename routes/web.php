@@ -36,6 +36,7 @@ Route::post('password/email', [ForgotPasswordController::class, 'sendResetLinkEm
 Route::get('password/reset/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
 Route::post('password/reset', [ResetPasswordController::class, 'reset'])->name('password.update');
 
+
 // Family portal — deliberately outside the staff 'auth' group below. See
 // routes/family-portal.php for why.
 include __DIR__ . '/family-portal.php';
@@ -47,6 +48,7 @@ Route::group(['middleware' => ['auth', 'not-family']], function () {
 
     // dashboard route
     Route::get('/dashboard', AnalyticsDashboardComponent::class)->name('dashboard');
+    Route::get('/profile', function () { return view('pages.profile'); });
 
     //only those have manage_user permission will get access
     Route::group(['middleware' => 'can:manage_user'], function () {

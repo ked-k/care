@@ -27,7 +27,11 @@ class PayslipShowComponent extends Component
 
     protected function payslip(): Payslip
     {
-        return Payslip::with(['lines', 'user', 'payrollRun'])->findOrFail($this->payslipId);
+        // Batch 7: eager-load what the new printable-document layout needs
+        // (agency letterhead, employee pay profile, the approving manager)
+        // so the view doesn't trigger extra queries per field.
+        return Payslip::with(['lines', 'user.payProfile', 'user.agency', 'payrollRun.agency', 'payrollRun.approver'])
+            ->findOrFail($this->payslipId);
     }
 
     public function categoryOptions(): array

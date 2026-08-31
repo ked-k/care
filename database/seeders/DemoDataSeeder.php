@@ -329,19 +329,34 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * One day-shift per weekday for each of the three service users
-     * (paired with carer1/carer2/carer1), plus a night shift on the
-     * Wednesday. With $completeAll true, every shift gets actual_start/
-     * actual_end set (reads as completed) except those on
-     * $leaveUncompletedOnDay if given — for a week already in the past that
-     * day's shifts show up as "missed". With $completeAll false, nothing is
-     * actualised at all (a future week, still "upcoming").
+     * One day-shift per weekday for each of two service users (Grace with
+     * carer1, Walter with carer2), plus a night shift on the Wednesday.
+     * With $completeAll true, every shift gets actual_start/actual_end set
+     * (reads as completed) except those on $leaveUncompletedOnDay if given —
+     * for a week already in the past that day's shifts show up as "missed".
+     * With $completeAll false, nothing is actualised at all (a future week,
+     * still "upcoming").
+     *
+     * Batch 6: Amara isn't in this daily rota — RotaPeriod::generateTimesheets()
+     * only carries a single day-type shift's start/end through to each day's
+     * TimesheetEntry (`$dayShifts->firstWhere('shift_type', 'day')`), even
+     * though it correctly sums break_minutes across every shift that date.
+     * Giving one carer two same-day 'day'-type shifts (as this originally did,
+     * pairing Amara with carer1 alongside Grace) means the second shift's
+     * time silently drops out of the hours calculation while its break time
+     * still gets subtracted — undercounting that carer's day. Real double-booked
+     * visits are entirely normal in domiciliary care, so this is a genuine gap
+     * in generateTimesheets() worth fixing properly at some point (e.g.
+     * summing each same-type shift's own duration rather than reading one
+     * shift's start/end), but it's a separate change from the Carbon
+     * diffInMinutes fix in this batch — see CHANGES6.md. Sidestepping it here
+     * so the seeded numbers are correct without a schema/logic change.
      */
     private function fillWeekOfShifts(RotaPeriod $period, ServiceUser $grace, ServiceUser $walter, ServiceUser $amara, bool $completeAll, ?int $leaveUncompletedOnDay): void
     {
         $weekStart = Carbon::parse($period->week_commencing);
         $assignments = [
-            [$grace, $this->carer1], [$walter, $this->carer2], [$amara, $this->carer1],
+            [$grace, $this->carer1], [$walter, $this->carer2],
         ];
 
         for ($day = 0; $day < 5; $day++) { // Mon-Fri
