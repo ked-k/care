@@ -87,6 +87,7 @@ Route::group(['middleware' => ['auth', 'not-family']], function () {
     include __DIR__ . '/safeguarding-consent-family.php';
     include __DIR__ . '/compliance-governance.php';
     include __DIR__ . '/operational.php';
+    include __DIR__ . '/modules/settings.php';
     // get permissions
     Route::get('get-role-permissions-badge', [PermissionController::class, 'getPermissionBadgeByRole']);
 

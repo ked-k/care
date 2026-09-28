@@ -74,6 +74,17 @@
                     <p>{{ __('Temporary password') }}: <span class="font-mono">{{ $generatedPassword }}</span></p>
                     <p class="mt-2 text-xs">{{ __('This password is shown once and cannot be retrieved again.') }}</p>
                 </div>
+                @if ($emailedOk)
+                    <div class="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+                        <i class="ik ik-check-square"></i>
+                        {{ __('These details have also been emailed to :email.', ['email' => $formEmail]) }}
+                    </div>
+                @else
+                    <div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                        <i class="ik ik-alert-triangle"></i>
+                        {{ __('Could not email these details automatically — please share them with the family member directly.') }}
+                    </div>
+                @endif
             </div>
             <x-slot:footer>
                 <x-button wire:click="dismissGeneratedPassword">{{ __('Done') }}</x-button>

@@ -1,10 +1,13 @@
 <?php
 namespace App\Livewire\Staff;
 
+use App\Mail\AccountAccessMail;
 use App\Models\EmployeePayProfile;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -132,6 +135,8 @@ class StaffManagerComponent extends Component
             $userData['password'] = Hash::make($this->formPassword);
         }
 
+        $isNewStaff = ! $this->editingUserId;
+
         if ($this->editingUserId) {
             $user = User::findOrFail($this->editingUserId);
             $user->update($userData);
@@ -162,9 +167,33 @@ class StaffManagerComponent extends Component
             ]
         );
 
+        $emailedOk = true;
+        if ($isNewStaff) {
+            $emailedOk = $this->sendAccessEmail($user, $this->formPassword);
+        }
+
         $this->resetForm();
         $this->dispatch('close-drawer', 'staff-form');
-        $this->dispatch('toast', message: 'Staff member saved.', type: 'success');
+
+        $message = match (true) {
+            ! $isNewStaff => 'Staff member saved.',
+            $emailedOk => 'Staff member created. Login details emailed.',
+            default => 'Staff member created. (Could not send the notification email — check mail settings.)',
+        };
+        $this->dispatch('toast', message: $message, type: $emailedOk ? 'success' : 'warning');
+    }
+
+    protected function sendAccessEmail(User $user, string $plainPassword): bool
+    {
+        try {
+            Mail::to($user->email)->send(new AccountAccessMail(user: $user, plainPassword: $plainPassword));
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send staff access email: '.$e->getMessage());
+
+            return false;
+        }
     }
 
     public function toggleActive(int $userId): void

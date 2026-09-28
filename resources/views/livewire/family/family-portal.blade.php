@@ -7,16 +7,15 @@
     <div class="grid gap-4 sm:grid-cols-2">
         @forelse ($links as $link)
             <a href="{{ route('family.service-user', $link->service_user_id) }}" wire:navigate
-                class="block rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition hover:border-primary-300 hover:shadow-md">
-                <div class="flex items-center gap-3">
-                    <span class="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 text-white">
-                        <i class="ik ik-user text-lg"></i>
-                    </span>
-                    <div>
-                        <div class="font-semibold text-gray-800">{{ $link->serviceUser->name ?? __('Unknown') }}</div>
-                        <div class="text-xs text-gray-400">{{ ucfirst($link->relationship) }}</div>
-                    </div>
+                class="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition hover:border-primary-300 hover:shadow-md active:scale-[0.98]">
+                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-base font-semibold text-white">
+                    {{ collect(explode(' ', $link->serviceUser->name ?? '?'))->map(fn ($p) => mb_substr($p, 0, 1))->take(2)->implode('') }}
+                </span>
+                <div class="min-w-0">
+                    <div class="truncate font-semibold text-gray-800">{{ $link->serviceUser->name ?? __('Unknown') }}</div>
+                    <div class="text-xs text-gray-400">{{ ucfirst($link->relationship) }}</div>
                 </div>
+                <i class="ik ik-chevron-right ml-auto text-gray-300"></i>
             </a>
         @empty
             <div class="sm:col-span-2">

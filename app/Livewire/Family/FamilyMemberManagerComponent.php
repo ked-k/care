@@ -2,11 +2,14 @@
 
 namespace App\Livewire\Family;
 
+use App\Mail\AccountAccessMail;
 use App\Models\FamilyMember;
 use App\Models\ServiceUser;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Livewire\Component;
 
@@ -28,6 +31,7 @@ class FamilyMemberManagerComponent extends Component
     public bool $formCanReceiveUpdates = true;
 
     public ?string $generatedPassword = null;
+    public bool $emailedOk = true;
 
     public function mount(string $serviceUserId): void
     {
@@ -56,6 +60,7 @@ class FamilyMemberManagerComponent extends Component
         $this->reset(['formName', 'formEmail', 'formRelationship', 'formIsPrimaryContact']);
         $this->formCanReceiveUpdates = true;
         $this->generatedPassword = null;
+        $this->emailedOk = true;
         $this->resetErrorBag();
         $this->dispatch('open-drawer', 'family-member-form');
     }
@@ -92,7 +97,7 @@ class FamilyMemberManagerComponent extends Component
             $familyUser->assignRole('Family');
         }
 
-        FamilyMember::updateOrCreate(
+        $familyMember = FamilyMember::updateOrCreate(
             ['service_user_id' => $serviceUser->id, 'user_id' => $familyUser->id],
             [
                 'relationship' => $this->formRelationship,
@@ -104,19 +109,52 @@ class FamilyMemberManagerComponent extends Component
 
         $this->generatedPassword = $plainPassword;
 
+        // Only email when there's actually news to tell them: a brand-new
+        // account, or a brand-new link to this service user. Re-saving an
+        // existing link's checkboxes (is_primary_contact, etc.) shouldn't
+        // re-send a "you now have access" email.
+        $this->emailedOk = true;
+        if ($plainPassword || $familyMember->wasRecentlyCreated) {
+            $this->emailedOk = $this->sendAccessEmail($familyUser, $plainPassword, $serviceUser->name, $this->formRelationship);
+        }
+
         if (! $plainPassword) {
             $this->dispatch('close-drawer', 'family-member-form');
-            $this->dispatch('toast', message: 'Family member linked.', type: 'success');
+            $this->dispatch('toast', message: $this->emailedOk
+                ? 'Family member linked. Access details emailed.'
+                : 'Family member linked. (Could not send the notification email — check mail settings.)',
+                type: $this->emailedOk ? 'success' : 'warning');
         }
         // If a new account was created, the drawer stays open showing the
         // one-time password — see the view — until the manager dismisses it.
+    }
+
+    protected function sendAccessEmail(User $user, ?string $plainPassword, string $serviceUserName, string $relationship): bool
+    {
+        try {
+            Mail::to($user->email)->send(new AccountAccessMail(
+                user: $user,
+                plainPassword: $plainPassword,
+                serviceUserName: $serviceUserName,
+                relationship: $relationship,
+            ));
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send family access email: '.$e->getMessage());
+
+            return false;
+        }
     }
 
     public function dismissGeneratedPassword(): void
     {
         $this->generatedPassword = null;
         $this->dispatch('close-drawer', 'family-member-form');
-        $this->dispatch('toast', message: 'Family member linked.', type: 'success');
+        $this->dispatch('toast', message: $this->emailedOk
+            ? 'Family member linked. Access details emailed.'
+            : 'Family member linked. (Could not send the notification email — check mail settings.)',
+            type: $this->emailedOk ? 'success' : 'warning');
     }
 
     public function removeFamilyMember(string $familyMemberId): void

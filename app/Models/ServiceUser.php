@@ -81,4 +81,19 @@ class ServiceUser extends Model
     {
         return $this->hasMany(Assessment::class);
     }
+
+    /**
+     * Family-portal gate: medication details (names, doses, schedules,
+     * administration history) are only ever shown to a linked family member
+     * once an active "medication_communication" consent is on file for this
+     * service user — checked live rather than cached on the model, since a
+     * consent can be revoked at any time.
+     */
+    public function hasActiveMedicationConsent(): bool
+    {
+        return $this->consents()
+            ->where('consent_type', 'medication_communication')
+            ->get()
+            ->contains(fn (Consent $consent) => $consent->isActive());
+    }
 }
