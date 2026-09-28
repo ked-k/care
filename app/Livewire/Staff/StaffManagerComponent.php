@@ -136,6 +136,12 @@ class StaffManagerComponent extends Component
         }
 
         $isNewStaff = ! $this->editingUserId;
+        // Typing a new password into the Edit drawer is, functionally, an
+        // admin-initiated password reset — treat it the same as the
+        // dedicated "Reset password" action below and email the person
+        // their new details, rather than silently changing their password
+        // with no way for them to know it happened.
+        $passwordChangedOnEdit = ! $isNewStaff && (bool) $this->formPassword;
 
         if ($this->editingUserId) {
             $user = User::findOrFail($this->editingUserId);
@@ -168,7 +174,7 @@ class StaffManagerComponent extends Component
         );
 
         $emailedOk = true;
-        if ($isNewStaff) {
+        if ($isNewStaff || $passwordChangedOnEdit) {
             $emailedOk = $this->sendAccessEmail($user, $this->formPassword);
         }
 
@@ -176,11 +182,44 @@ class StaffManagerComponent extends Component
         $this->dispatch('close-drawer', 'staff-form');
 
         $message = match (true) {
-            ! $isNewStaff => 'Staff member saved.',
-            $emailedOk => 'Staff member created. Login details emailed.',
-            default => 'Staff member created. (Could not send the notification email — check mail settings.)',
+            $isNewStaff && $emailedOk => 'Staff member created. Login details emailed.',
+            $isNewStaff => 'Staff member created. (Could not send the notification email — check mail settings.)',
+            $passwordChangedOnEdit && $emailedOk => 'Staff member saved. New password emailed.',
+            $passwordChangedOnEdit => 'Staff member saved. (Could not email the new password — check mail settings.)',
+            default => 'Staff member saved.',
         };
         $this->dispatch('toast', message: $message, type: $emailedOk ? 'success' : 'warning');
+    }
+
+    /**
+     * One-click alternative to the Edit drawer's password field: generates a
+     * brand-new password for this staff member and emails it to them,
+     * without the admin having to think one up. Covers "they never got (or
+     * lost) their original login email" without the admin needing to know
+     * or guess a new password themselves.
+     */
+    public function resetPassword(int $userId): void
+    {
+        abort_unless(Auth::user()->can('manage_user') || Auth::user()->hasRole(['Admin', 'Super Admin']), 403);
+
+        $user = User::findOrFail($userId);
+
+        // Staff ids are sequential integers, not UUIDs — unlike this
+        // component's other actions (toggleActive has the same gap
+        // pre-existing this batch), a password reset is sensitive enough
+        // that it's worth explicitly confirming the target account is in
+        // the acting admin's own agency rather than just any account.
+        abort_unless($user->agency_id === Auth::user()->agency_id, 403);
+
+        $newPassword = Str::password(12);
+        $user->update(['password' => Hash::make($newPassword)]);
+
+        $emailedOk = $this->sendAccessEmail($user, $newPassword);
+
+        $this->dispatch('toast', message: $emailedOk
+            ? 'Password reset. New login details emailed to '.$user->email.'.'
+            : 'Password reset, but the email could not be sent — check mail settings.',
+            type: $emailedOk ? 'success' : 'warning');
     }
 
     protected function sendAccessEmail(User $user, string $plainPassword): bool

@@ -88,6 +88,44 @@ information, which is the wrong trade-off for something like this. The
 meta-tag polish above gets most of the "feels like an app" benefit without
 that risk.
 
+### 4. Reset password / resend login details (addendum)
+
+Follow-up ask in the same session: an admin needed a way to hand someone
+their login again after the fact — either because the email in section 1
+never arrived (mail wasn't configured yet, spam filter, wrong address) or
+because a family member's account already existed and they just needed a
+fresh password. Since the app never stores a plaintext password anywhere,
+"resend the same password" isn't possible — the only honest option is to
+issue a new one and email it, which is what both of these do:
+
+- **Staff Management** — a new "Reset password" action per row (next to
+  Edit/Deactivate): generates a fresh password, saves it, and emails it via
+  the same `AccountAccessMail`. Also: typing a new password into the
+  existing Edit drawer now emails it too — that was already possible before
+  this addendum, it just silently changed the password with no way for the
+  person to find out.
+- **Family Access** — a new "Resend login" action per row (next to Remove),
+  doing the same thing for a family member's account.
+
+Both actions are scoped to the acting admin/manager's own agency before
+touching anything, as a deliberate hardening while adding a
+password-changing action: `FamilyMemberManagerComponent`'s existing
+`removeFamilyMember()` and `StaffManagerComponent`'s existing
+`toggleActive()` only check the caller's role, not that the target record
+belongs to their agency (family member ids are UUIDs, low practical risk;
+staff ids are sequential integers, more realistic to guess) — flagging that
+as a pre-existing gap worth closing generally, left as-is here since it
+wasn't part of what was asked, but the two new reset actions do carry an
+explicit agency check.
+
+**Already covered, in case it looked missing:** adding a family member with
+an email that already has an account does NOT create a duplicate or a new
+password — it links the existing account to the new service user and sends
+a notification-only email (no password, since nothing changed about their
+login). That's what the drawer's helper text under the Email field is
+describing. This addendum is for the separate case of needing to hand out
+*new* credentials.
+
 ## Something worth knowing
 
 Medications only appear once `medication_communication` consent is granted
@@ -103,4 +141,4 @@ Changed: `app/Models/ServiceUser.php`, `app/Livewire/Family/FamilyMemberManagerC
 `app/Livewire/Family/FamilyPortalComponent.php`, `app/Livewire/Family/FamilyServiceUserComponent.php`,
 `app/Livewire/Staff/StaffManagerComponent.php`, `resources/views/livewire/family/family-portal.blade.php`,
 `resources/views/livewire/family/family-service-user.blade.php`, `resources/views/livewire/family/family-member-manager.blade.php`,
-`resources/views/layouts/family.blade.php`
+`resources/views/layouts/family.blade.php`, `resources/views/livewire/staff/staff-manager.blade.php` (addendum)

@@ -55,6 +55,9 @@
                                 <button type="button" wire:click="openEditForm({{ $user->id }})"
                                     @click="$dispatch('open-drawer', 'staff-form')"
                                     class="text-primary-600 hover:underline text-sm font-medium">{{ __('Edit') }}</button>
+                                <button type="button" wire:click="resetPassword({{ $user->id }})"
+                                    wire:confirm="{{ __('Reset :name\'s password and email them new login details?', ['name' => $user->name]) }}"
+                                    class="text-gray-500 hover:underline text-sm font-medium">{{ __('Reset password') }}</button>
                                 <button type="button" wire:click="toggleActive({{ $user->id }})"
                                     wire:confirm="{{ $user->is_active ? __('Deactivate this staff member?') : __('Reactivate this staff member?') }}"
                                     class="text-accent-500 hover:underline text-sm font-medium">

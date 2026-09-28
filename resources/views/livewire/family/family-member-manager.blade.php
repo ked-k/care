@@ -44,7 +44,10 @@
                                 </x-badge>
                             </td>
                             @if ($canManage)
-                                <td class="px-5 py-3 text-right">
+                                <td class="px-5 py-3 text-right space-x-3 whitespace-nowrap">
+                                    <button type="button" wire:click="resendAccess('{{ $fm->id }}')"
+                                        wire:confirm="{{ __('Reset :name\'s password and email them new login details? Use this if they never received or lost the original email.', ['name' => $fm->user->name ?? 'this family member']) }}"
+                                        class="text-gray-500 hover:underline text-sm font-medium">{{ __('Resend login') }}</button>
                                     <button type="button" wire:click="removeFamilyMember('{{ $fm->id }}')"
                                         wire:confirm="{{ __('Remove this family member\'s access?') }}"
                                         class="text-accent-500 hover:underline text-sm font-medium">{{ __('Remove') }}</button>

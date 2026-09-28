@@ -164,6 +164,40 @@ class FamilyMemberManagerComponent extends Component
         $this->dispatch('toast', message: 'Family member removed.', type: 'warning');
     }
 
+    /**
+     * For "they never got the original email, or lost it": generates a
+     * fresh password for this family member's login and emails it again,
+     * the same one-click reset a staff account can get from Staff
+     * Management. We never store the original plaintext password, so this
+     * is the only way to get them working credentials again short of them
+     * using "forgot password" themselves.
+     */
+    public function resendAccess(string $familyMemberId): void
+    {
+        $this->authorizeManage();
+
+        $familyMember = FamilyMember::with(['user', 'serviceUser'])->findOrFail($familyMemberId);
+
+        // Belt-and-braces: authorizeManage() only checks the current admin's
+        // role, not that this specific family link belongs to their agency.
+        // Since this action changes a password (more sensitive than the
+        // existing remove/list actions on this component), scope it
+        // explicitly rather than relying on family_member ids being
+        // practically unguessable UUIDs.
+        abort_unless($familyMember->serviceUser?->agency_id === Auth::user()->agency_id, 403);
+
+        $user = $familyMember->user;
+        $newPassword = Str::password(12);
+        $user->update(['password' => Hash::make($newPassword)]);
+
+        $emailedOk = $this->sendAccessEmail($user, $newPassword, $familyMember->serviceUser->name, $familyMember->relationship);
+
+        $this->dispatch('toast', message: $emailedOk
+            ? 'New login details emailed to '.$user->email.'.'
+            : 'Password reset, but the email could not be sent — check mail settings.',
+            type: $emailedOk ? 'success' : 'warning');
+    }
+
     public function render()
     {
         $serviceUser = $this->serviceUser();
