@@ -54,6 +54,10 @@
                                     <a href="{{ $loginUrl }}" style="display:inline-block; padding:12px 28px; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none;">
                                         {{ __('Log in to CareTrust') }}
                                     </a>
+                                    <br>
+                                      <a href="{{ $loginUrl }}" style="display:inline-block; padding:12px 28px; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none;">
+                                        {{ $loginUrl }}
+                                    </a>
                                 </td>
                             </tr>
                         </table>
@@ -65,8 +69,9 @@
                         @endif
 
                         <p style="margin:24px 0 0; font-size:13px; line-height:1.6; color:#9ca3af;">
-                            {{ __('If you weren\'t expecting this email, please contact :agency directly.', ['agency' => $agencyName]) }}
+                            {{ __('If you weren\'t expecting this email, please contact :agency directly.', ['agency' => $agencyName]) }} at <a href="mailto:care@affinityhealthcareltd.co.uk" style="color:#3b82f6; text-decoration:underline;">care@affinityhealthcareltd.co.uk</a>
                         </p>
+
                     </td>
                 </tr>
             </table>

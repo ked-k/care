@@ -4,7 +4,10 @@
     screens. `@entangle('tab').live` keeps the URL (?tab=...) and the
     server-side property in sync in the background so deep-linking and the
     browser back button still work, without the click itself waiting on a
-    network response.
+    network response. Batch 10 adds a sixth tab, Messages, backed by its
+    own nested Livewire component (see the panel below for why nesting a
+    child component here doesn't run into the entangle/wire:id gotcha the
+    bottom nav bar's comment further down describes).
 --}}
 <div x-data="{ tab: @entangle('tab').live }" x-on:toast.window="$store.toast.push($event.detail.message, $event.detail.type)">
 
@@ -32,11 +35,15 @@
             'medications' => ['label' => __('Medications'), 'icon' => 'ik-heart'],
             'schedule' => ['label' => __('Schedule'), 'icon' => 'ik-calendar'],
             'notes' => ['label' => __('Notes'), 'icon' => 'ik-clock'],
+            'messages' => ['label' => __('Messages'), 'icon' => 'ik-message-square'],
         ] as $key => $meta)
             <button type="button" @click="tab = '{{ $key }}'"
                 :class="tab === '{{ $key }}' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
-                class="flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition">
+                class="relative flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition">
                 <i class="ik {{ $meta['icon'] }}"></i>{{ $meta['label'] }}
+                @if ($key === 'messages' && $unreadMessages > 0)
+                    <span class="absolute -top-1 right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-500 px-1 text-[10px] font-semibold text-white">{{ $unreadMessages > 9 ? '9+' : $unreadMessages }}</span>
+                @endif
             </button>
         @endforeach
     </div>
@@ -320,6 +327,14 @@
         </x-card>
     </div>
 
+    {{-- ===================== MESSAGES ===================== --}}
+    <div x-show="tab === 'messages'">
+        {{-- A real nested Livewire component (own wire:id), not stack-pushed
+             content — safe to mount here even though it's hidden by
+             x-show until this tab is opened. --}}
+        <livewire:family.family-chat :service-user-id="$serviceUserId" wire:key="family-chat-{{ $serviceUserId }}" />
+    </div>
+
     {{-- Mobile bottom tab bar. Deliberately kept INSIDE this component's
          single root element (not pushed to a layout stack) — Livewire only
          gives this component one wire:id, carried by the wrapping element
@@ -331,19 +346,23 @@
          it here costs nothing. --}}
     <nav class="fixed inset-x-0 bottom-0 z-30 border-t border-gray-100 bg-white/95 backdrop-blur sm:hidden"
         style="padding-bottom: env(safe-area-inset-bottom);">
-        <div class="mx-auto grid max-w-3xl grid-cols-5">
+        <div class="mx-auto grid max-w-3xl grid-cols-6">
             @foreach ([
                 'overview' => ['label' => __('Home'), 'icon' => 'ik-home'],
                 'care-plan' => ['label' => __('Plan'), 'icon' => 'ik-file-text'],
                 'medications' => ['label' => __('Meds'), 'icon' => 'ik-heart'],
                 'schedule' => ['label' => __('Visits'), 'icon' => 'ik-calendar'],
                 'notes' => ['label' => __('Notes'), 'icon' => 'ik-clock'],
+                'messages' => ['label' => __('Chat'), 'icon' => 'ik-message-square'],
             ] as $key => $meta)
                 <button type="button" @click="tab = '{{ $key }}'"
                     :class="tab === '{{ $key }}' ? 'text-primary-600' : 'text-gray-400'"
-                    class="flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium">
+                    class="relative flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium">
                     <i class="ik {{ $meta['icon'] }} text-lg"></i>
                     {{ $meta['label'] }}
+                    @if ($key === 'messages' && $unreadMessages > 0)
+                        <span class="absolute right-3 top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary-500 px-1 text-[9px] font-semibold text-white">{{ $unreadMessages > 9 ? '9+' : $unreadMessages }}</span>
+                    @endif
                 </button>
             @endforeach
         </div>

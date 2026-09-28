@@ -15,7 +15,8 @@ use Livewire\Component;
  * Batch 9 from a single "care plan + recent updates" page into a tabbed,
  * mobile-app-style view — Overview / Care Plan / Medications / Schedule /
  * Notes — so family gets the fuller picture the vision doc always described
- * (medications, schedules, programs) rather than just a timeline.
+ * (medications, schedules, programs) rather than just a timeline. Batch 10
+ * adds a sixth tab, Messages, backed by its own nested FamilyChatComponent.
  *
  * Everything here is still read-only and still scoped by the same two
  * rules as before: only data for a service user this login is explicitly
@@ -47,7 +48,7 @@ class FamilyServiceUserComponent extends Component
             "You don't have access to this person's record."
         );
 
-        if (! in_array($this->tab, ['overview', 'care-plan', 'medications', 'schedule', 'notes'], true)) {
+        if (! in_array($this->tab, ['overview', 'care-plan', 'medications', 'schedule', 'notes', 'messages'], true)) {
             $this->tab = 'overview';
         }
     }
@@ -112,6 +113,7 @@ class FamilyServiceUserComponent extends Component
             'recentShifts' => $recentShifts,
             'nextShift' => $upcomingShifts->first(),
             'timeline' => $timeline,
+            'unreadMessages' => $serviceUser->unreadMessagesCountForFamily(),
         ]);
     }
 }

@@ -26,7 +26,12 @@ class FamilyPortalComponent extends Component
 
     public function render()
     {
-        $links = Auth::user()->familyLinks()->with('serviceUser')->get();
+        $links = Auth::user()->familyLinks()->with('serviceUser')->get()
+            ->map(function ($link) {
+                $link->setAttribute('unread_messages', $link->serviceUser?->unreadMessagesCountForFamily() ?? 0);
+
+                return $link;
+            });
 
         return view('livewire.family.family-portal', ['links' => $links]);
     }

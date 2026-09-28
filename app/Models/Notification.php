@@ -74,6 +74,7 @@ class Notification extends Model
             'shift_assigned' => 'ik ik-calendar',
             'safeguarding_escalated' => 'ik ik-shield',
             'new_message' => 'ik ik-message-square',
+            'family_message' => 'ik ik-message-square',
             default => 'ik ik-bell',
         };
     }

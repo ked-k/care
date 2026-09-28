@@ -15,7 +15,11 @@
                     <div class="truncate font-semibold text-gray-800">{{ $link->serviceUser->name ?? __('Unknown') }}</div>
                     <div class="text-xs text-gray-400">{{ ucfirst($link->relationship) }}</div>
                 </div>
-                <i class="ik ik-chevron-right ml-auto text-gray-300"></i>
+                @if ($link->unread_messages > 0)
+                    <span class="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-500 px-1.5 text-[11px] font-semibold text-white">{{ $link->unread_messages > 9 ? '9+' : $link->unread_messages }}</span>
+                @else
+                    <i class="ik ik-chevron-right ml-auto text-gray-300"></i>
+                @endif
             </a>
         @empty
             <div class="sm:col-span-2">

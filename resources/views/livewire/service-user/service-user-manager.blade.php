@@ -57,6 +57,8 @@
                                         class="text-primary-600 hover:underline text-sm font-medium">{{ __('Consents') }}</a>
                                     <a href="{{ route('family.manage', $su->id) }}" wire:navigate
                                         class="text-primary-600 hover:underline text-sm font-medium">{{ __('Family') }}</a>
+                                    <a href="{{ route('messages.manage', $su->id) }}" wire:navigate
+                                        class="text-primary-600 hover:underline text-sm font-medium">{{ __('Messages') }}</a>
                                     <a href="{{ route('assessments.manage', $su->id) }}" wire:navigate
                                         class="text-primary-600 hover:underline text-sm font-medium">{{ __('Assessments') }}</a>
                                     <a href="{{ route('timeline.manage', $su->id) }}" wire:navigate

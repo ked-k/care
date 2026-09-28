@@ -82,6 +82,11 @@ class ServiceUser extends Model
         return $this->hasMany(Assessment::class);
     }
 
+    public function chatSessions(): HasMany
+    {
+        return $this->hasMany(ChatSession::class);
+    }
+
     /**
      * Family-portal gate: medication details (names, doses, schedules,
      * administration history) are only ever shown to a linked family member
@@ -95,5 +100,19 @@ class ServiceUser extends Model
             ->where('consent_type', 'medication_communication')
             ->get()
             ->contains(fn (Consent $consent) => $consent->isActive());
+    }
+
+    /**
+     * How many staff-authored chat messages, across every chat session for
+     * this service user, a linked family member hasn't seen yet — used for
+     * the unread badge on the family portal's list of people and on the
+     * per-person Messages tab.
+     */
+    public function unreadMessagesCountForFamily(): int
+    {
+        return Message::whereIn('chat_session_id', $this->chatSessions()->pluck('id'))
+            ->whereNull('read_at')
+            ->whereDoesntHave('sender.roles', fn ($q) => $q->where('name', 'Family'))
+            ->count();
     }
 }
