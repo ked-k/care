@@ -331,8 +331,12 @@
     <div x-show="tab === 'messages'">
         {{-- A real nested Livewire component (own wire:id), not stack-pushed
              content — safe to mount here even though it's hidden by
-             x-show until this tab is opened. --}}
-        <livewire:family.family-chat :service-user-id="$serviceUserId" wire:key="family-chat-{{ $serviceUserId }}" />
+             x-show until this tab is opened. Registered name keeps the
+             "Component" suffix, kebab-cased, matching how this app's other
+             embedded component is invoked (@livewire('messaging.chat-drawer-component')
+             in include/header.blade.php) — Livewire's auto-discovery
+             doesn't strip that suffix the way a tag name might suggest. --}}
+        @livewire('family.family-chat-component', ['serviceUserId' => $serviceUserId], key('family-chat-'.$serviceUserId))
     </div>
 
     {{-- Mobile bottom tab bar. Deliberately kept INSIDE this component's
