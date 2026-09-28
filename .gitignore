@@ -16,4 +16,4 @@ docker-conf/database
 docker-conf/php/Dockerfile
 .vscode
 .php-cs-fixer.cache
-dist
+
