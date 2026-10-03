@@ -58,6 +58,7 @@ class TrainingIndexComponent extends Component
             'duration_minutes' => $this->formDurationMinutes,
         ]);
 
+        $this->reset(['formTitle', 'formDescription', 'formUrl', 'formDurationMinutes']);
         $this->dispatch('close-drawer', 'training-module-form');
         $this->dispatch('toast', message: 'Training module added.', type: 'success');
     }

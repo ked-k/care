@@ -120,6 +120,7 @@ class FamilyMemberManagerComponent extends Component
         }
 
         if (! $plainPassword) {
+            $this->reset(['formName', 'formEmail', 'formRelationship', 'formIsPrimaryContact']);
             $this->dispatch('close-drawer', 'family-member-form');
             $this->dispatch('toast', message: $this->emailedOk
                 ? 'Family member linked. Access details emailed.'
@@ -151,6 +152,7 @@ class FamilyMemberManagerComponent extends Component
     public function dismissGeneratedPassword(): void
     {
         $this->generatedPassword = null;
+        $this->reset(['formName', 'formEmail', 'formRelationship', 'formIsPrimaryContact']);
         $this->dispatch('close-drawer', 'family-member-form');
         $this->dispatch('toast', message: $this->emailedOk
             ? 'Family member linked. Access details emailed.'

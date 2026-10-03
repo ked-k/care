@@ -35,13 +35,22 @@
     --color-accent-500: #eb525d;
     --color-accent-600: #d83b47;
 
-    /* Dark sidebar palette (was #1e1e2d / #272d36 / #131923) */
-    --color-sidebar-header: #272d36;
-    --color-sidebar: #1e1e2d;
-    --color-sidebar-sub: #131923;
-    --color-sidebar-text: #ccd3e4;
-    --color-sidebar-icon: #525c71;
-    --color-sidebar-border: rgba(243, 243, 243, 0.12);
+    /*
+     | Sidebar palette — the CareTrust logo's violet → blue, deepened so white
+     | text stays readable. The sidebar is painted as a vertical gradient from
+     | --color-sidebar-header (top, violet) to --color-sidebar (bottom, blue);
+     | see .sidebar-brand below. (Was the template's charcoal #1e1e2d / #272d36.)
+     */
+    --color-sidebar-header: #2a1572;
+    --color-sidebar: #0b2d78;
+    --color-sidebar-sub: #0a2160;
+    --color-sidebar-text: #e6e8ff;
+    --color-sidebar-icon: #a5b4fc;
+    --color-sidebar-border: rgba(255, 255, 255, 0.12);
+
+    /* Active nav marker — light ends of the logo gradient */
+    --color-nav-active-from: #c4b5fd;
+    --color-nav-active-to: #7dd3fc;
 
     /* Top bar (themeable via the customizer) */
     --color-topbar: #ffffff;
@@ -59,6 +68,39 @@
  | flat primary color.
  */
 .brand-grad {
+    background-image: linear-gradient(100deg, #7635fb 0%, #0174f1 100%);
+}
+
+/*
+ | Sidebar: header colour at the top fading into the sidebar colour at the
+ | bottom. Using the two tokens (not fixed colours) means the theme
+ | customizer's presets and dark mode — which set both — still apply.
+ */
+.sidebar-brand {
+    background-image: linear-gradient(180deg, var(--color-sidebar-header) 0%, var(--color-sidebar) 100%);
+}
+
+/* Active nav item: soft glass highlight with a violet → blue edge marker. */
+.nav-active {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-image: linear-gradient(180deg, var(--color-nav-active-from), var(--color-nav-active-to)) 1;
+}
+
+/* Carer bottom tab bar: active tab gets the brand gradient on its icon and a top marker. */
+.tab-active i {
+    background-image: linear-gradient(100deg, #7635fb 0%, #0174f1 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+.tab-active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 30%;
+    right: 30%;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
     background-image: linear-gradient(100deg, #7635fb 0%, #0174f1 100%);
 }
 

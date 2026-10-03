@@ -1,7 +1,7 @@
 @php
     // Full predefined palettes — modern admin/CRM looks. Each sets sidebar + topbar + primary together.
     $presets = [
-        ['name' => 'Default', 'sidebar' => '#1e1e2d', 'header' => '#272d36', 'sbText' => '#ccd3e4', 'sbIcon' => '#525c71', 'topbar' => '#ffffff', 'tbText' => '#4a5361', 'p5' => '#007bff', 'p6' => '#006fe6'],
+        ['name' => 'CareTrust', 'sidebar' => '#0b2d78', 'header' => '#2a1572', 'sbText' => '#e6e8ff', 'sbIcon' => '#a5b4fc', 'topbar' => '#ffffff', 'tbText' => '#4a5361', 'p5' => '#0174f1', 'p6' => '#0361c8'],
         ['name' => 'Indigo', 'sidebar' => '#1e1b4b', 'header' => '#312e81', 'sbText' => '#c7d2fe', 'sbIcon' => '#818cf8', 'topbar' => '#ffffff', 'tbText' => '#334155', 'p5' => '#6366f1', 'p6' => '#4f46e5'],
         ['name' => 'Violet', 'sidebar' => '#2e1065', 'header' => '#4c1d95', 'sbText' => '#ddd6fe', 'sbIcon' => '#a78bfa', 'topbar' => '#ffffff', 'tbText' => '#334155', 'p5' => '#8b5cf6', 'p6' => '#7c3aed'],
         ['name' => 'Emerald', 'sidebar' => '#022c22', 'header' => '#064e3b', 'sbText' => '#a7f3d0', 'sbIcon' => '#34d399', 'topbar' => '#ffffff', 'tbText' => '#334155', 'p5' => '#10b981', 'p6' => '#059669'],
@@ -12,6 +12,7 @@
     ];
 
     $sidebars = [
+        ['label' => 'CareTrust', 'bg' => '#0b2d78', 'header' => '#2a1572', 'text' => '#e6e8ff', 'icon' => '#a5b4fc'],
         ['label' => 'Dark', 'bg' => '#1e1e2d', 'header' => '#272d36', 'text' => '#ccd3e4', 'icon' => '#525c71'],
         ['label' => 'Navy', 'bg' => '#0f172a', 'header' => '#1e293b', 'text' => '#cbd5e1', 'icon' => '#64748b'],
         ['label' => 'Carbon', 'bg' => '#18181b', 'header' => '#27272a', 'text' => '#d4d4d8', 'icon' => '#71717a'],

@@ -1,9 +1,11 @@
 @props(['name', 'title' => null, 'width' => 'w-96'])
 
 {{-- Open with  $dispatch('open-drawer', '{{ $name }}') --}}
-<div x-data="{ open: false }"
-     x-on:open-drawer.window="$event.detail === '{{ $name }}' && (open = true)"
-     x-on:close-drawer.window="$event.detail === '{{ $name }}' && (open = false)"
+{{-- Alpine's $dispatch sends the name as a string; a Livewire component's
+     $this->dispatch('close-drawer', 'name') arrives as ['name'] — accept both. --}}
+<div x-data="{ open: false, isMe(detail) { return [].concat(detail)[0] === '{{ $name }}' } }"
+     x-on:open-drawer.window="isMe($event.detail) && (open = true)"
+     x-on:close-drawer.window="isMe($event.detail) && (open = false)"
      x-show="open" x-transition.opacity style="display:none"
      @keydown.escape.window="open = false"
      class="fixed inset-0 z-[90] bg-black/40">

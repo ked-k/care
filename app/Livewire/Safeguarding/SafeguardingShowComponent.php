@@ -76,6 +76,7 @@ class SafeguardingShowComponent extends Component
 
         $this->report()->escalate(Auth::user(), User::findOrFail($this->escalateToId), $this->escalateNote ?: null);
 
+        $this->reset(['escalateToId', 'escalateNote']);
         $this->dispatch('close-drawer', 'safeguarding-escalate');
         $this->dispatch('toast', message: 'Report escalated.', type: 'success');
     }
@@ -94,6 +95,7 @@ class SafeguardingShowComponent extends Component
 
         $this->report()->addInvestigationNote(Auth::user(), $this->investigationNote);
 
+        $this->reset(['investigationNote']);
         $this->dispatch('close-drawer', 'safeguarding-investigate');
         $this->dispatch('toast', message: 'Investigation note added.', type: 'success');
     }
@@ -112,6 +114,7 @@ class SafeguardingShowComponent extends Component
 
         $this->report()->resolve(Auth::user(), $this->resolutionNote);
 
+        $this->reset(['resolutionNote']);
         $this->dispatch('close-drawer', 'safeguarding-resolve');
         $this->dispatch('toast', message: 'Report marked resolved.', type: 'success');
     }
@@ -131,6 +134,7 @@ class SafeguardingShowComponent extends Component
 
         $report->close(Auth::user(), $this->closeNote ?: null);
 
+        $this->reset(['closeNote']);
         $this->dispatch('close-drawer', 'safeguarding-close');
         $this->dispatch('toast', message: 'Report closed.', type: 'success');
     }

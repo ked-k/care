@@ -81,6 +81,7 @@ class ConsentManagerComponent extends Component
 
         AuditLogger::log('CONSENT_RECORDED', $consent, ['type' => $this->formConsentType, 'granted' => $this->formGranted]);
 
+        $this->reset(['formConsentType', 'formGranted', 'formExpiresAt', 'formNotes']);
         $this->dispatch('close-drawer', 'consent-form');
         $this->dispatch('toast', message: 'Consent recorded.', type: 'success');
     }
@@ -106,6 +107,7 @@ class ConsentManagerComponent extends Component
 
         AuditLogger::log('CONSENT_REVOKED', $consent, ['type' => $consent->consent_type]);
 
+        $this->reset(['revokingConsentId', 'revokeNotes']);
         $this->dispatch('close-drawer', 'consent-revoke');
         $this->dispatch('toast', message: 'Consent revoked.', type: 'warning');
     }

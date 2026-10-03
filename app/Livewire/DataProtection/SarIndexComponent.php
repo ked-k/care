@@ -59,6 +59,7 @@ class SarIndexComponent extends Component
 
         AuditLogger::log('SAR_SUBMITTED', $sar, ['type' => $this->formType]);
 
+        $this->reset(['formServiceUserId', 'formNotes']);
         $this->dispatch('close-drawer', 'sar-form');
         $this->dispatch('toast', message: 'Request logged.', type: 'success');
     }
@@ -90,6 +91,7 @@ class SarIndexComponent extends Component
 
         AuditLogger::log('SAR_'.strtoupper($this->resolveStatus), $sar);
 
+        $this->reset(['resolvingId', 'resolveStatus', 'resolveNotes']);
         $this->dispatch('close-drawer', 'sar-resolve');
         $this->dispatch('toast', message: 'Request updated.', type: 'success');
     }

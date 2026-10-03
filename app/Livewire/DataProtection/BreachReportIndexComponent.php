@@ -51,6 +51,7 @@ class BreachReportIndexComponent extends Component
 
         AuditLogger::log('DATA_BREACH_REPORTED', $report, ['severity' => $this->formSeverity]);
 
+        $this->reset(['formDescription', 'formSeverity']);
         $this->dispatch('close-drawer', 'breach-report-form');
         $this->dispatch('toast', message: 'Incident reported.', type: 'success');
     }
@@ -79,6 +80,7 @@ class BreachReportIndexComponent extends Component
 
         AuditLogger::log('DATA_BREACH_ACTIONED', $breach, ['reported_to_ico' => $this->reportedToIco]);
 
+        $this->reset(['resolvingId', 'actionTaken', 'reportedToIco']);
         $this->dispatch('close-drawer', 'breach-resolve');
         $this->dispatch('toast', message: 'Action recorded.', type: 'success');
     }

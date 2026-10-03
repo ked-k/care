@@ -96,6 +96,7 @@ class SafeguardingIndexComponent extends Component
             ]);
         }
 
+        $this->reset(['formServiceUserId', 'formType', 'formDescription', 'formPhoto']);
         $this->dispatch('close-drawer', 'safeguarding-report-form');
         $this->dispatch('toast', message: 'Safeguarding concern reported.', type: 'success');
         $this->redirectRoute('safeguarding.show', $report->id);

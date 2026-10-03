@@ -97,8 +97,9 @@
 
 	@unless (request()->routeIs('rota.visit'))
 		{{-- Bottom tab bar: the carer's 5 main destinations, always on screen. --}}
-		<nav class="fixed inset-x-0 bottom-0 z-30 border-t border-gray-100 bg-white/95 backdrop-blur"
+		<nav class="fixed inset-x-0 bottom-0 z-30 bg-white/95 shadow-[0_-4px_16px_rgba(42,21,114,0.08)] backdrop-blur"
 			style="padding-bottom: env(safe-area-inset-bottom);">
+			<div class="brand-grad h-[2px] w-full"></div>
 			<div class="mx-auto grid max-w-3xl grid-cols-5">
 				@foreach ([
 					['label' => __('Home'), 'icon' => 'ik-home', 'route' => 'dashboard', 'is_active' => request()->routeIs('dashboard'), 'badge' => false, 'action' => null],
@@ -109,7 +110,7 @@
 				] as $item)
 					@if ($item['route'])
 						<a href="{{ route($item['route']) }}" wire:navigate
-							class="flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium {{ $item['is_active'] ? 'text-primary-600' : 'text-gray-400' }}">
+							class="relative flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium {{ $item['is_active'] ? 'tab-active text-primary-600' : 'text-gray-400' }}">
 							<span class="relative">
 								<i class="ik {{ $item['icon'] }} text-lg"></i>
 								@if ($item['badge'])
@@ -120,8 +121,8 @@
 						</a>
 					@else
 						<button type="button" @click="{{ $item['action'] }}"
-							:class="navOpen ? 'text-primary-600' : 'text-gray-400'"
-							class="flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium">
+							:class="navOpen ? 'tab-active text-primary-600' : 'text-gray-400'"
+							class="relative flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium">
 							<span class="relative">
 								<i class="ik {{ $item['icon'] }} text-lg"></i>
 								@if ($item['badge'])

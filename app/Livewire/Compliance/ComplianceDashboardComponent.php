@@ -64,6 +64,7 @@ class ComplianceDashboardComponent extends Component
             'created_by' => Auth::id(),
         ]);
 
+        $this->reset(['formCategory', 'formNextDueAt', 'formNotes']);
         $this->dispatch('close-drawer', 'compliance-check-form');
         $this->dispatch('toast', message: 'Compliance check added.', type: 'success');
     }
