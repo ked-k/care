@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
-<link rel="icon" type="image/svg+xml" href="{{ asset('img/radminly-mark.svg') }}" />
+{{-- Batch 13: favicon is now the real CareTrust mark instead of the
+     generic Radminly template placeholder. --}}
+<link rel="icon" type="image/png" href="{{ asset('images/brand/caretrust-favicon.png') }}" />
 <link rel="alternate icon" href="{{ asset('favicon.png') }}" />
 
 <!-- Nunito font (kept from the original theme) -->

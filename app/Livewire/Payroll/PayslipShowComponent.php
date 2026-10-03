@@ -23,6 +23,19 @@ class PayslipShowComponent extends Component
     public function mount(string $payslip): void
     {
         $this->payslipId = $payslip;
+
+        $slip = $this->payslip();
+        $user = Auth::user();
+        abort_unless(
+            $slip->payrollRun->agency_id === $user->agency_id
+                && ($user->canManagePayroll() || $slip->user_id === $user->id),
+            403
+        );
+    }
+
+    public function canManage(): bool
+    {
+        return Auth::user()->canManagePayroll();
     }
 
     protected function payslip(): Payslip
@@ -41,6 +54,8 @@ class PayslipShowComponent extends Component
 
     public function addLine(): void
     {
+        abort_unless($this->canManage(), 403);
+
         $this->validate([
             'lineType' => 'required|in:earning,deduction',
             'category' => 'required|string',
@@ -62,6 +77,8 @@ class PayslipShowComponent extends Component
 
     public function removeLine(string $lineId): void
     {
+        abort_unless($this->canManage(), 403);
+
         $payslip = $this->payslip();
         $payslip->lines()->whereKey($lineId)->delete();
         $payslip->recalculateNet();

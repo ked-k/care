@@ -4,9 +4,11 @@
         $out = [];
         foreach ($items as $i) {
             if (! empty($i['heading'])) continue;
+            if (! empty($i['can']) && ! auth()->user()?->can($i['can'])) continue;
             $icon = $i['icon'] ?? 'ik ik-corner-down-right';
             if (! empty($i['children'])) {
                 foreach ($i['children'] as $c) {
+                    if (! empty($c['can']) && ! auth()->user()?->can($c['can'])) continue;
                     $out[] = [
                         'label' => $i['label'] . ' · ' . $c['label'],
                         'icon' => $c['icon'] ?? $icon,
@@ -26,19 +28,15 @@
         return $out;
     };
 
-    $quickActions = [
-        ['label' => __('New User'), 'icon' => 'ik ik-user-plus', 'url' => url('user/create'), 'section' => __('Quick action')],
-        ['label' => __('New Product'), 'icon' => 'ik ik-plus-square', 'url' => url('products/create'), 'section' => __('Quick action')],
-        ['label' => __('New Sale'), 'icon' => 'ik ik-shopping-cart', 'url' => url('sales/create'), 'section' => __('Quick action')],
-        ['label' => __('New Invoice'), 'icon' => 'ik ik-file-text', 'url' => url('income/invoice/create'), 'section' => __('Quick action')],
-        ['label' => __('Open POS'), 'icon' => 'ik ik-credit-card', 'url' => url('pos'), 'section' => __('Quick action')],
-    ];
+    $quickActions = array_values(array_filter([
+        auth()->user()?->can('manage_user') ? ['label' => __('New User'), 'icon' => 'ik ik-user-plus', 'url' => url('user/create'), 'section' => __('Quick action')] : null,
+        ['label' => __('Report a safeguarding concern'), 'icon' => 'ik ik-shield', 'url' => route('safeguarding.index'), 'section' => __('Quick action')],
+        ['label' => __('My Rota'), 'icon' => 'ik ik-calendar', 'url' => route('rota.mine'), 'section' => __('Quick action')],
+    ]));
 
     $items = array_merge(
         $quickActions,
-        $flatten(config('menu.main', []), __('Main')),
-        $flatten(config('menu.inventory', []), __('Inventory')),
-        $flatten(config('menu.accounting', []), __('Accounting')),
+        $flatten(config('menu.care', []), __('Main')),
     );
 @endphp
 

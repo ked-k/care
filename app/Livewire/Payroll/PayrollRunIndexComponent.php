@@ -18,6 +18,8 @@ class PayrollRunIndexComponent extends Component
 
     public function mount(): void
     {
+        abort_unless(Auth::user()->canManagePayroll(), 403);
+
         // Default a new run to "this week" (Mon-Sun) so the form isn't empty on open.
         $this->newPeriodStart = now()->startOfWeek()->toDateString();
         $this->newPeriodEnd = now()->endOfWeek()->toDateString();
@@ -25,6 +27,8 @@ class PayrollRunIndexComponent extends Component
 
     public function createRun(): void
     {
+        abort_unless(Auth::user()->canManagePayroll(), 403);
+
         $this->validate([
             'newPeriodStart' => 'required|date',
             'newPeriodEnd' => 'required|date|after_or_equal:newPeriodStart',

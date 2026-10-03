@@ -42,6 +42,7 @@ class MarChartComponent extends Component
 
     public function mount(string $serviceUserId, ?string $week = null): void
     {
+        abort_unless(Auth::user()->canAccessServiceUser(ServiceUser::findOrFail($serviceUserId)), 403, __("You don't have access to this person's record."));
         $this->serviceUserId = $serviceUserId;
         $this->weekStart = $week
             ? Carbon::parse($week)->startOfWeek()->toDateString()

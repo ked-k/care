@@ -15,18 +15,18 @@
         </div>
 
         @php
-            $apps = [
-                ['ik ik-bar-chart-2', 'Dashboard'], ['ik ik-command', 'Ui'], ['ik ik-mail', 'Message'],
-                ['ik ik-users', 'Accounts'], ['ik ik-shopping-cart', 'Sales'], ['ik ik-briefcase', 'Purchase'],
-                ['ik ik-server', 'Menus'], ['ik ik-clipboard', 'Pages'], ['ik ik-message-square', 'Chats'],
-                ['ik ik-map-pin', 'Contacts'], ['ik ik-box', 'Blocks'], ['ik ik-calendar', 'Events'],
-                ['ik ik-bell', 'Notifications'], ['ik ik-pie-chart', 'Reports'], ['ik ik-layers', 'Tasks'],
-                ['ik ik-edit', 'Blogs'], ['ik ik-settings', 'Settings'], ['ik ik-more-horizontal', 'More'],
-            ];
+            // Every page in the CareTrust sidebar (config/menu.php "care"), flattened, that this user may open.
+            $apps = [];
+            foreach (config('menu.care', []) as $item) {
+                foreach ($item['children'] ?? [$item] as $entry) {
+                    if (empty($entry['route']) || (! empty($entry['can']) && ! auth()->user()?->can($entry['can']))) continue;
+                    $apps[] = [$entry['icon'] ?? 'ik ik-corner-down-right', $entry['label'], route($entry['route'])];
+                }
+            }
         @endphp
         <div class="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6">
-            @foreach ($apps as [$icon, $label])
-                <a href="#" class="flex flex-col items-center gap-2 rounded-xl p-4 text-gray-500 transition hover:bg-gray-50 hover:text-primary-600">
+            @foreach ($apps as [$icon, $label, $href])
+                <a href="{{ $href }}" class="flex flex-col items-center gap-2 rounded-xl p-4 text-gray-500 transition hover:bg-gray-50 hover:text-primary-600">
                     <i class="{{ $icon }} text-2xl"></i>
                     <span class="text-xs font-medium">{{ __($label) }}</span>
                 </a>

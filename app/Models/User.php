@@ -124,6 +124,33 @@ class User extends Authenticatable
     }
 
     /**
+     * Whether this user may open a service user's record pages (medications,
+     * MAR chart, timeline, consents, assessments, family, care plans). Staff
+     * are limited to their own agency; a plain carer additionally only to the
+     * people they have shifts with — the same "assigned" rule the carer
+     * messaging and quick-note components already use.
+     */
+    public function canAccessServiceUser(ServiceUser $serviceUser): bool
+    {
+        if ($this->hasRole('Super Admin')) {
+            return true;
+        }
+
+        if ($serviceUser->agency_id !== $this->agency_id) {
+            return false;
+        }
+
+        return ! $this->isCarerOnly()
+            || $this->shifts()->where('service_user_id', $serviceUser->id)->exists();
+    }
+
+    /** Payroll runs and other people's payslips — carers only ever see their own payslip. */
+    public function canManagePayroll(): bool
+    {
+        return $this->can('approve_payroll');
+    }
+
+    /**
      * Named `appNotifications`, not `notifications`, because Notifiable
      * (above) already defines a `notifications()` relation against
      * Laravel's own DatabaseNotification model — a different table shape

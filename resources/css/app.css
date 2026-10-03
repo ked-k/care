@@ -9,21 +9,26 @@
  |--------------------------------------------------------------------------
  | Ported from the original Bootstrap theme so the product keeps its look:
  | dark sidebar, light top header, blue primary, red active accent.
+ |
+ | Batch 13: --color-primary-* re-sampled from the real CareTrust logo
+ | (the blue half of the heart mark, ~#0174f1 at the 500 step) so the
+ | shipped default theme matches the brand instead of the old generic
+ | Bootstrap blue (#007bff).
  */
 @theme {
     --font-sans: 'Nunito', 'Nunito Sans', ui-sans-serif, system-ui, sans-serif;
 
-    /* Brand primary (was Bootstrap $primary / #007bff) */
-    --color-primary-50: #e9f3ff;
-    --color-primary-100: #cfe5ff;
-    --color-primary-200: #9ecbff;
-    --color-primary-300: #6db0ff;
-    --color-primary-400: #3d96ff;
-    --color-primary-500: #007bff;
-    --color-primary-600: #006fe6;
-    --color-primary-700: #0057b3;
-    --color-primary-800: #003f80;
-    --color-primary-900: #00284d;
+    /* Brand primary — sampled from the CareTrust logo's blue half */
+    --color-primary-50: #f0f7fe;
+    --color-primary-100: #dbecfd;
+    --color-primary-200: #aed3fb;
+    --color-primary-300: #7bb7f8;
+    --color-primary-400: #3993f4;
+    --color-primary-500: #0174f1;
+    --color-primary-600: #0361c8;
+    --color-primary-700: #044c9b;
+    --color-primary-800: #063972;
+    --color-primary-900: #07284e;
 
     /* Active / brand accent (was #eb525d) */
     --color-accent-400: #ef6f78;
@@ -46,9 +51,15 @@
     --color-body: #f8fafc;
 }
 
-/* Brand gradient (logomark blue → violet) — used on the landing preview. */
+/*
+ | Brand gradient (logomark purple → blue) — sampled from the real
+ | CareTrust logo (left/purple half ~#7635fb, right/blue half ~#0174f1,
+ | left-to-right to match the mark's own layout). Used on the landing
+ | preview and anywhere we want the full brand gradient rather than the
+ | flat primary color.
+ */
 .brand-grad {
-    background-image: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    background-image: linear-gradient(100deg, #7635fb 0%, #0174f1 100%);
 }
 
 /*

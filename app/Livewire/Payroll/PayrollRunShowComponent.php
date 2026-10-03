@@ -12,16 +12,23 @@ class PayrollRunShowComponent extends Component
 
     public function mount(string $payrollRunId): void
     {
+        abort_unless(Auth::user()->canManagePayroll(), 403);
+
         $this->payrollRunId = $payrollRunId;
+        $this->run();
     }
 
     protected function run(): PayrollRun
     {
-        return PayrollRun::with('payslips.user')->findOrFail($this->payrollRunId);
+        return PayrollRun::with('payslips.user')
+            ->where('agency_id', Auth::user()->agency_id)
+            ->findOrFail($this->payrollRunId);
     }
 
     public function generatePayslips(): void
     {
+        abort_unless(Auth::user()->canManagePayroll(), 403);
+
         $this->run()->generateFromApprovedTimesheets();
         $this->dispatch('toast', message: 'Payslips generated from approved timesheets.', type: 'success');
     }

@@ -31,7 +31,7 @@
     </div>
 
     {{-- ===================== TAKEOVER REASON GATE ===================== --}}
-    @if ($needsTakeoverReason())
+    @if ($this->needsTakeoverReason())
         <x-card>
             <div class="flex flex-col items-center gap-3 py-4 text-center">
                 <span class="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-500"><i class="ik ik-user-check text-xl"></i></span>

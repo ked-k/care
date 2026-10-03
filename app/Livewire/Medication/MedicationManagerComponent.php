@@ -28,6 +28,7 @@ class MedicationManagerComponent extends Component
 
     public function mount(string $serviceUserId): void
     {
+        abort_unless(Auth::user()->canAccessServiceUser(ServiceUser::findOrFail($serviceUserId)), 403, __("You don't have access to this person's record."));
         $this->serviceUserId = $serviceUserId;
         $this->formStartDate = now()->toDateString();
     }
@@ -37,15 +38,37 @@ class MedicationManagerComponent extends Component
         return ServiceUser::findOrFail($this->serviceUserId);
     }
 
+    /**
+     * Adding, editing and discontinuing medications is a manager/admin job —
+     * carers only record administrations on the MAR chart.
+     */
+    public function canManage(): bool
+    {
+        return ! Auth::user()->isCarerOnly();
+    }
+
+    protected function authorizeManage(): void
+    {
+        abort_unless($this->canManage(), 403, __('Only a manager can change medications.'));
+    }
+
+    /** A medication of this service user only — ids from the browser are never trusted on their own. */
+    protected function medication(string $medicationId): Medication
+    {
+        return $this->serviceUser()->medications()->findOrFail($medicationId);
+    }
+
     public function openCreateForm(): void
     {
+        $this->authorizeManage();
         $this->resetForm();
         $this->dispatch('open-drawer', 'medication-form');
     }
 
     public function openEditForm(string $medicationId): void
     {
-        $med = Medication::findOrFail($medicationId);
+        $this->authorizeManage();
+        $med = $this->medication($medicationId);
 
         $this->editingMedicationId = $med->id;
         $this->formMedicationName = $med->medication_name;
@@ -73,6 +96,11 @@ class MedicationManagerComponent extends Component
 
     public function saveMedication(): void
     {
+        $this->authorizeManage();
+        if ($this->editingMedicationId) {
+            $this->medication($this->editingMedicationId);
+        }
+
         $this->validate([
             'formMedicationName' => 'required|string|max:255',
             'formDosage' => 'required|string|max:255',
@@ -107,7 +135,8 @@ class MedicationManagerComponent extends Component
 
     public function toggleActive(string $medicationId): void
     {
-        $med = Medication::findOrFail($medicationId);
+        $this->authorizeManage();
+        $med = $this->medication($medicationId);
         $med->update(['is_active' => ! $med->is_active]);
         $this->dispatch('toast', message: $med->is_active ? 'Medication reactivated.' : 'Medication discontinued.', type: 'success');
     }

@@ -9,10 +9,12 @@
                     class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
                 {{ __('Show discontinued') }}
             </label>
-            <x-button variant="primary" size="sm" wire:click="openCreateForm"
-                @click="$dispatch('open-drawer', 'medication-form')">
-                <i class="ik ik-plus mr-1"></i>{{ __('Add medication') }}
-            </x-button>
+            @if ($this->canManage())
+                <x-button variant="primary" size="sm" wire:click="openCreateForm"
+                    @click="$dispatch('open-drawer', 'medication-form')">
+                    <i class="ik ik-plus mr-1"></i>{{ __('Add medication') }}
+                </x-button>
+            @endif
         </div>
     </x-page-header>
 
@@ -58,6 +60,7 @@
                                 </x-badge>
                             </td>
                             <td class="px-5 py-3 text-right space-x-2 whitespace-nowrap">
+                                @if ($this->canManage())
                                 <button type="button" wire:click="openEditForm('{{ $med->id }}')"
                                     @click="$dispatch('open-drawer', 'medication-form')"
                                     class="text-primary-600 hover:underline text-sm font-medium">{{ __('Edit') }}</button>
@@ -66,6 +69,7 @@
                                     class="text-accent-500 hover:underline text-sm font-medium">
                                     {{ $med->is_active ? __('Discontinue') : __('Reactivate') }}
                                 </button>
+                                @endif
                             </td>
                         </tr>
                     @empty

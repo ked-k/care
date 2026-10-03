@@ -23,7 +23,7 @@ return [
     | Used across titles, meta tags and auth screens.
     |
     */
-    'tagline' => env('APP_TAGLINE', 'Ship beautiful admin panels, faster.'),
+    'tagline' => env('APP_TAGLINE', 'Care management for home care agencies'),
     'description' => env('APP_DESCRIPTION', 'The modern Laravel 12 admin starter — roles, permissions, ready-made modules and an advanced Tailwind UI.'),
 
     /*

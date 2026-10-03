@@ -29,6 +29,7 @@ class TimelineIndexComponent extends Component
 
     public function mount(string $serviceUserId): void
     {
+        abort_unless(Auth::user()->canAccessServiceUser(ServiceUser::findOrFail($serviceUserId)), 403, __("You don't have access to this person's record."));
         $this->serviceUserId = $serviceUserId;
     }
 

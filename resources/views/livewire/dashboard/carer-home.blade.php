@@ -2,6 +2,11 @@
     Batch 12: the plain carer's home screen (/dashboard), replacing the
     agency-wide analytics dashboard for this role — see
     AnalyticsDashboardComponent::renderCarerHome().
+
+    Batch 13: quick-link grid now also surfaces the two new carer
+    destinations (Notes, Messages) alongside the existing ones — they're
+    also reachable from the new bottom tab bar, but worth having here too
+    since this is the first screen a carer lands on.
 --}}
 <div>
     <div class="mb-5">
@@ -30,21 +35,31 @@
             @endif
         </x-card>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-3 gap-3">
             <a href="{{ route('rota.mine') }}" wire:navigate
                 class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm hover:border-primary-200">
                 <i class="ik ik-calendar text-xl text-primary-500"></i>
-                <div class="mt-2 font-semibold text-gray-700">{{ __('My Rota') }}</div>
+                <div class="mt-2 text-sm font-semibold text-gray-700">{{ __('My Rota') }}</div>
+            </a>
+            <a href="{{ route('notes.quick') }}" wire:navigate
+                class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm hover:border-primary-200">
+                <i class="ik ik-edit-3 text-xl text-primary-500"></i>
+                <div class="mt-2 text-sm font-semibold text-gray-700">{{ __('Add a note') }}</div>
+            </a>
+            <a href="{{ route('messages.carer') }}" wire:navigate
+                class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm hover:border-primary-200">
+                <i class="ik ik-message-square text-xl text-primary-500"></i>
+                <div class="mt-2 text-sm font-semibold text-gray-700">{{ __('Messages') }}</div>
             </a>
             <a href="{{ route('timesheets.index') }}" wire:navigate
                 class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm hover:border-primary-200">
                 <i class="ik ik-clipboard text-xl text-primary-500"></i>
-                <div class="mt-2 font-semibold text-gray-700">{{ __('Timesheets') }}</div>
+                <div class="mt-2 text-sm font-semibold text-gray-700">{{ __('Timesheets') }}</div>
             </a>
             <a href="{{ route('notifications.index') }}" wire:navigate
                 class="relative rounded-xl border border-gray-100 bg-white p-4 shadow-sm hover:border-primary-200">
                 <i class="ik ik-bell text-xl text-primary-500"></i>
-                <div class="mt-2 font-semibold text-gray-700">{{ __('Notifications') }}</div>
+                <div class="mt-2 text-sm font-semibold text-gray-700">{{ __('Notifications') }}</div>
                 @if ($unreadNotifications > 0)
                     <span class="absolute right-3 top-3 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-500 px-1 text-[10px] font-semibold text-white">
                         {{ $unreadNotifications > 9 ? '9+' : $unreadNotifications }}
@@ -54,7 +69,7 @@
             <a href="{{ route('profile.show') }}" wire:navigate
                 class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm hover:border-primary-200">
                 <i class="ik ik-user text-xl text-primary-500"></i>
-                <div class="mt-2 font-semibold text-gray-700">{{ __('Profile') }}</div>
+                <div class="mt-2 text-sm font-semibold text-gray-700">{{ __('Profile') }}</div>
             </a>
         </div>
     </div>

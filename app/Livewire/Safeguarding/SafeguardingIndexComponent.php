@@ -113,6 +113,10 @@ class SafeguardingIndexComponent extends Component
                          ->whereHas('reportedBy', fn ($rq) => $rq->where('agency_id', $agencyId));
                   });
             })
+            // A carer only sees reports they filed or about people they have shifts with.
+            ->when(Auth::user()->isCarerOnly(), fn ($q) => $q->where(fn ($q2) => $q2
+                ->where('reported_by', Auth::id())
+                ->orWhereIn('service_user_id', Auth::user()->shifts()->select('service_user_id'))))
             ->when($this->statusFilter, fn ($q) => $q->where('status', $this->statusFilter))
             ->when($this->search, fn ($q) => $q->where('description', 'like', "%{$this->search}%"))
             ->orderByDesc('created_at')

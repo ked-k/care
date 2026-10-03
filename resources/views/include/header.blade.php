@@ -39,9 +39,11 @@
                     </button>
                 </x-slot:trigger>
                 <div class="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">{{ __('Quick create') }}</div>
-                <a href="{{ url('sales/create') }}" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"><i class="ik ik-shopping-cart text-gray-400"></i> {{ __('New Sale') }}</a>
-                <a href="{{ url('income/invoice/create') }}" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"><i class="ik ik-file-text text-gray-400"></i> {{ __('New Invoice') }}</a>
-                <a href="{{ url('products/create') }}" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"><i class="ik ik-plus-square text-gray-400"></i> {{ __('New Product') }}</a>
+                <a href="{{ route('safeguarding.index') }}" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"><i class="ik ik-shield text-gray-400"></i> {{ __('Safeguarding concern') }}</a>
+                <a href="{{ route('service-users.index') }}" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"><i class="ik ik-heart text-gray-400"></i> {{ __('Service user') }}</a>
+                @can('manage_rota')
+                    <a href="{{ route('rota.index') }}" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"><i class="ik ik-calendar text-gray-400"></i> {{ __('Rota period') }}</a>
+                @endcan
                 <div class="my-1 border-t border-gray-100"></div>
                 @can('manage_user')
                     <a href="{{ url('user/create') }}" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"><i class="ik ik-user-plus text-gray-400"></i> {{ __('New User') }}</a>

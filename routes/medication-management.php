@@ -27,6 +27,8 @@ Route::get('/service-users/{serviceUserId}/mar-chart', MarChartComponent::class)
 // route with real Eloquent model binding (needs the actual model, not just
 // its id, to query medications/administrations directly).
 Route::get('/service-users/{serviceUser}/mar-chart/print', function (ServiceUser $serviceUser) {
+    abort_unless(auth()->user()->canAccessServiceUser($serviceUser), 403, __("You don't have access to this person's record."));
+
     $weekStart = request('week')
         ? Carbon::parse(request('week'))->startOfWeek()
         : now()->startOfWeek();

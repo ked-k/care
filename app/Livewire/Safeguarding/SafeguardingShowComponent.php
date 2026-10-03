@@ -24,6 +24,19 @@ class SafeguardingShowComponent extends Component
     {
         $this->safeguardingReportId = $safeguardingReportId;
 
+        // Same visibility as the index: your own reports, reports about people
+        // you can access (a carer: only those they have shifts with), and —
+        // for managers — reports in this agency not tied to a service user.
+        $report = $this->report();
+        $user = Auth::user();
+        abort_unless(
+            $report->reported_by === $user->id
+                || ($report->serviceUser
+                    ? $user->canAccessServiceUser($report->serviceUser)
+                    : $this->canManage() && $report->reportedBy?->agency_id === $user->agency_id),
+            403
+        );
+
         $this->managerOptions = User::where('agency_id', Auth::user()->agency_id)
             ->role(['Admin', 'Super Admin'])
             ->orderBy('name')->pluck('name', 'id')->toArray();

@@ -30,6 +30,8 @@ class CarePlanShowComponent extends Component
     public function mount(string $carePlanId): void
     {
         $this->carePlanId = $carePlanId;
+        abort_unless(Auth::user()->canAccessServiceUser(CarePlan::findOrFail($carePlanId)->serviceUser), 403, __("You don't have access to this person's record."));
+
         $this->carerOptions = User::where('agency_id', Auth::user()->agency_id)
             ->orderBy('name')->pluck('name', 'id')->toArray();
     }

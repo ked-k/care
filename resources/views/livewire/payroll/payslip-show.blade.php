@@ -17,7 +17,7 @@
                 {{ ucfirst($payslip->status) }}
             </x-badge>
 
-            @if ($payslip->status === 'draft')
+            @if ($payslip->status === 'draft' && $this->canManage())
                 <x-button variant="outline" size="sm" @click="$dispatch('open-drawer', 'payslip-line-form')">
                     {{ __('Add line item') }}
                 </x-button>
@@ -179,7 +179,7 @@
                                     </td>
                                     <td class="py-2 text-right">
                                         {{ number_format($line->amount, 2) }}
-                                        @if ($payslip->status === 'draft')
+                                        @if ($payslip->status === 'draft' && $this->canManage())
                                             <button type="button" wire:click="removeLine('{{ $line->id }}')" wire:confirm="{{ __('Remove this line item?') }}"
                                                     class="ml-1 text-gray-300 hover:text-accent-500 print:hidden"><i class="ik ik-x"></i></button>
                                         @endif
@@ -219,7 +219,7 @@
                                     </td>
                                     <td class="py-2 text-right">
                                         {{ number_format($line->amount, 2) }}
-                                        @if ($payslip->status === 'draft')
+                                        @if ($payslip->status === 'draft' && $this->canManage())
                                             <button type="button" wire:click="removeLine('{{ $line->id }}')" wire:confirm="{{ __('Remove this line item?') }}"
                                                     class="ml-1 text-gray-300 hover:text-accent-500 print:hidden"><i class="ik ik-x"></i></button>
                                         @endif

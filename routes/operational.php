@@ -1,7 +1,9 @@
 <?php
 
 use App\Livewire\Assessment\AssessmentIndexComponent;
+use App\Livewire\CareTimeline\CarerQuickNoteComponent;
 use App\Livewire\CareTimeline\TimelineIndexComponent;
+use App\Livewire\Family\CarerMessagesComponent;
 use App\Livewire\Notification\NotificationCenterComponent;
 use App\Livewire\Rota\MyRotaComponent;
 use App\Livewire\Rota\ShiftVisitComponent;
@@ -34,3 +36,11 @@ Route::get('/service-users/{serviceUserId}/timeline', TimelineIndexComponent::cl
     ->name('timeline.manage');
 
 Route::get('/notifications', NotificationCenterComponent::class)->name('notifications.index');
+
+// Batch 13: carer bottom-tab destinations — a quick way to add a note on
+// one of their assigned service users, and to message that person's next
+// of kin. No {serviceUserId} in the URL: both components start with a
+// picker of the carer's own assigned people (see User::isCarerOnly() and
+// each component's own mount()-time gate).
+Route::get('/notes', CarerQuickNoteComponent::class)->name('notes.quick');
+Route::get('/messages', CarerMessagesComponent::class)->name('messages.carer');
