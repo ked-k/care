@@ -5,6 +5,7 @@ namespace App\Livewire\Rota;
 use App\Models\Shift;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
@@ -13,7 +14,13 @@ use Livewire\Component;
  * "carers only see timesheets, not the upcoming schedule". Read-only, and
  * deliberately shows only PUBLISHED rota periods — a draft rota is a
  * manager's working copy and shouldn't leak to carers before it's final.
+ *
+ * Batch 11: carers live on this page on their phones during a shift, so it
+ * now renders through the mobile-first layouts.carer shell instead of the
+ * full admin layout, and each shift links to the new single-screen
+ * ShiftVisitComponent (rota.visit) rather than the old separate tasks page.
  */
+#[Layout('layouts.carer')]
 class MyRotaComponent extends Component
 {
     #[Url]

@@ -108,6 +108,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Batch 12: true for a plain carer account — the "Carer" role with none
+     * of "Admin"/"Super Admin"/"Manager" — which gets the mobile-only carer
+     * portal (layouts.carer, no admin sidebar) for Dashboard, My Rota,
+     * Timesheets, Notifications and Profile, instead of the full desktop
+     * admin layout every staff page rendered through by default. See
+     * CHANGES12.md for why this was needed: the sidebar (config/menu.php)
+     * has almost nothing gated by permission, so a carer logging in
+     * previously saw the same full admin navigation (Service Users,
+     * Safeguarding, Compliance, Rota Builder, Staff...) as an Admin.
+     */
+    public function isCarerOnly(): bool
+    {
+        return $this->hasRole('Carer') && ! $this->hasAnyRole(['Admin', 'Super Admin', 'Manager']);
+    }
+
+    /**
      * Named `appNotifications`, not `notifications`, because Notifiable
      * (above) already defines a `notifications()` relation against
      * Laravel's own DatabaseNotification model — a different table shape

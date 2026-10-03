@@ -47,6 +47,10 @@ class ProfileComponent extends Component
 
     public function render()
     {
-        return view('livewire.profile.profile');
+        // Batch 12: a plain carer gets the mobile carer shell (no admin
+        // sidebar) for their own profile page too — see
+        // App\Models\User::isCarerOnly(). Content is unchanged either way.
+        return view('livewire.profile.profile')
+            ->layout(Auth::user()->isCarerOnly() ? 'layouts.carer' : 'layouts.admin-layout');
     }
 }

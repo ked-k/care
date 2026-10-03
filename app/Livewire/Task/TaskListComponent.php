@@ -41,7 +41,10 @@ class TaskListComponent extends Component
     {
         $user = Auth::user();
 
-        $query = Task::with(['carePlan.serviceUser', 'assignee', 'latestLog'])
+        // Batch 11: eager-load through to the covering admin so the "Covered"
+        // badge in task-list.blade.php can show who actually entered a task
+        // on a carer's behalf, without an extra query per row.
+        $query = Task::with(['carePlan.serviceUser', 'assignee', 'latestLog.takeover.admin'])
             ->whereHas('carePlan.serviceUser', fn ($q) => $q->where('agency_id', $user->agency_id));
 
         if ($this->shiftId) {

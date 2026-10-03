@@ -48,6 +48,15 @@ class WeeklyTimesheetComponent extends Component
     {
         $timesheet = Timesheet::with(['entries', 'user', 'manager'])->findOrFail($this->timesheetId);
 
+        $this->canApprove = Auth::user()->can('approve_timesheets') ?? false;
+
+        // Batch 12: this had no ownership check at all — any authenticated
+        // user who could guess/enumerate a timesheet id could open anyone
+        // else's weekly timesheet. Carers only ever get here via a link to
+        // their own timesheet (timesheets.index already scopes the list),
+        // so this should never trip for normal use; it only closes the gap.
+        abort_unless($timesheet->user_id === Auth::id() || $this->canApprove, 403, "You don't have access to this timesheet.");
+
         $this->header = [
             'employee_no' => $timesheet->payProfile()?->employee_no ?? '',
             'employee_name' => $timesheet->user->name ?? '',
@@ -56,7 +65,6 @@ class WeeklyTimesheetComponent extends Component
             'status' => $timesheet->status,
         ];
 
-        $this->canApprove = Auth::user()->can('approve_timesheets') ?? false;
         $this->readOnly = in_array($timesheet->status, ['approved', 'paid']) && ! $this->canApprove;
 
         $entriesByDate = $timesheet->entries->keyBy(fn ($e) => $e->entry_date->toDateString());
@@ -194,6 +202,9 @@ class WeeklyTimesheetComponent extends Component
 
     public function render()
     {
-        return view('livewire.timesheet.weekly-timesheet');
+        // Batch 12: mobile carer shell for a plain carer — see
+        // App\Models\User::isCarerOnly().
+        return view('livewire.timesheet.weekly-timesheet')
+            ->layout(Auth::user()->isCarerOnly() ? 'layouts.carer' : 'layouts.admin-layout');
     }
 }

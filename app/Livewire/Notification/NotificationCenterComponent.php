@@ -36,6 +36,10 @@ class NotificationCenterComponent extends Component
             ->orderByDesc('created_at')
             ->paginate(20);
 
-        return view('livewire.notification.notification-center', compact('notifications'));
+        // Batch 12: mobile carer shell for a plain carer, same as Dashboard
+        // and Profile — see App\Models\User::isCarerOnly(). This list was
+        // already scoped to Auth::id() only, so the content needs no change.
+        return view('livewire.notification.notification-center', compact('notifications'))
+            ->layout(Auth::user()->isCarerOnly() ? 'layouts.carer' : 'layouts.admin-layout');
     }
 }

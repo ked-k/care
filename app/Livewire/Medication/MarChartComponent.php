@@ -86,7 +86,7 @@ class MarChartComponent extends Component
         $medIds = $allMeds->pluck('id');
         $administrations = MedicationAdministration::whereIn('medication_id', $medIds)
             ->whereBetween('scheduled_time', [$weekStart->copy()->startOfDay(), $weekEnd->copy()->endOfDay()])
-            ->with('administeredBy')
+            ->with('administeredBy', 'takeover.admin')
             ->get();
 
         $adminByMedAndDate = $administrations->groupBy(fn ($a) => $a->medication_id.'|'.$a->scheduled_time->toDateString());
@@ -134,6 +134,12 @@ class MarChartComponent extends Component
             'witness_signature' => $a->witness_signature,
             'has_photo' => (bool) $a->photo_id,
             'photo_url' => $a->photo?->url(),
+            // Batch 11: set when a manager/admin recorded this dose while
+            // covering the carer's shift — see MedicationAdministration::
+            // wasEnteredByProxy(). Surfaced as a small badge in
+            // mar-chart.blade.php so the chart stays an honest audit trail.
+            'covered_by_proxy' => $a->shift_takeover_id !== null,
+            'covering_admin' => $a->takeover?->admin?->name,
         ];
     }
 

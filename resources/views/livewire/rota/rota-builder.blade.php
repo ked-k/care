@@ -61,6 +61,14 @@
                                                         {{ $cell['day']['start'] }}–{{ $cell['day']['end'] }} · Day
                                                     </div>
                                                 </button>
+                                                {{-- Batch 11: "take up any carer's session and fill in
+                                                     records in case the carer did not" — a manager/admin
+                                                     jumps straight into that shift's visit screen from
+                                                     here, same screen the carer themself uses. --}}
+                                                <a href="{{ route('rota.visit', $cell['day']['id']) }}" wire:navigate
+                                                    class="rounded-lg border border-dashed border-gray-200 px-2 py-1 text-center text-[11px] text-gray-400 hover:border-amber-400 hover:text-amber-600 dark:border-gray-700">
+                                                    <i class="ik ik-user-check mr-1"></i>{{ __('Cover shift') }}
+                                                </a>
                                             @else
                                                 <button type="button"
                                                     wire:click="openCreateForm('{{ $suId }}', '{{ $date }}', 'day')"
@@ -82,6 +90,10 @@
                                                         {{ $cell['night']['start'] }}–{{ $cell['night']['end'] }} ·
                                                         Night</div>
                                                 </button>
+                                                <a href="{{ route('rota.visit', $cell['night']['id']) }}" wire:navigate
+                                                    class="rounded-lg border border-dashed border-gray-200 px-2 py-1 text-center text-[11px] text-gray-400 hover:border-amber-400 hover:text-amber-600 dark:border-gray-700">
+                                                    <i class="ik ik-user-check mr-1"></i>{{ __('Cover shift') }}
+                                                </a>
                                             @else
                                                 <button type="button"
                                                     wire:click="openCreateForm('{{ $suId }}', '{{ $date }}', 'night')"

@@ -37,7 +37,13 @@
                                 @php $cell = $grid[$med['id']][$date] ?? ['state' => 'n/a', 'administration' => null]; @endphp
                                 <td class="px-2 py-2 text-center">
                                     @if ($cell['administration'])
+                                        {{-- Batch 11: a small icon flags doses recorded by a
+                                             manager/admin covering the carer's shift, so the
+                                             chart stays an honest audit trail of who actually
+                                             entered each row — see
+                                             MarChartComponent::serializeAdministration(). --}}
                                         <button type="button" wire:click="viewAdministration('{{ $med['id'] }}', '{{ $date }}')"
+                                                title="{{ $cell['administration']['covered_by_proxy'] ? __('Entered by :admin covering this shift', ['admin' => $cell['administration']['covering_admin'] ?? __('an admin')]) : '' }}"
                                                 class="w-full rounded-lg px-2 py-1.5 text-xs font-semibold {{ match($cell['state']) {
                                                     'given' => 'bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400',
                                                     'prompted' => 'bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-400',
@@ -46,6 +52,9 @@
                                                     default => 'bg-gray-50 text-gray-500',
                                                 } }}">
                                             {{ ucfirst($cell['state']) }}
+                                            @if ($cell['administration']['covered_by_proxy'])
+                                                <i class="ik ik-user-check ml-1"></i>
+                                            @endif
                                         </button>
                                     @elseif ($cell['state'] === 'n/a')
                                         <span class="text-xs text-gray-300">—</span>
@@ -100,6 +109,9 @@
                     @foreach ($prnLogsThisWeek as $log)
                         <li class="text-gray-600 dark:text-gray-300">
                             {{ $log['actual_time'] ?? $log['scheduled_time'] }} — {{ ucfirst($log['status']) }} ({{ $log['administered_by'] }})
+                            @if ($log['covered_by_proxy'])
+                                <span class="ml-1 text-xs text-amber-600" title="{{ __('Entered by :admin covering this shift', ['admin' => $log['covering_admin'] ?? __('an admin')]) }}"><i class="ik ik-user-check"></i></span>
+                            @endif
                         </li>
                     @endforeach
                 </ul>
@@ -153,6 +165,9 @@
                     <div class="flex justify-between"><span class="text-gray-400">{{ __('Actual') }}</span><span>{{ $viewingAdministration['actual_time'] }}</span></div>
                 @endif
                 <div class="flex justify-between"><span class="text-gray-400">{{ __('Recorded by') }}</span><span>{{ $viewingAdministration['administered_by'] }}</span></div>
+                @if ($viewingAdministration['covered_by_proxy'])
+                    <div class="flex justify-between"><span class="text-gray-400">{{ __('Covering admin') }}</span><span>{{ $viewingAdministration['covering_admin'] ?? '—' }}</span></div>
+                @endif
                 @if ($viewingAdministration['refusal_reason'])
                     <div><span class="text-gray-400">{{ __('Refusal reason') }}</span><p class="mt-1 text-gray-700 dark:text-gray-200">{{ $viewingAdministration['refusal_reason'] }}</p></div>
                 @endif

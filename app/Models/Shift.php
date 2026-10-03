@@ -50,4 +50,26 @@ class Shift extends Model
     {
         return $this->hasMany(VisitCheckin::class);
     }
+
+    public function takeovers(): HasMany
+    {
+        return $this->hasMany(ShiftTakeover::class);
+    }
+
+    /**
+     * The in-progress takeover for this shift, if a manager/admin is
+     * currently covering it (App\Models\ShiftTakeover::end() clears this by
+     * setting ended_at). A shift can have several takeovers over its
+     * lifetime (one admin stops, another picks it up later) but at most one
+     * active at a time in normal use.
+     */
+    public function activeTakeover(): ?ShiftTakeover
+    {
+        return $this->takeovers()->whereNull('ended_at')->latest('started_at')->first();
+    }
+
+    public function openCheckin(): ?VisitCheckin
+    {
+        return $this->visitCheckins()->whereNull('checkout_time')->latest('checkin_time')->first();
+    }
 }

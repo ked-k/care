@@ -31,6 +31,14 @@
                                 color="{{ $task->priority >= 4 ? 'danger' : ($task->priority >= 3 ? 'amber' : 'secondary') }}">
                                 P{{ $task->priority }}
                             </x-badge>
+                            @if ($task->latestLog?->shift_takeover_id)
+                                {{-- Batch 11: this task was completed by a manager/admin
+                                     covering the carer's shift, not the carer themself —
+                                     see App\Models\TaskLog::wasEnteredByProxy(). --}}
+                                <x-badge color="secondary" title="{{ __('Entered by :admin covering this shift', ['admin' => $task->latestLog->takeover->admin->name ?? __('an admin')]) }}">
+                                    <i class="ik ik-user-check mr-1"></i>{{ __('Covered') }}
+                                </x-badge>
+                            @endif
                         </div>
                         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                             {{ $task->carePlan->serviceUser->name ?? '—' }}

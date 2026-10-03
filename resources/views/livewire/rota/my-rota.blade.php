@@ -1,7 +1,7 @@
 <div>
     <x-page-header title="{{ __('My Rota') }}" subtitle="{{ __('Your upcoming published shifts') }}"
         icon="ik ik-calendar" :breadcrumbs="['Home' => url('dashboard'), 'My Rota' => null]">
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             <x-button variant="outline" size="sm" wire:click="previousWeek">
                 <i class="ik ik-chevron-left"></i>
             </x-button>
@@ -32,13 +32,18 @@
                 </x-slot:header>
 
                 @forelse ($dayShifts as $shift)
-                    <div class="flex items-center justify-between px-5 py-3 border-b border-gray-50 last:border-b-0 dark:border-gray-800">
-                        <div class="flex items-center gap-3">
+                    {{-- Batch 11: the whole row is now a tap target linking
+                         straight into the single-screen shift visit (check
+                         in/out, tasks, meds, notes) — easier to hit on a
+                         phone than a small text link off to the side. --}}
+                    <a href="{{ route('rota.visit', $shift->id) }}" wire:navigate
+                        class="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-50 last:border-b-0 hover:bg-gray-50 active:bg-gray-100 dark:border-gray-800 dark:hover:bg-gray-800/60">
+                        <div class="flex items-center gap-3 min-w-0">
                             <x-badge color="{{ $shift->shift_type === 'night' ? 'secondary' : 'primary' }}">
                                 {{ $shift->shift_type === 'night' ? __('Night') : __('Day') }}
                             </x-badge>
-                            <div>
-                                <div class="font-semibold text-gray-700 dark:text-gray-200">
+                            <div class="min-w-0">
+                                <div class="font-semibold text-gray-700 dark:text-gray-200 truncate">
                                     {{ $shift->serviceUser->name ?? __('Unassigned service user') }}
                                 </div>
                                 <div class="text-xs text-gray-400">
@@ -48,15 +53,15 @@
                                     @endif
                                 </div>
                                 @if ($shift->notes)
-                                    <div class="text-xs text-gray-400">{{ $shift->notes }}</div>
+                                    <div class="text-xs text-gray-400 truncate">{{ $shift->notes }}</div>
                                 @endif
                             </div>
                         </div>
-                        <a href="{{ route('tasks.by-shift', $shift->id) }}" wire:navigate
-                            class="text-primary-600 hover:underline text-sm font-medium whitespace-nowrap">
-                            {{ __('View tasks') }}
-                        </a>
-                    </div>
+                        <span class="shrink-0 flex items-center gap-1 text-primary-600 text-sm font-medium whitespace-nowrap">
+                            {{ __('Open visit') }}
+                            <i class="ik ik-chevron-right"></i>
+                        </span>
+                    </a>
                 @empty
                     <div class="px-5 py-6 text-sm text-gray-400">{{ __('No shifts scheduled.') }}</div>
                 @endforelse

@@ -35,6 +35,10 @@ class TimesheetIndexComponent extends Component
 
         $timesheets = $query->orderByDesc('week_commencing')->paginate(12);
 
-        return view('livewire.timesheet.timesheet-index', compact('timesheets'));
+        // Batch 12: mobile carer shell for a plain carer — see
+        // App\Models\User::isCarerOnly(). The query above already scopes a
+        // carer to their own timesheets, so the content needs no change.
+        return view('livewire.timesheet.timesheet-index', compact('timesheets'))
+            ->layout($user->isCarerOnly() ? 'layouts.carer' : 'layouts.admin-layout');
     }
 }

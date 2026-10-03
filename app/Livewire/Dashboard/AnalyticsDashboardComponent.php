@@ -4,6 +4,7 @@ namespace App\Livewire\Dashboard;
 use App\Models\CarePlan;
 use App\Models\SafeguardingReport;
 use App\Models\MedicationAdministration;
+use App\Models\Notification;
 use App\Models\PayrollRun;
 use App\Models\ServiceUser;
 use App\Models\Shift;
@@ -175,8 +176,42 @@ class AnalyticsDashboardComponent extends Component
         ];
     }
 
+    /**
+     * Batch 12: a plain carer landing on /dashboard previously got this
+     * same agency-wide analytics screen (service user counts, safeguarding
+     * case counts, payroll run status...) wrapped in the full admin
+     * sidebar — information that isn't theirs to see and a layout that
+     * isn't mobile-friendly. They now get a small "what's next for me"
+     * home screen instead; everyone else (Admin/Super Admin/Manager) sees
+     * this component's existing analytics, unchanged, in the normal admin
+     * layout. See App\Models\User::isCarerOnly().
+     */
+    protected function renderCarerHome(): \Illuminate\View\View
+    {
+        $user = Auth::user();
+        $now = now();
+
+        $nextShift = Shift::with('serviceUser')
+            ->where('assigned_to', $user->id)
+            ->whereHas('rotaPeriod', fn ($q) => $q->where('status', 'published'))
+            ->where('scheduled_end', '>=', $now)
+            ->orderBy('scheduled_start')
+            ->first();
+
+        $unreadNotifications = Notification::where('user_id', $user->id)->whereNull('read_at')->count();
+
+        return view('livewire.dashboard.carer-home', [
+            'nextShift' => $nextShift,
+            'unreadNotifications' => $unreadNotifications,
+        ])->layout('layouts.carer');
+    }
+
     public function render()
     {
+        if (Auth::user()->isCarerOnly()) {
+            return $this->renderCarerHome();
+        }
+
         return view('livewire.dashboard.analytics-dashboard', [
             'serviceUsers' => $this->serviceUserStats(),
             'shifts'       => $this->shiftStats(),
@@ -185,6 +220,6 @@ class AnalyticsDashboardComponent extends Component
             'timesheets'   => $this->timesheetStats(),
             'payroll'      => $this->payrollStats(),
             'carePlans'    => $this->carePlanStats(),
-        ]);
+        ])->layout('layouts.admin-layout');
     }
 }
