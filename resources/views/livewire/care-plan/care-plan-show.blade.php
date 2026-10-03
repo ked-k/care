@@ -5,13 +5,15 @@
             <x-badge color="{{ $plan->is_active ? 'success' : 'secondary' }}">
                 {{ $plan->is_active ? __('Active') : __('Inactive') }}
             </x-badge>
-            <x-button variant="outline" size="sm" wire:click="toggleActive">
-                {{ $plan->is_active ? __('Deactivate') : __('Reactivate') }}
-            </x-button>
-            <x-button variant="primary" size="sm" wire:click="openCreateTaskForm"
-                @click="$dispatch('open-drawer', 'task-form')">
-                <i class="ik ik-plus mr-1"></i>{{ __('New task') }}
-            </x-button>
+            @if ($this->canManage())
+                <x-button variant="outline" size="sm" wire:click="toggleActive">
+                    {{ $plan->is_active ? __('Deactivate') : __('Reactivate') }}
+                </x-button>
+                <x-button variant="primary" size="sm" wire:click="openCreateTaskForm"
+                    @click="$dispatch('open-drawer', 'task-form')">
+                    <i class="ik ik-plus mr-1"></i>{{ __('New task') }}
+                </x-button>
+            @endif
         </div>
     </x-page-header>
 
@@ -81,12 +83,14 @@
                                 </x-badge>
                             </td>
                             <td class="px-5 py-3 text-right space-x-2 whitespace-nowrap">
-                                <button type="button" wire:click="openEditTaskForm('{{ $task->id }}')"
-                                    @click="$dispatch('open-drawer', 'task-form')"
-                                    class="text-primary-600 hover:underline text-sm font-medium">{{ __('Edit') }}</button>
-                                <button type="button" wire:click="deleteTask('{{ $task->id }}')"
-                                    wire:confirm="{{ __('Remove this task?') }}"
-                                    class="text-accent-500 hover:underline text-sm font-medium">{{ __('Remove') }}</button>
+                                @if ($this->canManage())
+                                    <button type="button" wire:click="openEditTaskForm('{{ $task->id }}')"
+                                        @click="$dispatch('open-drawer', 'task-form')"
+                                        class="text-primary-600 hover:underline text-sm font-medium">{{ __('Edit') }}</button>
+                                    <button type="button" wire:click="deleteTask('{{ $task->id }}')"
+                                        wire:confirm="{{ __('Remove this task?') }}"
+                                        class="text-accent-500 hover:underline text-sm font-medium">{{ __('Remove') }}</button>
+                                @endif
                             </td>
                         </tr>
                     @empty

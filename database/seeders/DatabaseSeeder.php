@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             SafeguardingConsentFamilySeeder::class,
             ComplianceGovernanceSeeder::class,
-            PayrollPermissionSeeder::class,
+            ManagerPermissionSeeder::class,
             // Batch 4: one-time repair for a database seeded before this
             // batch rewrote the seeders above — see RoleCleanupSeeder's
             // own docblock. Safe to leave in the call list permanently,

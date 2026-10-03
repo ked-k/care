@@ -41,8 +41,26 @@ class CarePlanShowComponent extends Component
         return CarePlan::with('serviceUser')->findOrFail($this->carePlanId);
     }
 
+    /** Carers read care plans and complete tasks; changing the plan or its tasks is a manager/admin job. */
+    public function canManage(): bool
+    {
+        return ! Auth::user()->isCarerOnly();
+    }
+
+    protected function authorizeManage(): void
+    {
+        abort_unless($this->canManage(), 403, __('Only a manager can change care plans.'));
+    }
+
+    /** A task on this care plan only — ids from the browser are never trusted on their own. */
+    protected function task(string $taskId): Task
+    {
+        return Task::where('care_plan_id', $this->carePlanId)->findOrFail($taskId);
+    }
+
     public function toggleActive(): void
     {
+        $this->authorizeManage();
         $plan = $this->carePlan();
         $plan->update(['is_active' => ! $plan->is_active]);
         $this->dispatch('toast', message: $plan->is_active ? 'Care plan reactivated.' : 'Care plan deactivated.', type: 'success');
@@ -50,13 +68,15 @@ class CarePlanShowComponent extends Component
 
     public function openCreateTaskForm(): void
     {
+        $this->authorizeManage();
         $this->resetTaskForm();
         $this->dispatch('open-drawer', 'task-form');
     }
 
     public function openEditTaskForm(string $taskId): void
     {
-        $task = Task::findOrFail($taskId);
+        $this->authorizeManage();
+        $task = $this->task($taskId);
 
         $this->editingTaskId = $task->id;
         $this->formTitle = $task->title;
@@ -84,8 +104,14 @@ class CarePlanShowComponent extends Component
 
     public function saveTask(): void
     {
+        $this->authorizeManage();
+        if ($this->editingTaskId) {
+            $this->task($this->editingTaskId);
+        }
+
         $this->validate([
             'formTitle' => 'required|string|max:255',
+            'formAssignedTo' => 'nullable|in:'.implode(',', array_keys($this->carerOptions)),
             'formScheduledAt' => 'nullable|date',
             'formDueAt' => 'nullable|date',
             'formPriority' => 'required|integer|min:1|max:5',
@@ -120,7 +146,8 @@ class CarePlanShowComponent extends Component
 
     public function deleteTask(string $taskId): void
     {
-        Task::whereKey($taskId)->delete();
+        $this->authorizeManage();
+        $this->task($taskId)->delete();
         $this->dispatch('toast', message: 'Task removed.', type: 'warning');
     }
 

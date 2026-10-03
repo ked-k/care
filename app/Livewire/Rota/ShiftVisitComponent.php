@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -41,9 +42,14 @@ class ShiftVisitComponent extends Component
 {
     use WithFileUploads;
 
+    // Locked: set only on the server, so the browser can't flip itself past the takeover gate.
+    #[Locked]
     public string $shiftId;
+    #[Locked]
     public bool $isOwnShift = true;
+    #[Locked]
     public bool $canTakeOver = false;
+    #[Locked]
     public ?string $activeTakeoverId = null;
 
     public string $tab = 'overview';
@@ -107,6 +113,12 @@ class ShiftVisitComponent extends Component
         return ! $this->isOwnShift && ! $this->activeTakeoverId;
     }
 
+    /** Every action that writes a record: the gate above is enforced here, not just hidden in the view. */
+    protected function authorizeRecording(): void
+    {
+        abort_if($this->needsTakeoverReason(), 403, __('Give a reason for covering this shift first.'));
+    }
+
     public function startTakeover(): void
     {
         abort_unless($this->canTakeOver, 403);
@@ -145,6 +157,7 @@ class ShiftVisitComponent extends Component
 
     public function checkIn(): void
     {
+        $this->authorizeRecording();
         $shift = $this->shift();
 
         if ($shift->openCheckin()) {
@@ -165,6 +178,7 @@ class ShiftVisitComponent extends Component
 
     public function checkOut(): void
     {
+        $this->authorizeRecording();
         $checkin = $this->shift()->openCheckin();
 
         if (! $checkin) {
@@ -180,8 +194,17 @@ class ShiftVisitComponent extends Component
     #[Computed]
     public function tasks()
     {
+        $shift = $this->shift();
+
+        // Tasks linked to this shift, plus the carer's tasks for this person
+        // scheduled (or, if unscheduled, due) on the shift's date — care-plan
+        // tasks are assigned to a carer and a time, never to a shift id.
         return Task::with(['carePlan.serviceUser', 'latestLog.takeover.admin'])
-            ->where('shift_id', $this->shiftId)
+            ->where(fn ($q) => $q->where('shift_id', $this->shiftId)->orWhere(fn ($q2) => $q2
+                ->where('assigned_to', $shift->assigned_to)
+                ->whereHas('carePlan', fn ($cp) => $cp->where('service_user_id', $shift->service_user_id)->where('is_active', true))
+                ->where(fn ($d) => $d->whereDate('scheduled_at', $shift->scheduled_start)
+                    ->orWhere(fn ($d2) => $d2->whereNull('scheduled_at')->whereDate('due_at', $shift->scheduled_start)))))
             ->orderByDesc('priority')
             ->orderBy('due_at')
             ->get();
@@ -189,6 +212,8 @@ class ShiftVisitComponent extends Component
 
     public function openCompleteForm(string $taskId): void
     {
+        $this->authorizeRecording();
+        abort_unless($this->tasks->contains('id', $taskId), 404);
         $this->completingTaskId = $taskId;
         $this->reset(['completeNotes', 'completePhoto', 'completeSignatureData']);
         $this->completeStatus = 'completed';
@@ -199,6 +224,8 @@ class ShiftVisitComponent extends Component
 
     public function completeTask(): void
     {
+        $this->authorizeRecording();
+        abort_unless($this->completingTaskId && $this->tasks->contains('id', $this->completingTaskId), 404);
         $task = Task::with('carePlan.serviceUser')->findOrFail($this->completingTaskId);
 
         $this->validate([
@@ -337,6 +364,8 @@ class ShiftVisitComponent extends Component
 
     public function openRecordForm(string $medicationId): void
     {
+        $this->authorizeRecording();
+        abort_unless($this->medications->contains(fn ($m) => $m['medication']->id === $medicationId), 404);
         $this->recordingMedicationId = $medicationId;
         $this->reset(['recordNotes', 'recordRefusalReason', 'recordWitness', 'recordPhoto']);
         $this->recordStatus = 'given';
@@ -358,6 +387,8 @@ class ShiftVisitComponent extends Component
             'recordPhoto' => 'nullable|image|max:5120',
         ]);
 
+        $this->authorizeRecording();
+        abort_unless($this->recordingMedicationId && $this->medications->contains(fn ($m) => $m['medication']->id === $this->recordingMedicationId), 404);
         $med = Medication::findOrFail($this->recordingMedicationId);
         $shift = $this->shift();
 
@@ -410,6 +441,7 @@ class ShiftVisitComponent extends Component
 
     public function addNote(): void
     {
+        $this->authorizeRecording();
         $this->validate(['noteContent' => 'required|string|max:2000']);
 
         CareTimelineEntry::create([

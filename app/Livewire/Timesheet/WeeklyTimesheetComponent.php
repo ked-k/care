@@ -65,7 +65,7 @@ class WeeklyTimesheetComponent extends Component
             'status' => $timesheet->status,
         ];
 
-        $this->readOnly = in_array($timesheet->status, ['approved', 'paid']) && ! $this->canApprove;
+        $this->readOnly = ! in_array($timesheet->status, ['draft', 'rejected']) && ! $this->canApprove;
 
         $entriesByDate = $timesheet->entries->keyBy(fn ($e) => $e->entry_date->toDateString());
         $weekStart = Carbon::parse($timesheet->week_commencing);
@@ -147,6 +147,11 @@ class WeeklyTimesheetComponent extends Component
     public function save(): void
     {
         $timesheet = Timesheet::findOrFail($this->timesheetId);
+
+        // `readOnly` only hid the inputs — without this a carer could still
+        // change hours on an approved timesheet and have payroll pay them.
+        // A carer may edit only while it's a draft or has been sent back.
+        abort_unless($this->canApprove || in_array($timesheet->status, ['draft', 'rejected']), 403, __('This timesheet is locked.'));
 
         foreach ($this->rows as $date => $row) {
             if (! $row['day_shift_start'] && ! $row['night_shift_start']) {
