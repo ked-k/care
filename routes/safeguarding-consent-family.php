@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\CareTimeline\CareCallManagerComponent;
 use App\Livewire\Consent\ConsentManagerComponent;
 use App\Livewire\Family\FamilyChatInboxComponent;
 use App\Livewire\Family\FamilyMemberManagerComponent;
@@ -28,3 +29,8 @@ Route::get('/service-users/{serviceUserId}/family', FamilyMemberManagerComponent
 // family.manage above since it's reached the same way — a link on the
 // Service Users list — and gated by the same canManage() check.
 Route::get('/service-users/{serviceUserId}/messages', FamilyChatInboxComponent::class)->name('messages.manage');
+
+// Batch 14: manager/admin-only screen to schedule the extra welfare calls
+// (lunch/evening/bedtime style) a service user needs beyond their one
+// staffing Shift — see App\Livewire\CareTimeline\CareCallManagerComponent.
+Route::get('/service-users/{serviceUserId}/calls', CareCallManagerComponent::class)->name('calls.manage');

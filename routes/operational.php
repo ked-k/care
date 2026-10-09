@@ -2,6 +2,7 @@
 
 use App\Livewire\Assessment\AssessmentIndexComponent;
 use App\Livewire\CareTimeline\CarerQuickNoteComponent;
+use App\Livewire\CareTimeline\ClientProfileComponent;
 use App\Livewire\CareTimeline\TimelineIndexComponent;
 use App\Livewire\Family\CarerMessagesComponent;
 use App\Livewire\Notification\NotificationCenterComponent;
@@ -44,3 +45,9 @@ Route::get('/notifications', NotificationCenterComponent::class)->name('notifica
 // each component's own mount()-time gate).
 Route::get('/notes', CarerQuickNoteComponent::class)->name('notes.quick');
 Route::get('/messages', CarerMessagesComponent::class)->name('messages.carer');
+
+// Batch 14: the carer's standalone client-profile page (Care Call
+// Timeline + links into Notes/Messages for that person), independent of
+// any one shift — reached from My Rota, the Dashboard's next-shift card,
+// and the Notes/Messages pickers.
+Route::get('/clients/{serviceUserId}', ClientProfileComponent::class)->name('clients.show');

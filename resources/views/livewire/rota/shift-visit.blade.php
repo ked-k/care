@@ -93,6 +93,21 @@
                     </div>
                 </x-card>
 
+                {{-- Batch 14: the Care Call Timeline — where this shift sits
+                     among today's other calls (lunch/evening/bedtime-style),
+                     if the service user has any. Same nested component the
+                     carer's client-profile page and the manager's Calls
+                     page use, so "where am I in the day" means the same
+                     thing everywhere. --}}
+                @if ($shift->serviceUser)
+                    <x-card hover>
+                        <x-slot:header>{{ __("Today's calls") }}</x-slot:header>
+                        <livewire:care-timeline.care-call-timeline
+                            :service-user-id="$shift->service_user_id"
+                            :key="'visit-timeline-'.$shift->service_user_id" />
+                    </x-card>
+                @endif
+
                 <x-card hover>
                     <x-slot:header>{{ __('Check in / out') }}</x-slot:header>
                     @if ($openCheckin)

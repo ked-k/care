@@ -7,6 +7,9 @@
     destinations (Notes, Messages) alongside the existing ones — they're
     also reachable from the new bottom tab bar, but worth having here too
     since this is the first screen a carer lands on.
+
+    Batch 14: the next-shift card's service user name now links to their
+    new client-profile page (Care Call Timeline + Notes/Messages).
 --}}
 <div>
     <div class="mb-5">
@@ -20,7 +23,14 @@
             @if ($nextShift)
                 <div class="flex items-center justify-between gap-3">
                     <div class="min-w-0">
-                        <div class="font-semibold text-gray-700">{{ $nextShift->serviceUser->name ?? __('Unassigned service user') }}</div>
+                        @if ($nextShift->serviceUser)
+                            <a href="{{ route('clients.show', $nextShift->service_user_id) }}" wire:navigate
+                                class="font-semibold text-gray-700 hover:text-primary-600 hover:underline">
+                                {{ $nextShift->serviceUser->name }}
+                            </a>
+                        @else
+                            <div class="font-semibold text-gray-700">{{ __('Unassigned service user') }}</div>
+                        @endif
                         <div class="text-sm text-gray-500">
                             {{ $nextShift->scheduled_start->format('D, d M · H:i') }} – {{ $nextShift->scheduled_end->format('H:i') }}
                         </div>

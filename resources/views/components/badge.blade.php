@@ -7,6 +7,7 @@
         'primary' => 'bg-primary-500/15 text-primary-600',
         'success' => 'bg-green-500/15 text-green-600',
         'danger'  => 'bg-accent-500/15 text-accent-600',
+        'warning' => 'bg-amber-500/15 text-amber-600', // Batch 14: Care Call Timeline's "Late" state
     ];
 @endphp
 
