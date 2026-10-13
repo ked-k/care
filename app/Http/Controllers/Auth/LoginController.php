@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Providers\RouteServiceProvider;
-use App\Services\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -43,7 +42,16 @@ class LoginController extends Controller
         if (Auth::attempt($credentials, $request->boolean('item_checkbox'))) {
             $request->session()->regenerate();
 
-            AuditLogger::log('LOGIN_SUCCESS', Auth::user());
+            // Batch 20: a login has no Eloquent "subject" model to attach
+            // LogsActivity to, so this is the one place that still calls
+            // Spatie's activity() helper directly rather than relying on
+            // the trait — replaces the old AuditLogger::log('LOGIN_SUCCESS',
+            // Auth::user()).
+            activity()
+                ->causedBy(Auth::user())
+                ->useLog('Authentication')
+                ->event('login')
+                ->log('User logged in');
 
             // Family-role logins never land in the staff app — send them
             // straight to their own portal regardless of what was "intended".

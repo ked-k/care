@@ -1,6 +1,8 @@
 <?php
 namespace App\Livewire\Dashboard;
 
+use App\Models\Agency;
+use App\Models\Alert;
 use App\Models\CarePlan;
 use App\Models\SafeguardingReport;
 use App\Models\MedicationAdministration;
@@ -9,6 +11,7 @@ use App\Models\PayrollRun;
 use App\Models\ServiceUser;
 use App\Models\Shift;
 use App\Models\Timesheet;
+use App\Support\AlertGenerator;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Url;
@@ -176,6 +179,29 @@ class AnalyticsDashboardComponent extends Component
         ];
     }
 
+    // ---------- Alerts ----------
+    /**
+     * Batch 16: open-alert counts for the dashboard tile. Also where the
+     * manager-facing dashboard regenerates alerts (see
+     * App\Support\AlertGenerator — there's no cron for this app, so it
+     * runs wherever a manager might see the results).
+     */
+    protected function alertStats(): array
+    {
+        $agency = Agency::find($this->agencyId());
+        if ($agency) {
+            AlertGenerator::run($agency);
+        }
+
+        $openOrAcknowledged = Alert::where('agency_id', $this->agencyId())
+            ->whereIn('status', [Alert::STATUS_OPEN, Alert::STATUS_ACKNOWLEDGED]);
+
+        return [
+            'open_total' => $openOrAcknowledged->count(),
+            'assigned_to_me' => (clone $openOrAcknowledged)->where('assigned_to', Auth::id())->count(),
+        ];
+    }
+
     /**
      * Batch 12: a plain carer landing on /dashboard previously got this
      * same agency-wide analytics screen (service user counts, safeguarding
@@ -220,6 +246,7 @@ class AnalyticsDashboardComponent extends Component
             'timesheets'   => $this->timesheetStats(),
             'payroll'      => $this->payrollStats(),
             'carePlans'    => $this->carePlanStats(),
+            'alerts'       => $this->alertStats(),
         ])->layout('layouts.admin-layout');
     }
 }

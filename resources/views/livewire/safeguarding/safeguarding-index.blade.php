@@ -12,6 +12,11 @@
             </select>
             <input type="text" wire:model.live.debounce.400ms="search" placeholder="{{ __('Search description...') }}"
                 class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+            @if ($canManage)
+                <x-button variant="outline" size="sm" wire:click="exportCsv">
+                    <i class="ik ik-download mr-1"></i>{{ __('Export CSV') }}
+                </x-button>
+            @endif
             <x-button variant="primary" size="sm" wire:click="openReportForm"
                 @click="$dispatch('open-drawer', 'safeguarding-report-form')">
                 <i class="ik ik-plus mr-1"></i>{{ __('Report a concern') }}

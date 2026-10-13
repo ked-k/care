@@ -3,8 +3,12 @@
 use App\Livewire\Payroll\PayrollRunIndexComponent;
 use App\Livewire\Payroll\PayrollRunShowComponent;
 use App\Livewire\Payroll\PayslipShowComponent;
+use App\Livewire\Rota\CarerAvailabilityComponent;
+use App\Livewire\Rota\LiveInPlacementComponent;
+use App\Livewire\Rota\RecurringVisitTemplateComponent;
 use App\Livewire\Rota\RotaBuilder;
 use App\Livewire\Rota\RotaPeriodIndex;
+use App\Livewire\Rota\VisitHistoryComponent;
 use App\Livewire\Timesheet\TimesheetIndexComponent;
 use App\Livewire\Timesheet\WeeklyTimesheetComponent;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +37,14 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/rota', RotaPeriodIndex::class)->name('rota.index');
 Route::get('/rota/{rotaPeriodId}/builder', RotaBuilder::class)->name('rota.builder');
+
+// Batch 18
+Route::get('/rota/live-in', LiveInPlacementComponent::class)->name('rota.live-in');
+Route::get('/rota/availability', CarerAvailabilityComponent::class)->name('rota.availability');
+Route::get('/rota/recurring-templates', RecurringVisitTemplateComponent::class)->name('rota.recurring-templates');
+
+// Batch 19
+Route::get('/rota/visit-history', VisitHistoryComponent::class)->name('rota.visit-history');
 
 Route::get('/timesheets', TimesheetIndexComponent::class)->name('timesheets.index');
 

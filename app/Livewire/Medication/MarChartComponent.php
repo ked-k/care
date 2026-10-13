@@ -40,6 +40,11 @@ class MarChartComponent extends Component
     // View-only drawer state (already recorded)
     public ?array $viewingAdministration = null;
 
+    // Batch 15: medication id => trailing-7-day refused/missed count, for
+    // medications that meet the concern threshold — see
+    // MedicationAdministration::recentConcernCounts().
+    public array $medicationConcerns = [];
+
     public function mount(string $serviceUserId, ?string $week = null): void
     {
         abort_unless(Auth::user()->canAccessServiceUser(ServiceUser::findOrFail($serviceUserId)), 403, __("You don't have access to this person's record."));
@@ -89,6 +94,11 @@ class MarChartComponent extends Component
             ->whereBetween('scheduled_time', [$weekStart->copy()->startOfDay(), $weekEnd->copy()->endOfDay()])
             ->with('administeredBy', 'takeover.admin')
             ->get();
+
+        // Batch 15: a trailing-7-day window, independent of whichever week is
+        // currently displayed, so the concern flag stays meaningful even
+        // when browsing back to an earlier week.
+        $this->medicationConcerns = MedicationAdministration::recentConcernCounts($medIds);
 
         $adminByMedAndDate = $administrations->groupBy(fn ($a) => $a->medication_id.'|'.$a->scheduled_time->toDateString());
 
@@ -179,6 +189,16 @@ class MarChartComponent extends Component
         ]);
 
         $med = Medication::findOrFail($this->recordingMedicationId);
+
+        // Batch 15: a same-day duplicate-recording guard for scheduled
+        // doses — PRN doses are exempt since more than one in a day is
+        // normal and expected for them (recordingDate is only ever set for
+        // a scheduled dose; see openRecordForm()).
+        if ($this->recordingDate && MedicationAdministration::alreadyRecordedOn($med->id, $this->recordingDate)) {
+            $this->addError('recordStatus', __('This dose has already been recorded for this day.'));
+            $this->dispatch('toast', message: 'This dose has already been recorded for this day.', type: 'error');
+            return;
+        }
 
         $scheduledTime = $this->recordingDate
             ? Carbon::parse($this->recordingDate.' '.($med->scheduledTimeFormatted() ?? '00:00'))

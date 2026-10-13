@@ -26,6 +26,14 @@
             icon="ik ik-shield" color="{{ $safeguarding['total_open_cases'] > 0 ? 'amber' : 'green' }}" />
     </div>
 
+    {{-- Batch 16: open alerts — late/missed calls, missing records/evidence,
+         medication concerns. See App\Support\AlertGenerator. --}}
+    <a href="{{ route('alerts.index') }}" wire:navigate class="mt-5 block">
+        <x-stat-card value="{{ $alerts['open_total'] }}"
+            label="{{ $alerts['assigned_to_me'] > 0 ? __(':n open alerts — :mine assigned to you', ['n' => $alerts['open_total'], 'mine' => $alerts['assigned_to_me']]) : __('Open alerts needing a response') }}"
+            icon="ik ik-alert-triangle" color="{{ $alerts['open_total'] > 0 ? 'amber' : 'green' }}" />
+    </a>
+
     {{-- Charts row --}}
     <div class="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-3">
         <x-card class="xl:col-span-2" hover>

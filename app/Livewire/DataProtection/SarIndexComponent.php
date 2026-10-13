@@ -4,7 +4,6 @@ namespace App\Livewire\DataProtection;
 
 use App\Models\ServiceUser;
 use App\Models\SubjectAccessRequest;
-use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -49,15 +48,15 @@ class SarIndexComponent extends Component
             'formNotes' => 'nullable|string|max:2000',
         ]);
 
-        $sar = SubjectAccessRequest::create([
+        // Batch 20: creation is now logged automatically by
+        // SubjectAccessRequest's LogsActivity trait.
+        SubjectAccessRequest::create([
             'requested_by' => Auth::id(),
             'service_user_id' => $this->formServiceUserId,
             'type' => $this->formType,
             'notes' => $this->formNotes ?: null,
             'created_by' => Auth::id(),
         ]);
-
-        AuditLogger::log('SAR_SUBMITTED', $sar, ['type' => $this->formType]);
 
         $this->reset(['formServiceUserId', 'formNotes']);
         $this->dispatch('close-drawer', 'sar-form');
@@ -82,14 +81,15 @@ class SarIndexComponent extends Component
         ]);
 
         $sar = SubjectAccessRequest::findOrFail($this->resolvingId);
+
+        // Batch 20: the status change is now logged automatically (old/new
+        // status) by SubjectAccessRequest's LogsActivity trait.
         $sar->update([
             'status' => $this->resolveStatus,
             'fulfilled_by' => in_array($this->resolveStatus, ['fulfilled', 'rejected']) ? Auth::id() : null,
             'notes' => trim(($sar->notes ? $sar->notes."\n" : '').$this->resolveNotes),
             'updated_by' => Auth::id(),
         ]);
-
-        AuditLogger::log('SAR_'.strtoupper($this->resolveStatus), $sar);
 
         $this->reset(['resolvingId', 'resolveStatus', 'resolveNotes']);
         $this->dispatch('close-drawer', 'sar-resolve');

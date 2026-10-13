@@ -55,9 +55,6 @@
                                 <button type="button" wire:click="openEditForm({{ $user->id }})"
                                     @click="$dispatch('open-drawer', 'staff-form')"
                                     class="text-primary-600 hover:underline text-sm font-medium">{{ __('Edit') }}</button>
-                                <button type="button" wire:click="resetPassword({{ $user->id }})"
-                                    wire:confirm="{{ __('Reset :name\'s password and email them new login details?', ['name' => $user->name]) }}"
-                                    class="text-gray-500 hover:underline text-sm font-medium">{{ __('Reset password') }}</button>
                                 <button type="button" wire:click="toggleActive({{ $user->id }})"
                                     wire:confirm="{{ $user->is_active ? __('Deactivate this staff member?') : __('Reactivate this staff member?') }}"
                                     class="text-accent-500 hover:underline text-sm font-medium">
@@ -131,11 +128,18 @@
                     label="{{ __('OT threshold (hrs)') }}" wire:model="formWeeklyOvertimeThresholdHours" required />
             </div>
 
-            <x-form.select name="formPayFrequency" label="{{ __('Pay frequency') }}" wire:model="formPayFrequency">
-                <option value="weekly">{{ __('Weekly') }}</option>
-                <option value="biweekly">{{ __('Biweekly') }}</option>
-                <option value="monthly">{{ __('Monthly') }}</option>
-            </x-form.select>
+            <div class="grid grid-cols-2 gap-3">
+                <x-form.select name="formPayFrequency" label="{{ __('Pay frequency') }}" wire:model="formPayFrequency">
+                    <option value="weekly">{{ __('Weekly') }}</option>
+                    <option value="biweekly">{{ __('Biweekly') }}</option>
+                    <option value="monthly">{{ __('Monthly') }}</option>
+                </x-form.select>
+                {{-- Batch 18: only relevant for a carer who takes live-in
+                     placements — see "Live-in Placements". Left at 0/blank
+                     for everyone else. --}}
+                <x-form.input type="number" step="0.01" min="0" name="formLiveInDailyRate"
+                    label="{{ __('Live-in daily rate (optional)') }}" wire:model="formLiveInDailyRate" />
+            </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <x-form.input name="formBankName" label="{{ __('Bank name (optional)') }}"

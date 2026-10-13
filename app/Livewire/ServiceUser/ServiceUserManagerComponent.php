@@ -2,7 +2,7 @@
 namespace App\Livewire\ServiceUser;
 
 use App\Models\ServiceUser;
-use App\Services\AuditLogger;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -27,9 +27,43 @@ class ServiceUserManagerComponent extends Component
     public string $formNextOfKinContact  = '';
     public bool $formConsentStatus       = false;
 
+    // Batch 15: key care information — kept on the profile itself rather
+    // than only inside a care plan, so it's there even before one exists.
+    public string $formAllergies             = '';
+    public string $formMedicalConditions     = '';
+    public string $formCommunicationNeeds    = '';
+    public string $formPreferences           = '';
+    public string $formImportantInformation  = '';
+
+    // Batch 16: the named person responsible for this service user's
+    // alerts — see App\Support\AlertGenerator.
+    public ?int $formCareCoordinatorId = null;
+
+    public array $coordinatorOptions = [];
+
+    // Batch 21: who pays for this person's care and how the charge is
+    // worked out — see InvoiceRun::generateInvoices().
+    public string $formBillingType = 'per_visit';
+    public ?float $formBillingRate = null;
+    public ?float $formBillingPackageAmount = null;
+    public string $formBillingPackagePeriod = 'weekly';
+    public string $formPayerType = 'self_funded';
+    public string $formPayerName = '';
+    public string $formPayerAddress = '';
+    public string $formPayerEmail = '';
+    public string $formLocalAuthorityName = '';
+    public string $formLocalAuthorityReference = '';
+    public ?float $formLocalAuthorityShareAmount = null;
+
     public function mount(): void
     {
         // abort_unless(Auth::user()->hasAnyRole(['admin', 'manager']), 403);
+
+        $this->coordinatorOptions = User::where('agency_id', Auth::user()->agency_id)
+            ->whereHas('roles', fn ($q) => $q->whereIn('name', ['Manager', 'Admin', 'Super Admin']))
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->toArray();
     }
 
     public function updatingSearch(): void
@@ -56,6 +90,23 @@ class ServiceUserManagerComponent extends Component
         $this->formNextOfKinName    = $su->next_of_kin_name ?? '';
         $this->formNextOfKinContact = $su->next_of_kin_contact ?? '';
         $this->formConsentStatus    = (bool) $su->consent_status;
+        $this->formAllergies            = $su->allergies ?? '';
+        $this->formMedicalConditions    = $su->medical_conditions ?? '';
+        $this->formCommunicationNeeds   = $su->communication_needs ?? '';
+        $this->formPreferences          = $su->preferences ?? '';
+        $this->formImportantInformation = $su->important_information ?? '';
+        $this->formCareCoordinatorId    = $su->care_coordinator_id;
+        $this->formBillingType              = $su->billing_type ?? 'per_visit';
+        $this->formBillingRate              = $su->billing_rate !== null ? (float) $su->billing_rate : null;
+        $this->formBillingPackageAmount      = $su->billing_package_amount !== null ? (float) $su->billing_package_amount : null;
+        $this->formBillingPackagePeriod      = $su->billing_package_period ?? 'weekly';
+        $this->formPayerType                 = $su->payer_type ?? 'self_funded';
+        $this->formPayerName                 = $su->payer_name ?? '';
+        $this->formPayerAddress              = $su->payer_address ?? '';
+        $this->formPayerEmail                = $su->payer_email ?? '';
+        $this->formLocalAuthorityName         = $su->local_authority_name ?? '';
+        $this->formLocalAuthorityReference    = $su->local_authority_reference ?? '';
+        $this->formLocalAuthorityShareAmount  = $su->local_authority_share_amount !== null ? (float) $su->local_authority_share_amount : null;
         $this->dispatch('open-drawer', 'service-user-form');
     }
 
@@ -64,7 +115,15 @@ class ServiceUserManagerComponent extends Component
         $this->reset([
             'editingServiceUserId', 'formName', 'formDob', 'formGender', 'formAddress',
             'formNhsNumber', 'formNextOfKinName', 'formNextOfKinContact', 'formConsentStatus',
+            'formAllergies', 'formMedicalConditions', 'formCommunicationNeeds',
+            'formPreferences', 'formImportantInformation', 'formCareCoordinatorId',
+            'formBillingType', 'formBillingRate', 'formBillingPackageAmount', 'formBillingPackagePeriod',
+            'formPayerType', 'formPayerName', 'formPayerAddress', 'formPayerEmail',
+            'formLocalAuthorityName', 'formLocalAuthorityReference', 'formLocalAuthorityShareAmount',
         ]);
+        $this->formBillingType = 'per_visit';
+        $this->formBillingPackagePeriod = 'weekly';
+        $this->formPayerType = 'self_funded';
     }
 
     public function saveServiceUser(): void
@@ -77,6 +136,23 @@ class ServiceUserManagerComponent extends Component
             'formNhsNumber'        => 'nullable|string|max:50',
             'formNextOfKinName'    => 'nullable|string|max:255',
             'formNextOfKinContact' => 'nullable|string|max:255',
+            'formAllergies'            => 'nullable|string|max:2000',
+            'formMedicalConditions'    => 'nullable|string|max:2000',
+            'formCommunicationNeeds'   => 'nullable|string|max:2000',
+            'formPreferences'          => 'nullable|string|max:2000',
+            'formImportantInformation' => 'nullable|string|max:2000',
+            'formCareCoordinatorId'    => 'nullable|exists:users,id',
+            'formBillingType'               => 'required|in:per_visit,flat_package',
+            'formBillingRate'               => 'nullable|numeric|min:0',
+            'formBillingPackageAmount'      => 'nullable|numeric|min:0',
+            'formBillingPackagePeriod'      => 'nullable|in:weekly,monthly',
+            'formPayerType'                 => 'required|in:self_funded,local_authority,split',
+            'formPayerName'                 => 'nullable|string|max:255',
+            'formPayerAddress'              => 'nullable|string',
+            'formPayerEmail'                => 'nullable|email|max:255',
+            'formLocalAuthorityName'        => 'nullable|string|max:255',
+            'formLocalAuthorityReference'   => 'nullable|string|max:255',
+            'formLocalAuthorityShareAmount' => 'nullable|numeric|min:0',
         ]);
 
         $data = [
@@ -89,15 +165,33 @@ class ServiceUserManagerComponent extends Component
             'next_of_kin_name'    => $this->formNextOfKinName ?: null,
             'next_of_kin_contact' => $this->formNextOfKinContact ?: null,
             'consent_status'      => $this->formConsentStatus,
+            'allergies'               => $this->formAllergies ?: null,
+            'medical_conditions'      => $this->formMedicalConditions ?: null,
+            'communication_needs'     => $this->formCommunicationNeeds ?: null,
+            'preferences'             => $this->formPreferences ?: null,
+            'important_information'   => $this->formImportantInformation ?: null,
+            'care_coordinator_id'     => $this->formCareCoordinatorId ?: null,
+            'billing_type'                  => $this->formBillingType,
+            'billing_rate'                  => $this->formBillingRate ?: null,
+            'billing_package_amount'        => $this->formBillingPackageAmount ?: null,
+            'billing_package_period'        => $this->formBillingPackagePeriod ?: null,
+            'payer_type'                    => $this->formPayerType,
+            'payer_name'                    => $this->formPayerName ?: null,
+            'payer_address'                 => $this->formPayerAddress ?: null,
+            'payer_email'                   => $this->formPayerEmail ?: null,
+            'local_authority_name'          => $this->formLocalAuthorityName ?: null,
+            'local_authority_reference'     => $this->formLocalAuthorityReference ?: null,
+            'local_authority_share_amount'  => $this->formLocalAuthorityShareAmount ?: null,
         ];
 
+        // Batch 20: create/update are now logged automatically by
+        // ServiceUser's LogsActivity trait — replaces the old
+        // AuditLogger::log('SERVICE_USER_CREATED'/'_UPDATED', ...) calls.
         if ($this->editingServiceUserId) {
             $su = ServiceUser::findOrFail($this->editingServiceUserId);
             $su->update($data);
-            AuditLogger::log('SERVICE_USER_UPDATED', $su);
         } else {
-            $su = ServiceUser::create($data);
-            AuditLogger::log('SERVICE_USER_CREATED', $su);
+            ServiceUser::create($data);
         }
 
         $this->resetForm();
@@ -109,13 +203,16 @@ class ServiceUserManagerComponent extends Component
     {
         $su = ServiceUser::withTrashed()->findOrFail($serviceUserId);
 
+        // Batch 20: restore/delete are now logged automatically (as
+        // "restored"/"deleted" events) by ServiceUser's LogsActivity trait,
+        // which detects the SoftDeletes trait — replaces the old
+        // AuditLogger::log('SERVICE_USER_REACTIVATED'/'_DEACTIVATED', ...)
+        // calls.
         if ($su->trashed()) {
             $su->restore();
-            AuditLogger::log('SERVICE_USER_REACTIVATED', $su);
             $this->dispatch('toast', message: 'Service user reactivated.', type: 'success');
         } else {
             $su->delete();
-            AuditLogger::log('SERVICE_USER_DEACTIVATED', $su);
             $this->dispatch('toast', message: 'Service user marked inactive.', type: 'success');
         }
     }

@@ -36,6 +36,9 @@ class StaffManagerComponent extends Component
     public float $formHourlyRate                   = 0;
     public float $formOvertimeMultiplier           = 1.5;
     public float $formWeeklyOvertimeThresholdHours = 40;
+    // Batch 18: flat rate paid per live-in day — only relevant for a carer
+    // who takes live-in placements, so it's optional (0 = not set).
+    public float $formLiveInDailyRate              = 0;
     public string $formPayFrequency                = 'weekly';
     public string $formBankName                    = '';
     public string $formBankAccountNo               = '';
@@ -86,6 +89,7 @@ class StaffManagerComponent extends Component
         $this->formHourlyRate                   = (float) ($profile?->hourly_rate ?? 0);
         $this->formOvertimeMultiplier           = (float) ($profile?->overtime_multiplier ?? 1.5);
         $this->formWeeklyOvertimeThresholdHours = (float) ($profile?->weekly_overtime_threshold_hours ?? 40);
+        $this->formLiveInDailyRate              = (float) ($profile?->live_in_daily_rate ?? 0);
         $this->formPayFrequency                 = $profile?->pay_frequency ?? 'weekly';
         $this->formBankName                     = $profile?->bank_name ?? '';
         $this->formBankAccountNo                = $profile?->bank_account_no ?? '';
@@ -107,6 +111,7 @@ class StaffManagerComponent extends Component
         $this->formHourlyRate                   = 0;
         $this->formOvertimeMultiplier           = 1.5;
         $this->formWeeklyOvertimeThresholdHours = 40;
+        $this->formLiveInDailyRate              = 0;
         $this->formPayFrequency                 = 'weekly';
     }
 
@@ -121,6 +126,7 @@ class StaffManagerComponent extends Component
             'formHourlyRate'                   => 'required|numeric|min:0',
             'formOvertimeMultiplier'           => 'required|numeric|min:1',
             'formWeeklyOvertimeThresholdHours' => 'required|numeric|min:1',
+            'formLiveInDailyRate'              => 'nullable|numeric|min:0',
         ]);
 
         $agencyId = Auth::user()->agency_id;
@@ -165,6 +171,7 @@ class StaffManagerComponent extends Component
                 'hourly_rate'                     => $this->formHourlyRate,
                 'overtime_multiplier'             => $this->formOvertimeMultiplier,
                 'weekly_overtime_threshold_hours' => $this->formWeeklyOvertimeThresholdHours,
+                'live_in_daily_rate'              => $this->formLiveInDailyRate ?: null,
                 'pay_frequency'                   => $this->formPayFrequency,
                 'bank_name'                       => $this->formBankName ?: null,
                 'bank_account_no'                 => $this->formBankAccountNo ?: null,

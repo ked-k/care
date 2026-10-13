@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class SubjectAccessRequest extends Model
 {
-    use HasUuids;
+    use HasUuids, LogsActivity;
 
     public $incrementing = false;
     protected $keyType = 'string';
@@ -36,6 +38,20 @@ class SubjectAccessRequest extends Model
     protected $attributes = [
         'status' => self::STATUS_PENDING,
     ];
+
+    /**
+     * Batch 20: replaces the explicit AuditLogger::log('SAR_SUBMITTED'/
+     * 'SAR_'.strtoupper($status), ...) calls that used to live in
+     * SarIndexComponent::submitRequest()/resolve().
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->useLogName('Subject Access Request')
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     public function requester(): BelongsTo
     {

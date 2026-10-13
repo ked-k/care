@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Policy extends Model
 {
-    use HasUuids;
+    use HasUuids, LogsActivity;
 
     public $incrementing = false;
     protected $keyType = 'string';
@@ -26,6 +28,20 @@ class Policy extends Model
         'is_mandatory_reading' => 'boolean',
         'is_active' => 'boolean',
     ];
+
+    /**
+     * Batch 20: replaces the explicit AuditLogger::log('POLICY_UPDATED'/
+     * '_PUBLISHED', ...) calls that used to live in
+     * PolicyIndexComponent::savePolicy().
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->useLogName('Policy')
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     public function agency(): BelongsTo
     {

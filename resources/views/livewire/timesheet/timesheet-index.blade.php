@@ -1,15 +1,20 @@
 <div>
     <x-page-header title="{{ __('Timesheets') }}" subtitle="{{ __('Weekly hours submitted by carers') }}"
                     icon="ik ik-clock" :breadcrumbs="['Home' => url('dashboard'), 'Timesheets' => null]">
-        <select wire:model.live="statusFilter"
-                class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-            <option value="">{{ __('All statuses') }}</option>
-            <option value="draft">{{ __('Draft') }}</option>
-            <option value="submitted">{{ __('Submitted') }}</option>
-            <option value="approved">{{ __('Approved') }}</option>
-            <option value="rejected">{{ __('Rejected') }}</option>
-            <option value="paid">{{ __('Paid') }}</option>
-        </select>
+        <div class="flex items-center gap-2">
+            <select wire:model.live="statusFilter"
+                    class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                <option value="">{{ __('All statuses') }}</option>
+                <option value="draft">{{ __('Draft') }}</option>
+                <option value="submitted">{{ __('Submitted') }}</option>
+                <option value="approved">{{ __('Approved') }}</option>
+                <option value="rejected">{{ __('Rejected') }}</option>
+                <option value="paid">{{ __('Paid') }}</option>
+            </select>
+            <x-button variant="outline" size="sm" wire:click="exportCsv">
+                <i class="ik ik-download mr-1"></i>{{ __('Export CSV') }}
+            </x-button>
+        </div>
     </x-page-header>
 
     <x-card no-padding hover>

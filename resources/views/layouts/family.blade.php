@@ -29,6 +29,15 @@
 			<span class="ml-2 hidden text-sm font-medium text-gray-400 sm:inline">{{ __('Family Portal') }}</span>
 		</a>
 		<div class="flex items-center gap-3 text-sm sm:gap-4">
+			{{-- Batch 23: entry point for conversations a staff member has
+			     added this family login to (see App\Models\Conversation) —
+			     separate from the per-person "Messages" tab on each
+			     service-user's own page, since a conversation can span more
+			     than one of the family member's linked people. --}}
+			<a href="{{ route('family.conversations.index') }}" wire:navigate
+				class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100" title="{{ __('Messages') }}">
+				<i class="ik ik-message-square"></i>
+			</a>
 			<span class="hidden text-gray-500 sm:inline">{{ auth()->user()->name }}</span>
 			<a href="{{ url('/logout') }}" class="font-medium text-primary-600 hover:underline">{{ __('Log out') }}</a>
 		</div>

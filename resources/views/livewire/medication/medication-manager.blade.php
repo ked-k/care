@@ -9,6 +9,9 @@
                     class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
                 {{ __('Show discontinued') }}
             </label>
+            <x-button variant="outline" size="sm" wire:click="exportCsv">
+                <i class="ik ik-download mr-1"></i>{{ __('Export CSV') }}
+            </x-button>
             @if ($this->canManage())
                 <x-button variant="primary" size="sm" wire:click="openCreateForm"
                     @click="$dispatch('open-drawer', 'medication-form')">

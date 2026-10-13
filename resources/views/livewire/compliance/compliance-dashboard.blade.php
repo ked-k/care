@@ -1,6 +1,21 @@
 <div x-data x-on:toast.window="$store.toast.push($event.detail.message, $event.detail.type)">
     <x-page-header title="{{ __('Compliance Dashboard') }}" subtitle="{{ __('Continuous visibility, not just an audit-time scramble') }}"
-        icon="ik ik-check-square" :breadcrumbs="['Home' => url('dashboard'), 'Compliance' => null]" />
+        icon="ik ik-check-square" :breadcrumbs="['Home' => url('dashboard'), 'Compliance' => null]">
+        <div class="flex items-center gap-3">
+            {{-- Batch 19: the tiles above are agency-wide counts; this is
+                 where a manager drills into exactly which service user and
+                 which record is behind each one. --}}
+            <a href="{{ route('compliance.missing-documentation') }}" wire:navigate
+                class="text-sm font-medium text-primary-600 hover:underline">
+                <i class="ik ik-alert-triangle mr-1"></i>{{ __('View missing documentation') }}
+            </a>
+            @if ($canManage)
+                <x-button variant="outline" size="sm" wire:click="exportCsv">
+                    <i class="ik ik-download mr-1"></i>{{ __('Export CSV') }}
+                </x-button>
+            @endif
+        </div>
+    </x-page-header>
 
     <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         @php

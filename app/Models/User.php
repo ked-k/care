@@ -151,6 +151,30 @@ class User extends Authenticatable
     }
 
     /**
+     * Batch 21: invoicing runs and invoices — a separate permission from
+     * payroll since billing payers and paying carers are different
+     * responsibilities that don't have to sit with the same person.
+     */
+    public function canManageInvoicing(): bool
+    {
+        return $this->can('manage_invoicing');
+    }
+
+    /**
+     * Batch 23: who gets the floating "Start a conversation" button (see
+     * App\Livewire\Messaging\NewConversationComponent) — Admin and Manager
+     * were the starting ask, Carer was explicitly added, and Super Admin is
+     * included as a superset of Admin everywhere else in this app. Family
+     * is deliberately excluded: a family member can be *added* to a
+     * conversation by one of these roles, but doesn't get the button to
+     * start one themselves.
+     */
+    public function canStartConversations(): bool
+    {
+        return $this->hasAnyRole(['Super Admin', 'Admin', 'Manager', 'Carer']);
+    }
+
+    /**
      * Named `appNotifications`, not `notifications`, because Notifiable
      * (above) already defines a `notifications()` relation against
      * Laravel's own DatabaseNotification model — a different table shape

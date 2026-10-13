@@ -15,7 +15,10 @@ class EmployeePayProfile extends Model
 
     protected $fillable = [
         'agency_id', 'user_id', 'manager_id', 'employee_no', 'job_title', 'employment_type',
-        'hourly_rate', 'overtime_multiplier', 'weekly_overtime_threshold_hours', 'pay_frequency',
+        'hourly_rate', 'overtime_multiplier', 'weekly_overtime_threshold_hours',
+        // Batch 18: flat rate paid per live-in day — see RotaPeriod::generateTimesheets().
+        'live_in_daily_rate',
+        'pay_frequency',
         'bank_name', 'bank_account_no', 'mobile_money_number', 'status', 'created_by', 'updated_by',
     ];
 
@@ -23,6 +26,7 @@ class EmployeePayProfile extends Model
         'hourly_rate' => 'decimal:2',
         'overtime_multiplier' => 'decimal:2',
         'weekly_overtime_threshold_hours' => 'decimal:2',
+        'live_in_daily_rate' => 'decimal:2',
     ];
 
     public function agency(): BelongsTo

@@ -35,6 +35,12 @@
     <x-command-palette />
     <x-toast />
     <x-confirm-modal />
+    {{-- Batch 23: floating "Start a conversation" button — gated here, not
+         just inside the component, so a user who can't start one never even
+         gets the Livewire round-trip. See App\Models\User::canStartConversations(). --}}
+    @if (auth()->user()->canStartConversations())
+        @livewire('messaging.new-conversation-component')
+    @endif
     @livewireScripts
     @include('include.script')
 </body>

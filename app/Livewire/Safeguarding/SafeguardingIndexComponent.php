@@ -10,6 +10,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SafeguardingIndexComponent extends Component
 {
@@ -102,11 +103,12 @@ class SafeguardingIndexComponent extends Component
         $this->redirectRoute('safeguarding.show', $report->id);
     }
 
-    public function render()
+    /** Batch 19: shared by render() and exportCsv() so export always matches the on-screen filters. */
+    protected function reportsQuery()
     {
         $agencyId = Auth::user()->agency_id;
 
-        $reports = SafeguardingReport::with(['serviceUser', 'reportedBy', 'escalatedTo'])
+        return SafeguardingReport::with(['serviceUser', 'reportedBy', 'escalatedTo'])
             ->where(function ($q) use ($agencyId) {
                 $q->whereHas('serviceUser', fn ($sq) => $sq->where('agency_id', $agencyId))
                   ->orWhere(function ($q2) use ($agencyId) {
@@ -120,8 +122,42 @@ class SafeguardingIndexComponent extends Component
                 ->orWhereIn('service_user_id', Auth::user()->shifts()->select('service_user_id'))))
             ->when($this->statusFilter, fn ($q) => $q->where('status', $this->statusFilter))
             ->when($this->search, fn ($q) => $q->where('description', 'like', "%{$this->search}%"))
-            ->orderByDesc('created_at')
-            ->paginate(12);
+            ->orderByDesc('created_at');
+    }
+
+    /**
+     * Batch 19: manager-only — the raw description text is sensitive
+     * enough that bulk-exporting it should be a deliberate manager
+     * action, same as the Audit Log / Compliance Dashboard exports.
+     */
+    public function exportCsv(): StreamedResponse
+    {
+        abort_unless($this->canManage(), 403, __('Only a manager can export safeguarding records.'));
+
+        $reports = $this->reportsQuery()->get();
+
+        return response()->streamDownload(function () use ($reports) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Service User', 'Type', 'Reported By', 'Reported At', 'Status', 'Description']);
+
+            foreach ($reports as $report) {
+                fputcsv($out, [
+                    $report->serviceUser->name ?? 'Not person-specific',
+                    ucfirst(str_replace('_', ' ', $report->type)),
+                    $report->reportedBy->name ?? '—',
+                    $report->created_at->format('Y-m-d H:i'),
+                    ucfirst($report->status),
+                    $report->description,
+                ]);
+            }
+
+            fclose($out);
+        }, 'safeguarding-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    public function render()
+    {
+        $reports = $this->reportsQuery()->paginate(12);
 
         return view('livewire.safeguarding.safeguarding-index', [
             'reports' => $reports,

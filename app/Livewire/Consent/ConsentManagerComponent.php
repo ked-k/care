@@ -4,7 +4,6 @@ namespace App\Livewire\Consent;
 
 use App\Models\Consent;
 use App\Models\ServiceUser;
-use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -68,7 +67,9 @@ class ConsentManagerComponent extends Component
             'formNotes' => 'nullable|string|max:2000',
         ]);
 
-        $consent = Consent::create([
+        // Batch 20: creation is now logged automatically by Consent's
+        // LogsActivity trait — see Consent::getActivitylogOptions().
+        Consent::create([
             'service_user_id' => $this->serviceUserId,
             'consent_type' => $this->formConsentType,
             'granted' => $this->formGranted,
@@ -78,8 +79,6 @@ class ConsentManagerComponent extends Component
             'notes' => $this->formNotes ?: null,
             'created_by' => Auth::id(),
         ]);
-
-        AuditLogger::log('CONSENT_RECORDED', $consent, ['type' => $this->formConsentType, 'granted' => $this->formGranted]);
 
         $this->reset(['formConsentType', 'formGranted', 'formExpiresAt', 'formNotes']);
         $this->dispatch('close-drawer', 'consent-form');
@@ -99,13 +98,14 @@ class ConsentManagerComponent extends Component
         $this->authorizeManage();
 
         $consent = Consent::findOrFail($this->revokingConsentId);
+
+        // Batch 20: the update is now logged automatically (old/new
+        // revoked_at and notes) by Consent's LogsActivity trait.
         $consent->update([
             'revoked_at' => now(),
             'notes' => trim(($consent->notes ? $consent->notes."\n" : '')."Revoked: {$this->revokeNotes}"),
             'updated_by' => Auth::id(),
         ]);
-
-        AuditLogger::log('CONSENT_REVOKED', $consent, ['type' => $consent->consent_type]);
 
         $this->reset(['revokingConsentId', 'revokeNotes']);
         $this->dispatch('close-drawer', 'consent-revoke');

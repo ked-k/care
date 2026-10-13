@@ -1,10 +1,13 @@
 <?php
 
+use App\Livewire\Alert\AlertsManagerComponent;
 use App\Livewire\Assessment\AssessmentIndexComponent;
 use App\Livewire\CareTimeline\CarerQuickNoteComponent;
 use App\Livewire\CareTimeline\ClientProfileComponent;
 use App\Livewire\CareTimeline\TimelineIndexComponent;
 use App\Livewire\Family\CarerMessagesComponent;
+use App\Livewire\Messaging\ConversationShowComponent;
+use App\Livewire\Messaging\ConversationsIndexComponent;
 use App\Livewire\Notification\NotificationCenterComponent;
 use App\Livewire\Rota\MyRotaComponent;
 use App\Livewire\Rota\ShiftVisitComponent;
@@ -38,6 +41,11 @@ Route::get('/service-users/{serviceUserId}/timeline', TimelineIndexComponent::cl
 
 Route::get('/notifications', NotificationCenterComponent::class)->name('notifications.index');
 
+// Batch 16: a real alerting workflow around late/missed calls, missing
+// records/evidence and medication concerns — see App\Support\AlertGenerator
+// and AlertsManagerComponent::mount() for the manager/admin-only gate.
+Route::get('/alerts', AlertsManagerComponent::class)->name('alerts.index');
+
 // Batch 13: carer bottom-tab destinations — a quick way to add a note on
 // one of their assigned service users, and to message that person's next
 // of kin. No {serviceUserId} in the URL: both components start with a
@@ -51,3 +59,13 @@ Route::get('/messages', CarerMessagesComponent::class)->name('messages.carer');
 // any one shift — reached from My Rota, the Dashboard's next-shift card,
 // and the Notes/Messages pickers.
 Route::get('/clients/{serviceUserId}', ClientProfileComponent::class)->name('clients.show');
+
+// Batch 23: free-form, multi-party conversations (see App\Models\Conversation),
+// reached via the floating "New conversation" button
+// (App\Livewire\Messaging\NewConversationComponent) on both this layout and
+// layouts.carer. Viewing/replying is gated per-conversation on
+// participation inside the component itself, not by role here — the same
+// pair of routes serves every staff role. The matching family-side routes
+// live in routes/family-portal.php, reusing these same two components.
+Route::get('/conversations', ConversationsIndexComponent::class)->name('conversations.index');
+Route::get('/conversations/{conversationId}', ConversationShowComponent::class)->name('conversations.show');

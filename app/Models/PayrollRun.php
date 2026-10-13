@@ -89,6 +89,18 @@ class PayrollRun extends Model
                 'status' => 'draft',
             ]);
 
+            // Batch 18: live-in days are a flat rate, not hours, so they're
+            // added as a separate earning line (the existing mechanism
+            // Payslip::addEarning() already provides for bonuses/allowances)
+            // rather than folded into gross_pay's hourly calculation.
+            if ((float) $timesheet->total_live_in_pay > 0) {
+                $payslip->addEarning(
+                    'live_in_allowance',
+                    (float) $timesheet->total_live_in_pay,
+                    "{$timesheet->total_live_in_days} live-in day(s)",
+                );
+            }
+
             $payslip->recalculateNet();
             $timesheet->update(['status' => 'paid']);
         }

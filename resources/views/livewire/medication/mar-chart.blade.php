@@ -30,7 +30,17 @@
                     @forelse ($scheduledMeds as $med)
                         <tr wire:key="med-row-{{ $med['id'] }}">
                             <td class="sticky left-0 z-10 bg-white px-5 py-3 dark:bg-gray-900 whitespace-nowrap">
-                                <div class="font-semibold text-gray-700 dark:text-gray-200">{{ $med['name'] }}</div>
+                                <div class="flex items-center gap-1">
+                                    <div class="font-semibold text-gray-700 dark:text-gray-200">{{ $med['name'] }}</div>
+                                    {{-- Batch 15: refused/missed doses in the trailing 7 days
+                                         — a simple concern flag, nothing stored, see
+                                         MedicationAdministration::recentConcernCounts(). --}}
+                                    @if (!empty($medicationConcerns[$med['id']]))
+                                        <span class="text-amber-500" title="{{ __(':n refused/missed doses in the last 7 days', ['n' => $medicationConcerns[$med['id']]]) }}">
+                                            <i class="ik ik-alert-triangle"></i>
+                                        </span>
+                                    @endif
+                                </div>
                                 <div class="text-xs text-gray-400">{{ $med['dosage'] }} · {{ ucfirst($med['route']) }} · {{ $med['time'] }}</div>
                             </td>
                             @foreach ($days as $date => $label)
@@ -90,7 +100,14 @@
             @forelse ($prnMeds as $med)
                 <div class="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3 dark:border-gray-800" wire:key="prn-{{ $med['id'] }}">
                     <div>
-                        <div class="font-semibold text-gray-700 dark:text-gray-200">{{ $med['name'] }}</div>
+                        <div class="flex items-center gap-1">
+                            <div class="font-semibold text-gray-700 dark:text-gray-200">{{ $med['name'] }}</div>
+                            @if (!empty($medicationConcerns[$med['id']]))
+                                <span class="text-amber-500" title="{{ __(':n refused/missed doses in the last 7 days', ['n' => $medicationConcerns[$med['id']]]) }}">
+                                    <i class="ik ik-alert-triangle"></i>
+                                </span>
+                            @endif
+                        </div>
                         <div class="text-xs text-gray-400">{{ $med['dosage'] }} · {{ ucfirst($med['route']) }}</div>
                     </div>
                     <x-button size="sm" variant="outline" wire:click="openRecordForm('{{ $med['id'] }}')">

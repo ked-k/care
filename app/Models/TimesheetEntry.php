@@ -17,12 +17,16 @@ class TimesheetEntry extends Model
         'timesheet_id', 'entry_date', 'day_of_week',
         'day_shift_id', 'day_shift_start', 'day_shift_end',
         'night_shift_id', 'night_shift_start', 'night_shift_end',
+        // Batch 18: a live-in day — flat-rate, not hourly. See
+        // RotaPeriod::generateTimesheets() and Timesheet::recalculateTotals().
+        'live_in_shift_id', 'live_in_rate',
         'break_minutes', 'total_hours', 'service_user_id', 'initials',
     ];
 
     protected $casts = [
         'entry_date' => 'date',
         'total_hours' => 'decimal:2',
+        'live_in_rate' => 'decimal:2',
     ];
 
     public function timesheet(): BelongsTo
@@ -38,6 +42,16 @@ class TimesheetEntry extends Model
     public function nightShift(): BelongsTo
     {
         return $this->belongsTo(Shift::class, 'night_shift_id');
+    }
+
+    public function liveInShift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class, 'live_in_shift_id');
+    }
+
+    public function isLiveInDay(): bool
+    {
+        return $this->live_in_shift_id !== null;
     }
 
     public function serviceUser(): BelongsTo

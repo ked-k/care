@@ -81,6 +81,7 @@ Route::group(['middleware' => ['auth', 'not-family']], function () {
         Route::get('/plan', CarePlanManagerComponent::class)->name('plan');
     });
     include __DIR__ . '/rota-payroll.php';
+    include __DIR__ . '/invoicing.php';
     include __DIR__ . '/medication-management.php';
     include __DIR__ . '/static-data.php';
     include __DIR__ . '/task-management.php';

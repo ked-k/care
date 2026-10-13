@@ -3,7 +3,6 @@
 namespace App\Livewire\DataProtection;
 
 use App\Models\BreachReport;
-use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -41,15 +40,15 @@ class BreachReportIndexComponent extends Component
             'formSeverity' => 'required|in:low,medium,high,critical',
         ]);
 
-        $report = BreachReport::create([
+        // Batch 20: creation is now logged automatically by BreachReport's
+        // LogsActivity trait.
+        BreachReport::create([
             'reported_by' => Auth::id(),
             'agency_id' => Auth::user()->agency_id,
             'description' => $this->formDescription,
             'severity' => $this->formSeverity,
             'created_by' => Auth::id(),
         ]);
-
-        AuditLogger::log('DATA_BREACH_REPORTED', $report, ['severity' => $this->formSeverity]);
 
         $this->reset(['formDescription', 'formSeverity']);
         $this->dispatch('close-drawer', 'breach-report-form');
@@ -72,13 +71,15 @@ class BreachReportIndexComponent extends Component
         $this->validate(['actionTaken' => 'required|string|max:4000']);
 
         $breach = BreachReport::findOrFail($this->resolvingId);
+
+        // Batch 20: the update is now logged automatically (old/new
+        // action_taken, reported_to_ico) by BreachReport's LogsActivity
+        // trait.
         $breach->update([
             'action_taken' => $this->actionTaken,
             'reported_to_ico' => $this->reportedToIco,
             'updated_by' => Auth::id(),
         ]);
-
-        AuditLogger::log('DATA_BREACH_ACTIONED', $breach, ['reported_to_ico' => $this->reportedToIco]);
 
         $this->reset(['resolvingId', 'actionTaken', 'reportedToIco']);
         $this->dispatch('close-drawer', 'breach-resolve');

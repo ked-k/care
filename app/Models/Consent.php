@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Consent extends Model
 {
-    use HasUuids;
+    use HasUuids, LogsActivity;
 
     public $incrementing = false;
     protected $keyType = 'string';
@@ -35,6 +37,21 @@ class Consent extends Model
         'expires_at' => 'datetime',
         'revoked_at' => 'datetime',
     ];
+
+    /**
+     * Batch 20: replaces the explicit AuditLogger::log('CONSENT_RECORDED'/
+     * 'CONSENT_REVOKED', ...) calls that used to live in
+     * ConsentManagerComponent — created/updated events (recordConsent(),
+     * revoke()) are now captured automatically.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->useLogName('Consent')
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     public function serviceUser(): BelongsTo
     {

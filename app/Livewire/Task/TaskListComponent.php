@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TaskListComponent extends Component
 {
@@ -36,8 +37,12 @@ class TaskListComponent extends Component
         $this->dateFilter = now()->toDateString();
     }
 
-    #[Computed]
-    public function tasks()
+    /**
+     * Batch 19: pulled out of tasks() so exportCsv() below can reuse the
+     * exact same query rather than risking the export silently drifting
+     * from what's actually on screen.
+     */
+    protected function tasksQuery()
     {
         $user = Auth::user();
 
@@ -63,13 +68,51 @@ class TaskListComponent extends Component
             });
         }
 
-        $tasks = $query->orderByDesc('priority')->orderBy('due_at')->get();
+        return $query->orderByDesc('priority')->orderBy('due_at')->get();
+    }
+
+    #[Computed]
+    public function tasks()
+    {
+        $tasks = $this->tasksQuery();
 
         if ($this->statusFilter) {
             $tasks = $tasks->filter(fn (Task $t) => $t->status() === $this->statusFilter)->values();
         }
 
         return $tasks;
+    }
+
+    /**
+     * Batch 19: manager-only — a carer's own single-day task list isn't
+     * a record export. Exports exactly the same day/status filter the
+     * manager currently has on screen, same principle as the existing
+     * Audit Log / Compliance Dashboard exports.
+     */
+    public function exportCsv(): StreamedResponse
+    {
+        abort_unless(Auth::user()->can('manage_tasks') || Auth::user()->hasRole(['Admin', 'Super Admin']), 403);
+
+        $tasks = $this->tasks;
+
+        return response()->streamDownload(function () use ($tasks) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Service User', 'Task', 'Priority', 'Scheduled/Due', 'Status', 'Assigned To', 'Notes']);
+
+            foreach ($tasks as $task) {
+                fputcsv($out, [
+                    $task->carePlan->serviceUser->name ?? '—',
+                    $task->title,
+                    $task->priority,
+                    optional($task->due_at ?? $task->scheduled_at)->format('Y-m-d H:i'),
+                    ucfirst($task->status()),
+                    $task->assignee->name ?? '—',
+                    $task->description,
+                ]);
+            }
+
+            fclose($out);
+        }, 'tasks-'.$this->dateFilter.'.csv', ['Content-Type' => 'text/csv']);
     }
 
     public function openCompleteForm(string $taskId): void
@@ -87,8 +130,14 @@ class TaskListComponent extends Component
         $task = Task::with('carePlan.serviceUser')->findOrFail($this->completingTaskId);
 
         $this->validate([
-            'completeStatus' => 'required|in:completed,refused,skipped',
-            'completeNotes' => 'nullable|string|max:2000',
+            // Batch 15: "partly_completed" added — a task can be started but
+            // not finished (e.g. the service user tired halfway through
+            // personal care), distinct from a flat refusal or being skipped
+            // outright.
+            'completeStatus' => 'required|in:completed,partly_completed,refused,skipped',
+            'completeNotes' => $this->completeStatus === 'partly_completed'
+                ? 'required|string|max:2000'
+                : 'nullable|string|max:2000',
             'completePhoto' => ($task->requires_photo && $this->completeStatus === 'completed')
                 ? 'required|image|max:5120'
                 : 'nullable|image|max:5120',
@@ -143,6 +192,7 @@ class TaskListComponent extends Component
 
         $verb = match ($log->status) {
             'completed' => 'completed',
+            'partly_completed' => 'was partly completed for',
             'refused' => 'was refused by the service user for',
             'skipped' => 'skipped',
             default => $log->status,

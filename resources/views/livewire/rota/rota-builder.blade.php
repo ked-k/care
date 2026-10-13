@@ -7,6 +7,13 @@
                 {{ ucfirst($period->status) }}
             </x-badge>
 
+            {{-- Batch 18: fills in whatever's missing from this week's active
+                 recurring templates (shifts only — CareCall templates are
+                 generated from their own management page, not this grid). --}}
+            <x-button variant="outline" size="sm" wire:click="generateFromTemplates">
+                <i class="ik ik-repeat mr-1"></i>{{ __('Generate from templates') }}
+            </x-button>
+
             @if ($period->status === 'draft')
                 <x-button variant="outline" size="sm" wire:click="publish">{{ __('Publish rota') }}</x-button>
             @endif
@@ -44,64 +51,91 @@
                                 <td
                                     class="sticky left-0 z-10 bg-white px-5 py-3 font-semibold text-gray-700 dark:bg-gray-900 dark:text-gray-200 whitespace-nowrap">
                                     {{ $suName }}
+                                    {{-- Batch 18: a live-in placement is scheduled outside this
+                                         weekly grid (see "Live-in Placements"), but a manager
+                                         building this week's day/night rota still needs to see
+                                         at a glance that this person is already covered. --}}
+                                    @if (! empty($liveInByServiceUser[$suId]))
+                                        @foreach ($liveInByServiceUser[$suId] as $liveIn)
+                                            <x-badge color="primary" class="ml-1"
+                                                title="{{ __('Live-in placement with :name until :end', ['name' => $liveIn['carer_name'], 'end' => $liveIn['end']]) }}">
+                                                <i class="ik ik-home mr-1"></i>{{ __('Live-in') }}
+                                            </x-badge>
+                                        @endforeach
+                                    @endif
                                 </td>
                                 @foreach ($days as $date => $label)
                                     @php $cell = $grid[$suId][$date]; @endphp
                                     <td class="px-2 py-2 align-top">
-                                        <div class="flex flex-col gap-1 w-36">
-                                            {{-- Day shift slot --}}
-                                            @if ($cell['day'])
-                                                <button type="button"
-                                                    wire:click="openEditForm('{{ $cell['day']['id'] }}')"
-                                                    @click="$dispatch('open-drawer', 'shift-form')"
-                                                    class="rounded-lg border border-primary-200 bg-primary-50 px-2 py-1 text-left text-xs hover:bg-primary-100 dark:border-primary-500/30 dark:bg-primary-500/10">
-                                                    <div class="font-semibold text-primary-700 dark:text-primary-300">
-                                                        {{ $cell['day']['carer_name'] }}</div>
-                                                    <div class="text-primary-500">
-                                                        {{ $cell['day']['start'] }}–{{ $cell['day']['end'] }} · Day
-                                                    </div>
-                                                </button>
-                                                {{-- Batch 11: "take up any carer's session and fill in
-                                                     records in case the carer did not" — a manager/admin
-                                                     jumps straight into that shift's visit screen from
-                                                     here, same screen the carer themself uses. --}}
-                                                <a href="{{ route('rota.visit', $cell['day']['id']) }}" wire:navigate
-                                                    class="rounded-lg border border-dashed border-gray-200 px-2 py-1 text-center text-[11px] text-gray-400 hover:border-amber-400 hover:text-amber-600 dark:border-gray-700">
-                                                    <i class="ik ik-user-check mr-1"></i>{{ __('Cover shift') }}
-                                                </a>
-                                            @else
-                                                <button type="button"
-                                                    wire:click="openCreateForm('{{ $suId }}', '{{ $date }}', 'day')"
-                                                    @click="$dispatch('open-drawer', 'shift-form')"
-                                                    class="rounded-lg border border-dashed border-gray-200 px-2 py-1 text-xs text-gray-400 hover:border-primary-400 hover:text-primary-500 dark:border-gray-700">
-                                                    + {{ __('Day') }}
-                                                </button>
-                                            @endif
+                                        <div class="flex flex-col gap-2 w-40">
+                                            @foreach (['day' => __('Day'), 'night' => __('Night')] as $slotKey => $slotLabel)
+                                                @php
+                                                    $slotClasses = $slotKey === 'day'
+                                                        ? ['border-primary-200 bg-primary-50 dark:border-primary-500/30 dark:bg-primary-500/10', 'text-primary-700 dark:text-primary-300', 'text-primary-500', 'hover:border-primary-400 hover:text-primary-500']
+                                                        : ['border-accent-200 bg-accent-50 dark:border-accent-500/30 dark:bg-accent-500/10', 'text-accent-700 dark:text-accent-300', 'text-accent-500', 'hover:border-accent-400 hover:text-accent-500'];
+                                                @endphp
+                                                <div class="flex flex-col gap-1">
+                                                    @foreach ($cell[$slotKey] as $shiftCard)
+                                                        <div
+                                                            class="rounded-lg border {{ $slotClasses[0] }} px-2 py-1 text-xs">
+                                                            <button type="button"
+                                                                wire:click="openEditForm('{{ $shiftCard['id'] }}')"
+                                                                @click="$dispatch('open-drawer', 'shift-form')"
+                                                                class="block w-full text-left">
+                                                                <div class="flex items-center justify-between gap-1">
+                                                                    <span class="font-semibold {{ $slotClasses[1] }}">
+                                                                        {{ $shiftCard['carer_name'] }}
+                                                                    </span>
+                                                                    @if ($shiftCard['is_double_handed'])
+                                                                        <i class="ik ik-users {{ $slotClasses[2] }}"
+                                                                            title="{{ __('Double-handed') }}"></i>
+                                                                    @endif
+                                                                </div>
+                                                                <div class="{{ $slotClasses[2] }}">
+                                                                    {{ $shiftCard['start'] }}–{{ $shiftCard['end'] }} ·
+                                                                    {{ $slotLabel }}
+                                                                </div>
+                                                            </button>
+                                                            @if ($shiftCard['is_unavailable'])
+                                                                <x-badge color="warning" class="mt-1">
+                                                                    <i class="ik ik-alert-triangle mr-1"></i>{{ __('Unavailable') }}
+                                                                </x-badge>
+                                                            @endif
+                                                            @if ($shiftCard['is_conflicting'])
+                                                                <x-badge color="danger" class="mt-1">
+                                                                    <i class="ik ik-alert-triangle mr-1"></i>{{ __('Conflict') }}
+                                                                </x-badge>
+                                                            @endif
+                                                        </div>
+                                                        {{-- Batch 11: "take up any carer's session and fill in
+                                                             records in case the carer did not" — a manager/admin
+                                                             jumps straight into that shift's visit screen from
+                                                             here, same screen the carer themself uses. --}}
+                                                        <a href="{{ route('rota.visit', $shiftCard['id']) }}" wire:navigate
+                                                            class="rounded-lg border border-dashed border-gray-200 px-2 py-1 text-center text-[11px] text-gray-400 hover:border-amber-400 hover:text-amber-600 dark:border-gray-700">
+                                                            <i class="ik ik-user-check mr-1"></i>{{ __('Cover shift') }}
+                                                        </a>
+                                                    @endforeach
 
-                                            {{-- Night shift slot --}}
-                                            @if ($cell['night'])
-                                                <button type="button"
-                                                    wire:click="openEditForm('{{ $cell['night']['id'] }}')"
-                                                    @click="$dispatch('open-drawer', 'shift-form')"
-                                                    class="rounded-lg border border-accent-200 bg-accent-50 px-2 py-1 text-left text-xs hover:bg-accent-100 dark:border-accent-500/30 dark:bg-accent-500/10">
-                                                    <div class="font-semibold text-accent-700 dark:text-accent-300">
-                                                        {{ $cell['night']['carer_name'] }}</div>
-                                                    <div class="text-accent-500">
-                                                        {{ $cell['night']['start'] }}–{{ $cell['night']['end'] }} ·
-                                                        Night</div>
-                                                </button>
-                                                <a href="{{ route('rota.visit', $cell['night']['id']) }}" wire:navigate
-                                                    class="rounded-lg border border-dashed border-gray-200 px-2 py-1 text-center text-[11px] text-gray-400 hover:border-amber-400 hover:text-amber-600 dark:border-gray-700">
-                                                    <i class="ik ik-user-check mr-1"></i>{{ __('Cover shift') }}
-                                                </a>
-                                            @else
-                                                <button type="button"
-                                                    wire:click="openCreateForm('{{ $suId }}', '{{ $date }}', 'night')"
-                                                    @click="$dispatch('open-drawer', 'shift-form')"
-                                                    class="rounded-lg border border-dashed border-gray-200 px-2 py-1 text-xs text-gray-400 hover:border-accent-400 hover:text-accent-500 dark:border-gray-700">
-                                                    + {{ __('Night') }}
-                                                </button>
-                                            @endif
+                                                    @if (count($cell[$slotKey]) === 0)
+                                                        <button type="button"
+                                                            wire:click="openCreateForm('{{ $suId }}', '{{ $date }}', '{{ $slotKey }}')"
+                                                            @click="$dispatch('open-drawer', 'shift-form')"
+                                                            class="rounded-lg border border-dashed border-gray-200 px-2 py-1 text-xs text-gray-400 {{ $slotClasses[3] }} dark:border-gray-700">
+                                                            + {{ $slotLabel }}
+                                                        </button>
+                                                    @elseif (count($cell[$slotKey]) === 1)
+                                                        {{-- Batch 18: double-handed — adds a second, independent
+                                                             Shift row for the same visit, linked to this one. --}}
+                                                        <button type="button"
+                                                            wire:click="openAddSecondCarerForm('{{ $cell[$slotKey][0]['id'] }}')"
+                                                            @click="$dispatch('open-drawer', 'shift-form')"
+                                                            class="rounded-lg border border-dashed border-gray-200 px-2 py-1 text-center text-[11px] text-gray-400 {{ $slotClasses[3] }} dark:border-gray-700">
+                                                            <i class="ik ik-user-plus mr-1"></i>{{ __('Add 2nd carer') }}
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                            @endforeach
                                         </div>
                                     </td>
                                 @endforeach
@@ -113,7 +147,9 @@
         </x-card>
     @endif
 
-    <x-drawer name="shift-form" title="{{ $editingShiftId ? __('Edit shift') : __('New shift') }}" width="w-[28rem]">
+    <x-drawer name="shift-form"
+        title="{{ $linkingShiftId ? __('Add a second carer') : ($editingShiftId ? __('Edit shift') : __('New shift')) }}"
+        width="w-[28rem]">
         <div class="space-y-4">
             <div class="rounded-lg bg-gray-50 px-3 py-2 text-sm dark:bg-gray-800">
                 <span class="text-gray-500">{{ __('Service user') }}:</span>
@@ -122,6 +158,12 @@
                 <span class="text-gray-500">{{ __('Date') }}:</span>
                 <span class="font-semibold text-gray-700 dark:text-gray-200">{{ $formDate }}</span>
             </div>
+
+            @if ($linkingShiftId)
+                <p class="text-xs text-gray-500">
+                    {{ __('This adds a separate shift for the same visit, for a second carer — each carer keeps their own record and their own timesheet hours.') }}
+                </p>
+            @endif
 
             <x-form.select name="formShiftType" label="{{ __('Shift type') }}" wire:model="formShiftType" required>
                 <option value="day">{{ __('Day') }}</option>
@@ -159,7 +201,9 @@
                 @else
                     <span></span>
                 @endif
-                <x-button wire:click="saveShift">{{ __('Save shift') }}</x-button>
+                <x-button wire:click="saveShift">
+                    {{ $linkingShiftId ? __('Add carer') : __('Save shift') }}
+                </x-button>
             </div>
         </x-slot:footer>
     </x-drawer>

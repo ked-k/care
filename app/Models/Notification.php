@@ -75,6 +75,7 @@ class Notification extends Model
             'safeguarding_escalated' => 'ik ik-shield',
             'new_message' => 'ik ik-message-square',
             'family_message' => 'ik ik-message-square',
+            'conversation_message' => 'ik ik-message-square',
             default => 'ik ik-bell',
         };
     }

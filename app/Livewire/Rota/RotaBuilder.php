@@ -1,6 +1,8 @@
 <?php
 namespace App\Livewire\Rota;
 
+use App\Models\CarerUnavailability;
+use App\Models\RecurringVisitTemplate;
 use App\Models\RotaPeriod;
 use App\Models\ServiceUser;
 use App\Models\Shift;
@@ -16,10 +18,15 @@ class RotaBuilder extends Component
     public array $days         = []; // date (Y-m-d) => display label
     public array $serviceUsers = []; // id => name
     public array $carers       = []; // id => name
-    public array $grid         = []; // [service_user_id][date]['day'|'night'] => shift array|null
+    public array $grid         = []; // [service_user_id][date]['day'|'night'] => array of shift arrays (0, 1 or 2)
+    public array $liveInByServiceUser = []; // service_user_id => ['carer_name' => ..., 'end' => 'd/m'][]
 
     // Shift form (drawer) state
     public ?string $editingShiftId     = null;
+    // Batch 18: set instead of editingShiftId when the drawer is adding a
+    // SECOND carer to an existing shift (double-handed) rather than
+    // editing it — see openAddSecondCarerForm()/saveShift().
+    public ?string $linkingShiftId     = null;
     public string $formServiceUserId   = '';
     public string $formServiceUserName = '';
     public string $formDate            = '';
@@ -29,6 +36,11 @@ class RotaBuilder extends Component
     public string $formEnd             = '';
     public int $formBreakMinutes       = 0;
     public string $formNotes           = '';
+
+    // Carers found unavailable (App\Models\CarerUnavailability) for the
+    // currently-selected carer/date, surfaced as a warning once saveShift()
+    // runs — not blocked, just flagged.
+    public ?string $unavailableWarning = null;
 
     public function mount(string $rotaPeriodId): void
     {
@@ -63,6 +75,7 @@ class RotaBuilder extends Component
     {
         $period    = $this->period();
         $weekStart = Carbon::parse($period->week_commencing);
+        $weekEnd   = $weekStart->copy()->addDays(6);
 
         $this->days = [];
         for ($i = 0; $i < 7; $i++) {
@@ -73,11 +86,40 @@ class RotaBuilder extends Component
         $this->grid = [];
         foreach ($this->serviceUsers as $suId => $suName) {
             foreach (array_keys($this->days) as $date) {
-                $this->grid[$suId][$date] = ['day' => null, 'night' => null];
+                $this->grid[$suId][$date] = ['day' => [], 'night' => []];
             }
         }
 
         $shifts = $period->shifts()->with('carer')->get();
+
+        // Batch 18: carers with an unavailability window overlapping this
+        // week, and any pair of a carer's shifts this week that overlap in
+        // time without being a deliberate double-handed link — both
+        // computed once here rather than per-cell.
+        $agencyId        = Auth::user()->agency_id;
+        $unavailabilities = CarerUnavailability::where('agency_id', $agencyId)
+            ->where('start_date', '<=', $weekEnd->toDateString())
+            ->where('end_date', '>=', $weekStart->toDateString())
+            ->get();
+        $conflictingShiftIds = $this->computeConflicts($shifts);
+
+        // Live-in placements overlapping this week, keyed by service user,
+        // so the grid can flag "already covered by a live-in carer" next
+        // to that person's name instead of silently allowing a day/night
+        // shift to be booked on top of it.
+        $this->liveInByServiceUser = Shift::where('agency_id', $agencyId)
+            ->where('shift_type', Shift::TYPE_LIVE_IN)
+            ->whereNotNull('assigned_to')
+            ->where('scheduled_start', '<=', $weekEnd->toDateString().' 23:59:59')
+            ->where('scheduled_end', '>=', $weekStart->toDateString().' 00:00:00')
+            ->with('carer')
+            ->get()
+            ->groupBy('service_user_id')
+            ->map(fn ($group) => $group->map(fn (Shift $s) => [
+                'carer_name' => $s->carer->name ?? __('Unassigned'),
+                'end' => $s->scheduled_end->format('d/m'),
+            ])->all())
+            ->all();
 
         foreach ($shifts as $shift) {
             $date = $shift->scheduled_start->toDateString();
@@ -88,20 +130,60 @@ class RotaBuilder extends Component
                 continue; // service user no longer active for this agency — skip defensively
             }
 
-            $this->grid[$suId][$date][$slot] = [
+            $isUnavailable = $shift->assigned_to && $unavailabilities->contains(
+                fn (CarerUnavailability $u) => $u->user_id == $shift->assigned_to && $u->coversDate($date)
+            );
+
+            $this->grid[$suId][$date][$slot][] = [
                 'id'            => $shift->id,
-                'carer_name'    => $shift->carer->name ?? 'Unassigned',
+                'carer_name'    => $shift->carer->name ?? __('Unassigned'),
                 'start'         => $shift->scheduled_start->format('H:i'),
                 'end'           => $shift->scheduled_end->format('H:i'),
                 'break_minutes' => $shift->break_minutes,
                 'status'        => $shift->status,
+                'is_double_handed' => $shift->linked_shift_id !== null,
+                'is_unavailable'    => $isUnavailable,
+                'is_conflicting'    => in_array($shift->id, $conflictingShiftIds, true),
             ];
         }
     }
 
+    /**
+     * Any two of the same carer's shifts this week that overlap in time
+     * without being a deliberate double-handed pair (linked_shift_id).
+     * Scoped to this rota period only — a conflict spanning two different
+     * weeks, or against a CareCall rather than a Shift, isn't caught here;
+     * see CHANGES18.md.
+     */
+    protected function computeConflicts(\Illuminate\Support\Collection $shifts): array
+    {
+        $conflicting = [];
+
+        foreach ($shifts->whereNotNull('assigned_to')->groupBy('assigned_to') as $carerShifts) {
+            $list = $carerShifts->values();
+
+            for ($i = 0; $i < $list->count(); $i++) {
+                for ($j = $i + 1; $j < $list->count(); $j++) {
+                    $a = $list[$i];
+                    $b = $list[$j];
+
+                    if ($a->linked_shift_id === $b->id || $b->linked_shift_id === $a->id) {
+                        continue; // intentional double-handed pairing
+                    }
+
+                    if ($a->scheduled_start->lessThan($b->scheduled_end) && $b->scheduled_start->lessThan($a->scheduled_end)) {
+                        $conflicting[$a->id] = true;
+                        $conflicting[$b->id] = true;
+                    }
+                }
+            }
+        }
+
+        return array_keys($conflicting);
+    }
+
     public function openCreateForm(string $serviceUserId, string $date, string $shiftType): void
     {
-        // dd('wwwww');
         $this->resetForm();
         $this->formServiceUserId   = $serviceUserId;
         $this->formServiceUserName = $this->serviceUsers[$serviceUserId] ?? '';
@@ -112,7 +194,6 @@ class RotaBuilder extends Component
 
     public function openEditForm(string $shiftId): void
     {
-
         $shift = Shift::findOrFail($shiftId);
 
         $this->editingShiftId      = $shift->id;
@@ -128,18 +209,44 @@ class RotaBuilder extends Component
         $this->dispatch('open-drawer', 'shift-form');
     }
 
+    /**
+     * Batch 18: the double-handed flow — pre-fills everything from the
+     * existing shift (service user, date, slot, times) except the carer,
+     * which the manager picks fresh. saveShift() sees linkingShiftId set
+     * and creates a new, separate Shift row linked to this one, rather
+     * than editing it — each carer keeps their own row (and their own
+     * timesheet attribution) exactly as a single-handed visit would.
+     */
+    public function openAddSecondCarerForm(string $shiftId): void
+    {
+        $shift = Shift::findOrFail($shiftId);
+
+        $this->resetForm();
+        $this->linkingShiftId      = $shift->id;
+        $this->formServiceUserId   = $shift->service_user_id;
+        $this->formServiceUserName = $this->serviceUsers[$shift->service_user_id] ?? '';
+        $this->formDate            = $shift->scheduled_start->toDateString();
+        $this->formShiftType       = $shift->shift_type ?? 'day';
+        $this->formStart           = $shift->scheduled_start->format('H:i');
+        $this->formEnd             = $shift->scheduled_end->format('H:i');
+        $this->formBreakMinutes    = $shift->break_minutes ?? 0;
+        $this->dispatch('open-drawer', 'shift-form');
+    }
+
     protected function resetForm(): void
     {
         $this->reset([
-            'editingShiftId', 'formCarerId', 'formStart', 'formEnd', 'formNotes',
+            'editingShiftId', 'linkingShiftId', 'formCarerId', 'formStart', 'formEnd', 'formNotes',
+            'unavailableWarning',
         ]);
         $this->formBreakMinutes = 0;
     }
 
     /**
-     * Handles both create and edit — day/night shift assignment for one
-     * service user on one date. A shift crossing midnight (e.g. a night
-     * shift 20:00-08:00) is detected and rolled to the next day automatically.
+     * Handles create, edit, and "add a second carer" (double-handed) —
+     * day/night shift assignment for one service user on one date. A
+     * shift crossing midnight (e.g. a night shift 20:00-08:00) is
+     * detected and rolled to the next day automatically.
      */
     public function saveShift(): void
     {
@@ -177,15 +284,40 @@ class RotaBuilder extends Component
 
         if ($this->editingShiftId) {
             Shift::whereKey($this->editingShiftId)->update($data);
+        } elseif ($this->linkingShiftId) {
+            $data['created_by'] = Auth::id();
+            $second = Shift::create($data);
+            Shift::findOrFail($this->linkingShiftId)->linkWith($second);
         } else {
             $data['created_by'] = Auth::id();
             Shift::create($data);
         }
 
+        $warning = $this->carerUnavailableWarning((int) $this->formCarerId, $this->formDate);
+
         $this->resetForm();
         $this->dispatch('close-drawer', 'shift-form');
-        $this->dispatch('toast', message: 'Shift saved.', type: 'success');
+        $this->dispatch('toast', message: $warning ?: 'Shift saved.', type: $warning ? 'warning' : 'success');
         $this->loadGrid();
+    }
+
+    protected function carerUnavailableWarning(int $carerId, string $date): ?string
+    {
+        $unavailable = CarerUnavailability::where('user_id', $carerId)
+            ->where('start_date', '<=', $date)
+            ->where('end_date', '>=', $date)
+            ->first();
+
+        if (! $unavailable) {
+            return null;
+        }
+
+        $name = $this->carers[$carerId] ?? __('This carer');
+
+        return __(':name is marked unavailable on this date (:reason) — shift saved anyway.', [
+            'name' => $name,
+            'reason' => $unavailable->reason ?: __('no reason given'),
+        ]);
     }
 
     public function deleteShift(string $shiftId): void
@@ -210,6 +342,34 @@ class RotaBuilder extends Component
     {
         $this->period()->generateTimesheets();
         $this->dispatch('toast', message: 'Timesheets generated for every scheduled carer.', type: 'success');
+    }
+
+    /**
+     * Batch 18: runs every active shift-type RecurringVisitTemplate for
+     * this agency across this period's week — idempotent, so running it
+     * more than once (or after manually editing some of the generated
+     * shifts) only fills in whatever's still missing.
+     */
+    public function generateFromTemplates(): void
+    {
+        $period = $this->period();
+        $weekStart = Carbon::parse($period->week_commencing);
+        $weekEnd = $weekStart->copy()->addDays(6);
+
+        $templates = RecurringVisitTemplate::where('agency_id', $period->agency_id)
+            ->where('template_type', RecurringVisitTemplate::TYPE_SHIFT)
+            ->where('is_active', true)
+            ->get();
+
+        $created = 0;
+        foreach ($templates as $template) {
+            $created += $template->generate($weekStart, $weekEnd);
+        }
+
+        $this->dispatch('toast', message: $created > 0
+            ? __(':n shift(s) generated from recurring templates.', ['n' => $created])
+            : __('No new shifts to generate — everything this week is already covered.'), type: 'success');
+        $this->loadGrid();
     }
 
     public function render()

@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * A manual compliance checklist item (e.g. "CQC registration renewal") — not
@@ -12,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class ComplianceCheck extends Model
 {
-    use HasUuids;
+    use HasUuids, LogsActivity;
 
     public $incrementing = false;
     protected $keyType = 'string';
@@ -32,6 +34,22 @@ class ComplianceCheck extends Model
     protected $attributes = [
         'status' => self::STATUS_NOT_STARTED,
     ];
+
+    /**
+     * Batch 20: new instrumentation — ComplianceDashboardComponent's
+     * saveCheck()/advanceCheck() had no audit logging at all before this
+     * (contrary to what the Batch 2 writeup described), so create/update
+     * events on this model are now captured for the first time rather than
+     * replacing an existing call.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->useLogName('Compliance Check')
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     public function agency(): BelongsTo
     {

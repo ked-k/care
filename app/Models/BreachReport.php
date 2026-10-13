@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class BreachReport extends Model
 {
-    use HasUuids;
+    use HasUuids, LogsActivity;
 
     public $incrementing = false;
     protected $keyType = 'string';
@@ -22,6 +24,20 @@ class BreachReport extends Model
         'reported_to_ico' => 'boolean',
         'evidence' => 'array',
     ];
+
+    /**
+     * Batch 20: replaces the explicit AuditLogger::log('DATA_BREACH_
+     * REPORTED'/'_ACTIONED', ...) calls that used to live in
+     * BreachReportIndexComponent::submitReport()/recordAction().
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->useLogName('Data Breach Report')
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     public function reporter(): BelongsTo
     {

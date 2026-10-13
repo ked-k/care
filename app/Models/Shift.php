@@ -12,10 +12,14 @@ class Shift extends Model
 {
     use HasUuids, SoftDeletes;
 
+    public const TYPE_DAY = 'day';
+    public const TYPE_NIGHT = 'night';
+    public const TYPE_LIVE_IN = 'live_in';
+
     protected $fillable = [
         'agency_id', 'rota_period_id', 'service_user_id', 'assigned_to',
         'scheduled_start', 'scheduled_end', 'actual_start', 'actual_end',
-        'shift_type', 'break_minutes', 'status', 'notes',
+        'shift_type', 'linked_shift_id', 'break_minutes', 'status', 'notes',
         'created_by', 'updated_by',
     ];
 
@@ -71,5 +75,56 @@ class Shift extends Model
     public function openCheckin(): ?VisitCheckin
     {
         return $this->visitCheckins()->whereNull('checkout_time')->latest('checkin_time')->first();
+    }
+
+    /**
+     * Batch 18: a double-handed visit — the other carer's Shift row for
+     * the same service user and time window. Self-referencing and set on
+     * both rows when the second carer is added (see linkWith()), so
+     * either row finds the other. No payroll impact: each carer's own
+     * row still feeds their own timesheet exactly as before.
+     */
+    public function linkedShift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class, 'linked_shift_id');
+    }
+
+    public function isDoubleHanded(): bool
+    {
+        return $this->linked_shift_id !== null;
+    }
+
+    public function isLiveIn(): bool
+    {
+        return $this->shift_type === self::TYPE_LIVE_IN;
+    }
+
+    /** Links two Shift rows together as one double-handed visit, both ways. */
+    public function linkWith(Shift $other): void
+    {
+        $this->update(['linked_shift_id' => $other->id]);
+        $other->update(['linked_shift_id' => $this->id]);
+    }
+
+    /**
+     * Batch 21: hours actually delivered on this visit, for invoicing
+     * (InvoiceRun::generateInvoices() per-visit billing). Prefers actual
+     * check-in/out times over the scheduled window — the same preference
+     * TimesheetEntry::reconcileWithCheckins() gives attendance data for
+     * payroll — and subtracts the same break_minutes column timesheets
+     * use, so a billed visit's hours track what was actually paid for it.
+     */
+    public function hoursWorked(): float
+    {
+        $start = $this->actual_start ?: $this->scheduled_start;
+        $end = $this->actual_end ?: $this->scheduled_end;
+
+        if (! $start || ! $end) {
+            return 0.0;
+        }
+
+        $minutes = $end->diffInMinutes($start, true) - $this->break_minutes;
+
+        return round(max($minutes, 0) / 60, 2);
     }
 }

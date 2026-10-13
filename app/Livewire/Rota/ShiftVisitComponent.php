@@ -229,8 +229,12 @@ class ShiftVisitComponent extends Component
         $task = Task::with('carePlan.serviceUser')->findOrFail($this->completingTaskId);
 
         $this->validate([
-            'completeStatus' => 'required|in:completed,refused,skipped',
-            'completeNotes' => 'nullable|string|max:2000',
+            // Batch 15: "partly_completed" added — see TaskListComponent's
+            // version of this comment.
+            'completeStatus' => 'required|in:completed,partly_completed,refused,skipped',
+            'completeNotes' => $this->completeStatus === 'partly_completed'
+                ? 'required|string|max:2000'
+                : 'nullable|string|max:2000',
             'completePhoto' => ($task->requires_photo && $this->completeStatus === 'completed')
                 ? 'required|image|max:5120'
                 : 'nullable|image|max:5120',
@@ -291,6 +295,7 @@ class ShiftVisitComponent extends Component
 
         $verb = match ($log->status) {
             'completed' => 'completed',
+            'partly_completed' => 'was partly completed for',
             'refused' => 'was refused by the service user for',
             'skipped' => 'skipped',
             default => $log->status,
@@ -348,7 +353,12 @@ class ShiftVisitComponent extends Component
             ->get()
             ->groupBy('medication_id');
 
-        return $allMeds->map(function (Medication $med) use ($administrations, $date) {
+        // Batch 15: same trailing-7-day refused/missed concern flag the MAR
+        // chart shows, so a carer mid-visit sees it here too without having
+        // to separately open the full chart.
+        $concerns = MedicationAdministration::recentConcernCounts($allMeds->pluck('id'));
+
+        return $allMeds->map(function (Medication $med) use ($administrations, $date, $concerns) {
             $admin = $administrations->get($med->id)?->first();
 
             $state = match (true) {
@@ -358,7 +368,12 @@ class ShiftVisitComponent extends Component
                 default => 'upcoming',
             };
 
-            return ['medication' => $med, 'administration' => $admin, 'state' => $state];
+            return [
+                'medication' => $med,
+                'administration' => $admin,
+                'state' => $state,
+                'concern' => $concerns[$med->id] ?? null,
+            ];
         })->values();
     }
 
@@ -391,6 +406,15 @@ class ShiftVisitComponent extends Component
         abort_unless($this->recordingMedicationId && $this->medications->contains(fn ($m) => $m['medication']->id === $this->recordingMedicationId), 404);
         $med = Medication::findOrFail($this->recordingMedicationId);
         $shift = $this->shift();
+
+        // Batch 15: a same-day duplicate-recording guard, mirroring
+        // MarChartComponent::recordAdministration() — PRN doses are exempt
+        // since more than one in a day is normal and expected for them.
+        if (! $med->is_prn && MedicationAdministration::alreadyRecordedOn($med->id, $shift->scheduled_start->toDateString())) {
+            $this->addError('recordStatus', __('This dose has already been recorded for today.'));
+            $this->dispatch('toast', message: 'This dose has already been recorded for today.', type: 'error');
+            return;
+        }
 
         $scheduledTime = $med->is_prn
             ? Carbon::parse($this->recordActualTime)

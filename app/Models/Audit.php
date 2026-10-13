@@ -7,9 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A single append-only audit record. Written by App\Services\AuditLogger —
- * never update an existing row. The table has no updated_at column, hence
- * disabling it below rather than the usual $timestamps = false (created_at
+ * A single append-only audit record, written by the now-retired
+ * App\Services\AuditLogger (see that class's doc comment). Batch 20 moved
+ * all new audit logging to spatie/laravel-activitylog's `activity_log`
+ * table — this model and table are kept read-only so the audit history
+ * recorded before Batch 20 is still visible, on the "Legacy Audit Log" tab
+ * of the Audit Log page. Never update an existing row, hence disabling
+ * UPDATED_AT below rather than the usual $timestamps = false (created_at
  * still needs to be settable/readable).
  */
 class Audit extends Model

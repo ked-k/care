@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
-use App\Services\AuditLogger;
 use App\Services\NotificationService;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * A safeguarding concern report and its permanent action timeline.
@@ -19,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class SafeguardingReport extends Model
 {
-    use HasUuids;
+    use HasUuids, LogsActivity;
 
     public $incrementing = false;
     protected $keyType = 'string';
@@ -44,6 +45,28 @@ class SafeguardingReport extends Model
     protected $attributes = [
         'status' => self::STATUS_OPEN,
     ];
+
+    /**
+     * Batch 20: replaces the explicit AuditLogger::log('SAFEGUARDING_
+     * REPORTED'/'_ESCALATED'/'_RESOLVED'/'_CLOSED', ...) calls that used to
+     * live in reportOpened()/escalate()/resolve()/close() below. Deliberately
+     * logOnly() rather than logFillable(): the full escalation_log array is
+     * already an immutable, ever-growing timeline on the model itself, so
+     * mirroring the whole thing into activity_log on every save() would
+     * just duplicate it and bloat the properties column. status and
+     * escalated_to are the two fields whose change is actually the "event"
+     * worth a separate audit row; addInvestigationNote() leaving status
+     * unchanged (already investigating) produces no log row, which is fine
+     * — the note itself is permanently visible in escalation_log.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['status', 'escalated_to'])
+            ->useLogName('Safeguarding Report')
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     public function serviceUser(): BelongsTo
     {
@@ -95,7 +118,6 @@ class SafeguardingReport extends Model
     {
         $this->appendLog('reported', $by, $note);
         $this->save();
-        AuditLogger::log('SAFEGUARDING_REPORTED', $this, [], $by->id);
     }
 
     public function escalate(User $by, User $to, ?string $note = null): void
@@ -103,7 +125,6 @@ class SafeguardingReport extends Model
         $this->escalated_to = $to->id;
         $this->appendLog('escalated', $by, $note, $to);
         $this->save();
-        AuditLogger::log('SAFEGUARDING_ESCALATED', $this, ['to' => $to->name], $by->id);
 
         NotificationService::send(
             userId: $to->id,
@@ -133,7 +154,6 @@ class SafeguardingReport extends Model
         $this->status = self::STATUS_RESOLVED;
         $this->appendLog('resolved', $by, $resolutionNote);
         $this->save();
-        AuditLogger::log('SAFEGUARDING_RESOLVED', $this, [], $by->id);
     }
 
     public function canClose(): bool
@@ -146,7 +166,6 @@ class SafeguardingReport extends Model
         $this->status = self::STATUS_CLOSED;
         $this->appendLog('closed', $by, $note);
         $this->save();
-        AuditLogger::log('SAFEGUARDING_CLOSED', $this, [], $by->id);
     }
 
     public function statusColor(): string

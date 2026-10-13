@@ -15,6 +15,11 @@
                     <option value="refused">{{ __('Refused') }}</option>
                     <option value="skipped">{{ __('Skipped') }}</option>
                 </select>
+                @if (Auth::user()->can('manage_tasks') || Auth::user()->hasRole(['Admin', 'Super Admin']))
+                    <x-button variant="outline" size="sm" wire:click="exportCsv">
+                        <i class="ik ik-download mr-1"></i>{{ __('Export CSV') }}
+                    </x-button>
+                @endif
             </div>
         @endunless
     </x-page-header>

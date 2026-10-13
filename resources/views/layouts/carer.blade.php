@@ -43,6 +43,13 @@
 		$carerHasUnreadMessages = \App\Models\ChatSession::whereIn('service_user_id', $carerAssignedServiceUserIds)
 			->whereHas('messages', fn ($q) => $q->whereNull('read_at')->whereHas('sender.roles', fn ($q2) => $q2->where('name', 'Family')))
 			->exists();
+
+		// Batch 23: same cheap layout-level check as $carerHasUnreadMessages
+		// above, for the new free-form Conversation model's "More" dropdown
+		// entry below.
+		$carerHasUnreadConversations = \App\Models\Conversation::whereHas('participants', fn ($q) => $q->where('user_id', auth()->id()))
+			->get()
+			->contains(fn ($c) => $c->unreadCountFor(auth()->user()) > 0);
 	@endphp
 
 	<header class="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-gray-100 bg-white/90 px-4 backdrop-blur sm:h-16 sm:px-6"
@@ -69,6 +76,7 @@
 				@foreach ([
 					['label' => __('Timesheets'), 'icon' => 'ik-clipboard', 'route' => 'timesheets.index', 'is_active' => request()->routeIs('timesheets.*'), 'badge' => false],
 					['label' => __('Notifications'), 'icon' => 'ik-bell', 'route' => 'notifications.index', 'is_active' => request()->routeIs('notifications.*'), 'badge' => $carerHasUnreadNotifications],
+					['label' => __('Conversations'), 'icon' => 'ik-message-square', 'route' => 'conversations.index', 'is_active' => request()->routeIs('conversations.*'), 'badge' => $carerHasUnreadConversations],
 					['label' => __('Profile'), 'icon' => 'ik-user', 'route' => 'profile.show', 'is_active' => request()->routeIs('profile.show'), 'badge' => false],
 				] as $item)
 					<a href="{{ route($item['route']) }}" wire:navigate @click="navOpen = false"
@@ -138,6 +146,13 @@
 	@endunless
 
 	<x-toast />
+	{{-- Batch 23: the same floating "Start a conversation" button as
+	     layouts.admin-layout — this is a plain carer's first way to message
+	     a staff colleague directly, not just their assigned families via
+	     the Messages tab. See App\Models\User::canStartConversations(). --}}
+	@if (auth()->user()->canStartConversations())
+		@livewire('messaging.new-conversation-component')
+	@endif
 	@livewireScripts
 	@include('include.script')
 </body>

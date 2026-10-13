@@ -5,7 +5,6 @@ namespace App\Livewire\Policy;
 use App\Models\MediaFile;
 use App\Models\Policy;
 use App\Models\PolicyAcknowledgment;
-use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
 use Livewire\Component;
@@ -118,14 +117,14 @@ class PolicyIndexComponent extends Component
             $data['document_id'] = $documentId;
         }
 
+        // Batch 20: create/update ('published'/'updated' in the old scheme)
+        // are now logged automatically by Policy's LogsActivity trait.
         if ($this->editingPolicyId) {
             $policy = Policy::findOrFail($this->editingPolicyId);
             $policy->update($data);
-            AuditLogger::log('POLICY_UPDATED', $policy);
         } else {
             $data['created_by'] = Auth::id();
-            $policy = Policy::create($data);
-            AuditLogger::log('POLICY_PUBLISHED', $policy);
+            Policy::create($data);
         }
 
         $this->resetForm();
@@ -141,6 +140,10 @@ class PolicyIndexComponent extends Component
             return;
         }
 
+        // Batch 20: this creation is now logged automatically by
+        // PolicyAcknowledgment's LogsActivity trait (against the
+        // acknowledgment row, which carries policy_id and user_id) —
+        // replaces the old AuditLogger::log('POLICY_ACKNOWLEDGED', $policy).
         PolicyAcknowledgment::create([
             'policy_id' => $policy->id,
             'user_id' => Auth::id(),
@@ -148,8 +151,6 @@ class PolicyIndexComponent extends Component
             'ip_address' => Request::ip(),
             'created_by' => Auth::id(),
         ]);
-
-        AuditLogger::log('POLICY_ACKNOWLEDGED', $policy);
 
         $this->dispatch('toast', message: 'Policy acknowledged.', type: 'success');
     }

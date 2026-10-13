@@ -33,7 +33,16 @@
                 <tbody class="divide-y divide-gray-50 dark:divide-gray-800">
                     @forelse ($serviceUsers as $su)
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/40" wire:key="su-{{ $su->id }}">
-                            <td class="px-5 py-3 font-semibold text-gray-700 dark:text-gray-200">{{ $su->name }}
+                            <td class="px-5 py-3 font-semibold text-gray-700 dark:text-gray-200">
+                                {{ $su->name }}
+                                @if ($su->hasKeyCareInformation())
+                                    <i class="ik ik-alert-triangle ml-1 text-amber-500"
+                                        title="{{ __('Has allergies, medical conditions, or other key care information on file') }}"></i>
+                                @endif
+                                @unless ($su->hasBillingConfigured())
+                                    <i class="ik ik-dollar-sign ml-1 text-gray-300"
+                                        title="{{ __('Billing not set up yet — will be skipped on the next invoice run') }}"></i>
+                                @endunless
                             </td>
                             <td class="px-5 py-3 text-gray-500 dark:text-gray-400">
                                 {{ $su->dob?->format('d M Y') ?? '—' }}</td>
@@ -117,6 +126,100 @@
 
             <x-form.checkbox name="formConsentStatus" label="{{ __('Consent recorded') }}"
                 wire:model="formConsentStatus" />
+
+            {{-- Batch 15: key care information — kept on the profile itself
+                 (not only inside a care plan) so it's visible at a glance,
+                 including before any care plan exists. --}}
+            <div class="border-t border-gray-100 pt-4 dark:border-gray-800">
+                <h6 class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    {{ __('Key care information') }}</h6>
+                <div class="space-y-3">
+                    <x-form.textarea name="formAllergies" label="{{ __('Allergies') }}" rows="2"
+                        wire:model="formAllergies" placeholder="{{ __('e.g. penicillin, latex, peanuts') }}" />
+                    <x-form.textarea name="formMedicalConditions" label="{{ __('Medical conditions') }}" rows="2"
+                        wire:model="formMedicalConditions" />
+                    <x-form.textarea name="formCommunicationNeeds" label="{{ __('Communication needs') }}" rows="2"
+                        wire:model="formCommunicationNeeds"
+                        placeholder="{{ __('e.g. hard of hearing on the left, uses a communication board') }}" />
+                    <x-form.textarea name="formPreferences" label="{{ __('Preferences') }}" rows="2"
+                        wire:model="formPreferences" />
+                    <x-form.textarea name="formImportantInformation" label="{{ __('Other important information') }}"
+                        rows="2" wire:model="formImportantInformation" />
+                </div>
+            </div>
+
+            {{-- Batch 16: the named person responsible for this service
+                 user's alerts (late/missed calls, missing records,
+                 medication concerns) — see App\Support\AlertGenerator. --}}
+            <div class="border-t border-gray-100 pt-4 dark:border-gray-800">
+                <x-form.select name="formCareCoordinatorId" label="{{ __('Care coordinator') }}"
+                    wire:model="formCareCoordinatorId">
+                    <option value="">{{ __('Not set (alerts go to any manager/admin)') }}</option>
+                    @foreach ($coordinatorOptions as $id => $name)
+                        <option value="{{ $id }}">{{ $name }}</option>
+                    @endforeach
+                </x-form.select>
+            </div>
+
+            {{-- Batch 21: who pays for this person's care and how the
+                 charge is worked out — see InvoiceRun::generateInvoices(). --}}
+            <div class="border-t border-gray-100 pt-4 dark:border-gray-800">
+                <h6 class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    {{ __('Billing') }}</h6>
+                <div class="space-y-3">
+                    <x-form.select name="formBillingType" label="{{ __('Billing basis') }}"
+                        wire:model.live="formBillingType">
+                        <option value="per_visit">{{ __('Per completed visit') }}</option>
+                        <option value="flat_package">{{ __('Flat recurring care package') }}</option>
+                    </x-form.select>
+
+                    @if ($formBillingType === 'per_visit')
+                        <x-form.input type="number" step="0.01" min="0" name="formBillingRate"
+                            label="{{ __('Hourly billing rate') }}" wire:model="formBillingRate"
+                            placeholder="{{ __('Charged per hour — separate from the carer\'s own pay rate') }}" />
+                    @else
+                        <div class="grid grid-cols-2 gap-3">
+                            <x-form.input type="number" step="0.01" min="0" name="formBillingPackageAmount"
+                                label="{{ __('Package amount') }}" wire:model="formBillingPackageAmount" />
+                            <x-form.select name="formBillingPackagePeriod" label="{{ __('Per') }}"
+                                wire:model="formBillingPackagePeriod">
+                                <option value="weekly">{{ __('Week') }}</option>
+                                <option value="monthly">{{ __('Month') }}</option>
+                            </x-form.select>
+                        </div>
+                    @endif
+
+                    <x-form.select name="formPayerType" label="{{ __('Who pays') }}" wire:model.live="formPayerType">
+                        <option value="self_funded">{{ __('Self-funded (client/family)') }}</option>
+                        <option value="local_authority">{{ __('Local authority') }}</option>
+                        <option value="split">{{ __('Split — local authority + client top-up') }}</option>
+                    </x-form.select>
+
+                    @if (in_array($formPayerType, ['self_funded', 'split']))
+                        <x-form.input name="formPayerName" label="{{ __('Billing contact name') }}"
+                            wire:model="formPayerName"
+                            placeholder="{{ __('Defaults to the service user\'s own name if left blank') }}" />
+                        <x-form.textarea name="formPayerAddress" label="{{ __('Billing address') }}" rows="2"
+                            wire:model="formPayerAddress" />
+                        <x-form.input type="email" name="formPayerEmail" label="{{ __('Billing email') }}"
+                            wire:model="formPayerEmail" />
+                    @endif
+
+                    @if (in_array($formPayerType, ['local_authority', 'split']))
+                        <x-form.input name="formLocalAuthorityName" label="{{ __('Local authority name') }}"
+                            wire:model="formLocalAuthorityName" />
+                        <x-form.input name="formLocalAuthorityReference" label="{{ __('Contract / PO reference') }}"
+                            wire:model="formLocalAuthorityReference" />
+                    @endif
+
+                    @if ($formPayerType === 'split')
+                        <x-form.input type="number" step="0.01" min="0" name="formLocalAuthorityShareAmount"
+                            label="{{ __('Local authority contribution per period') }}"
+                            wire:model="formLocalAuthorityShareAmount"
+                            placeholder="{{ __('Fixed amount the local authority pays; the client is billed the balance') }}" />
+                    @endif
+                </div>
+            </div>
         </div>
 
         <x-slot:footer>

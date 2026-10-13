@@ -8,15 +8,21 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request as RequestFacade;
 
 /**
- * Writes append-only entries to the `audits` table. Nothing wrote to this
- * table before — it existed as schema only. This is intentionally a small,
- * dependency-free service (no activity-log package is actually installed
- * despite the `activity_log` table existing in the schema) rather than a
- * blanket "log every model event" solution — it's wired into a handful of
- * meaningful actions (safeguarding, consent, service users, policies,
- * login) rather than retrofitted across the whole app in one pass.
+ * Batch 20: retired. As of this batch, nothing in the app calls
+ * AuditLogger::log() any more — every model that used to be logged through
+ * here (SafeguardingReport, Consent, Policy, PolicyAcknowledgment,
+ * ServiceUser, SubjectAccessRequest, BreachReport, and now also CarePlan,
+ * Medication, MedicationAdministration, ComplianceCheck) writes to the
+ * `activity_log` table automatically via spatie/laravel-activitylog's
+ * LogsActivity trait instead, and LoginController's login event uses that
+ * package's activity() helper directly. See App\Models\ActivityLogEntry
+ * and the "Legacy Audit Log" tab on the Audit Log page.
  *
- * Usage: AuditLogger::log('SAFEGUARDING_ESCALATED', $report, ['to' => $to->name]);
+ * This class and the `audits` table it wrote to are left in place,
+ * unmodified and still fully functional, purely so the audit history
+ * written before Batch 20 stays readable — nothing new will ever be
+ * written here again. Safe to delete in a future cleanup pass once nobody
+ * needs that pre-Batch-20 history any more.
  */
 class AuditLogger
 {

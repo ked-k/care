@@ -5,7 +5,9 @@ namespace App\Livewire\Medication;
 use App\Models\Medication;
 use App\Models\ServiceUser;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Livewire\Component;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MedicationManagerComponent extends Component
 {
@@ -141,15 +143,49 @@ class MedicationManagerComponent extends Component
         $this->dispatch('toast', message: $med->is_active ? 'Medication reactivated.' : 'Medication discontinued.', type: 'success');
     }
 
-    public function render()
+    /** Batch 19: shared by render() and exportCsv() so export always matches what's on screen. */
+    protected function medicationsQuery()
     {
-        $serviceUser = $this->serviceUser();
-
-        $medications = $serviceUser->medications()
+        return $this->serviceUser()->medications()
             ->when(! $this->showInactive, fn ($q) => $q->where('is_active', true))
             ->orderByDesc('is_active')
             ->orderBy('medication_name')
             ->get();
+    }
+
+    public function exportCsv(): StreamedResponse
+    {
+        $serviceUser = $this->serviceUser();
+        $medications = $this->medicationsQuery();
+
+        return response()->streamDownload(function () use ($medications) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Medication', 'Dosage', 'Frequency', 'Route', 'Scheduled Times', 'Start Date', 'End Date', 'PRN', 'Active', 'Instructions', 'Side Effects']);
+
+            foreach ($medications as $med) {
+                fputcsv($out, [
+                    $med->medication_name,
+                    $med->dosage,
+                    $med->frequency,
+                    ucfirst($med->administration_route),
+                    $med->scheduled_times,
+                    $med->start_date->format('Y-m-d'),
+                    $med->end_date?->format('Y-m-d') ?? '',
+                    $med->is_prn ? 'Yes' : 'No',
+                    $med->is_active ? 'Yes' : 'No',
+                    $med->instructions,
+                    $med->side_effects,
+                ]);
+            }
+
+            fclose($out);
+        }, 'medications-'.Str::slug($serviceUser->name).'-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    public function render()
+    {
+        $serviceUser = $this->serviceUser();
+        $medications = $this->medicationsQuery();
 
         return view('livewire.medication.medication-manager', compact('serviceUser', 'medications'));
     }

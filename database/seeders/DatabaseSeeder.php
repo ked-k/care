@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
             SafeguardingConsentFamilySeeder::class,
             ComplianceGovernanceSeeder::class,
             ManagerPermissionSeeder::class,
+            // Batch 21: the 'manage_invoicing' permission, granted to Admin.
+            InvoicingSeeder::class,
             // Batch 4: one-time repair for a database seeded before this
             // batch rewrote the seeders above — see RoleCleanupSeeder's
             // own docblock. Safe to leave in the call list permanently,

@@ -45,6 +45,12 @@ class Agency extends Model
         return $this->hasMany(PayrollRun::class);
     }
 
+    /** Batch 21: invoicing runs — mirrors payrollRuns() above. */
+    public function invoiceRuns(): HasMany
+    {
+        return $this->hasMany(InvoiceRun::class);
+    }
+
     public function employeePayProfiles(): HasMany
     {
         return $this->hasMany(EmployeePayProfile::class);

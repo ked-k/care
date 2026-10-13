@@ -70,6 +70,7 @@
                 'tasks' => ['label' => __('Tasks'), 'icon' => 'ik-check-square'],
                 'medications' => ['label' => __('Medications'), 'icon' => 'ik-heart'],
                 'notes' => ['label' => __('Notes'), 'icon' => 'ik-clock'],
+                'handover' => ['label' => __('Handover'), 'icon' => 'ik-flag'],
             ] as $key => $meta)
                 <button type="button" @click="tab = '{{ $key }}'"
                     :class="tab === '{{ $key }}' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
@@ -147,7 +148,14 @@
         <div x-show="tab === 'tasks'">
             <div class="space-y-3">
                 @forelse ($this->tasks as $task)
-                    @php $status = $task->status(); @endphp
+                    @php
+                        $status = $task->status();
+                        // Batch 15: see task-list.blade.php's version of this comment.
+                        $statusLabel = match ($status) {
+                            'partly_completed' => __('Partly completed'),
+                            default => ucfirst($status),
+                        };
+                    @endphp
                     <x-card hover wire:key="task-{{ $task->id }}">
                         <div class="flex items-start justify-between gap-4">
                             <div class="min-w-0">
@@ -173,11 +181,12 @@
                             <div class="flex shrink-0 flex-col items-end gap-2">
                                 <x-badge color="{{ match ($status) {
                                     'completed' => 'success',
+                                    'partly_completed' => 'amber',
                                     'refused' => 'danger',
                                     'skipped' => 'secondary',
                                     'overdue' => 'danger',
                                     default => 'primary',
-                                } }}">{{ ucfirst($status) }}</x-badge>
+                                } }}">{{ $statusLabel }}</x-badge>
                                 @if (!$task->isComplete())
                                     <x-button size="sm" variant="primary" wire:click="openCompleteForm('{{ $task->id }}')"
                                         @click="$dispatch('open-drawer', 'task-complete-form')">
@@ -205,6 +214,12 @@
                                     <h6 class="font-semibold text-gray-700 dark:text-gray-200">{{ $med->medication_name }}</h6>
                                     @if ($admin?->shift_takeover_id)
                                         <x-badge color="secondary">{{ __('Covered') }}</x-badge>
+                                    @endif
+                                    {{-- Batch 15: see mar-chart.blade.php's version of this comment. --}}
+                                    @if (!empty($item['concern']))
+                                        <span class="text-amber-500" title="{{ __(':n refused/missed doses in the last 7 days', ['n' => $item['concern']]) }}">
+                                            <i class="ik ik-alert-triangle"></i>
+                                        </span>
                                     @endif
                                 </div>
                                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -285,6 +300,30 @@
             </div>
         </div>
 
+        {{-- ===================== HANDOVER ===================== --}}
+        {{-- Batch 17: wellbeing observations + the handover/flag-urgent
+             view, both nested components built once and reused on the
+             standalone client-profile page too (see client-profile.blade.php).
+             Kept as one tab rather than two, to avoid a 6-column mobile
+             bottom nav. --}}
+        <div x-show="tab === 'handover'">
+            <div class="space-y-4">
+                @if ($shift->serviceUser)
+                    <livewire:wellbeing.wellbeing-observation
+                        :service-user-id="$shift->service_user_id"
+                        :shift-takeover-id="$activeTakeoverId"
+                        :key="'wellbeing-'.$shift->service_user_id" />
+
+                    <livewire:handover.handover
+                        :service-user-id="$shift->service_user_id"
+                        :shift-takeover-id="$activeTakeoverId"
+                        :key="'handover-'.$shift->service_user_id" />
+                @else
+                    <x-empty-state title="{{ __('No service user on this shift') }}" icon="ik ik-flag" />
+                @endif
+            </div>
+        </div>
+
         {{-- Mobile bottom tab bar — nested inside this component's single
              root element for the same wire:id/entangle reason explained in
              family-service-user.blade.php. Not a layout-level nav, since
@@ -292,12 +331,13 @@
              multi-destination app shell. --}}
         <nav class="fixed inset-x-0 bottom-0 z-30 border-t border-gray-100 bg-white/95 backdrop-blur sm:hidden"
             style="padding-bottom: env(safe-area-inset-bottom);">
-            <div class="mx-auto grid max-w-3xl grid-cols-4">
+            <div class="mx-auto grid max-w-3xl grid-cols-5">
                 @foreach ([
                     'overview' => ['label' => __('Visit'), 'icon' => 'ik-home'],
                     'tasks' => ['label' => __('Tasks'), 'icon' => 'ik-check-square'],
                     'medications' => ['label' => __('Meds'), 'icon' => 'ik-heart'],
                     'notes' => ['label' => __('Notes'), 'icon' => 'ik-clock'],
+                    'handover' => ['label' => __('Handover'), 'icon' => 'ik-flag'],
                 ] as $key => $meta)
                     <button type="button" @click="tab = '{{ $key }}'"
                         :class="tab === '{{ $key }}' ? 'text-primary-600' : 'text-gray-400'"
@@ -312,13 +352,16 @@
 
     <x-drawer name="task-complete-form" title="{{ __('Complete task') }}" width="w-[28rem]">
         <div class="space-y-4">
-            <x-form.select name="completeStatus" label="{{ __('Outcome') }}" wire:model="completeStatus" required>
+            <x-form.select name="completeStatus" label="{{ __('Outcome') }}" wire:model.live="completeStatus" required>
                 <option value="completed">{{ __('Completed') }}</option>
+                <option value="partly_completed">{{ __('Partly completed') }}</option>
                 <option value="refused">{{ __('Refused by service user') }}</option>
                 <option value="skipped">{{ __('Skipped') }}</option>
             </x-form.select>
 
-            <x-form.textarea name="completeNotes" label="{{ __('Notes') }}" rows="3" wire:model="completeNotes"
+            <x-form.textarea name="completeNotes"
+                label="{{ $completeStatus === 'partly_completed' ? __('What was and wasn\'t done (required)') : __('Notes') }}"
+                rows="3" wire:model="completeNotes"
                 placeholder="{{ __('What happened, any observations...') }}" />
 
             <div>
