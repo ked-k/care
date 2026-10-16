@@ -46,7 +46,7 @@
                                 <div class="font-semibold text-gray-700 dark:text-gray-200">{{ $task->title }}</div>
                                 @if ($task->recurring_pattern)
                                     <div class="text-xs text-gray-400"><i
-                                            class="ik ik-refresh-cw mr-1"></i>{{ ucfirst(str_replace('_', ' ', $task->recurring_pattern)) }}
+                                            class="ik ik-refresh-cw mr-1"></i>{{ $task->recurringPatternLabel() }}
                                     </div>
                                 @endif
                             </td>
@@ -146,13 +146,23 @@
                 @endforeach
             </x-form.select>
 
+            {{-- Batch 25: added Monthly (was missing entirely — the field only
+                 ever accepted daily/weekly/a fixed "every 3 days"), and swapped
+                 the fixed 3-day option for a free "every N days" so any
+                 interval can be picked, not just one baked-in number. --}}
             <x-form.select name="formRecurringPattern" label="{{ __('Repeats (optional)') }}"
-                wire:model="formRecurringPattern">
+                wire:model.live="formRecurringPattern">
                 <option value="">{{ __('Does not repeat') }}</option>
                 <option value="daily">{{ __('Daily') }}</option>
                 <option value="weekly">{{ __('Weekly') }}</option>
-                <option value="every_n_days:3">{{ __('Every 3 days') }}</option>
+                <option value="monthly">{{ __('Monthly') }}</option>
+                <option value="custom">{{ __('Every N days...') }}</option>
             </x-form.select>
+
+            @if ($formRecurringPattern === 'custom')
+                <x-form.input type="number" min="1" max="365" name="formRecurringCustomDays"
+                    label="{{ __('Repeat every how many days?') }}" wire:model="formRecurringCustomDays" />
+            @endif
 
             <div class="flex gap-6">
                 <x-form.checkbox name="formRequiresPhoto" label="{{ __('Requires photo') }}"

@@ -24,14 +24,14 @@
                         @if ($serviceUserName)
                             <p style="margin:0 0 16px; font-size:15px; line-height:1.6; color:#374151;">
                                 @if ($plainPassword)
-                                    {{ __('An account has been created for you on :agency\'s CareTrust family portal, giving you access to updates for :su.', ['agency' => $agencyName, 'su' => $serviceUserName]) }}
+                                    {{ __('An account has been created for you on :agency\'s :app family portal, giving you access to updates for :su.', ['agency' => $agencyName, 'app' => config('app.name'), 'su' => $serviceUserName]) }}
                                 @else
-                                    {{ __('Your existing CareTrust login now also has access to updates for :su', ['su' => $serviceUserName]) }}{{ $relationship ? ' ('.$relationship.')' : '' }}.
+                                    {{ __('Your existing :app login now also has access to updates for :su', ['app' => config('app.name'), 'su' => $serviceUserName]) }}{{ $relationship ? ' ('.$relationship.')' : '' }}.
                                 @endif
                             </p>
                         @else
                             <p style="margin:0 0 16px; font-size:15px; line-height:1.6; color:#374151;">
-                                {{ __('An account has been created for you on :agency\'s CareTrust system.', ['agency' => $agencyName]) }}
+                                {{ __('An account has been created for you on :agency\'s :app system.', ['agency' => $agencyName, 'app' => config('app.name')]) }}
                             </p>
                         @endif
 
@@ -52,7 +52,7 @@
                             <tr>
                                 <td style="border-radius:8px; background-color:#2e6f8e;">
                                     <a href="{{ $loginUrl }}" style="display:inline-block; padding:12px 28px; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none;">
-                                        {{ __('Log in to CareTrust') }}
+                                        {{ __('Log in to :app', ['app' => config('app.name')]) }}
                                     </a>
                                     <br>
                                       <a href="{{ $loginUrl }}" style="display:inline-block; padding:12px 28px; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none;">

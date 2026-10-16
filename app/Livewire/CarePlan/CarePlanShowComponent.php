@@ -25,7 +25,15 @@ class CarePlanShowComponent extends Component
     public int $formPriority = 1;
     public bool $formRequiresPhoto = false;
     public bool $formRequiresSignature = false;
+
+    // Batch 25: formRecurringPattern holds '', 'daily', 'weekly', 'monthly',
+    // or 'custom' for the UI; a 'custom' selection is combined with
+    // formRecurringCustomDays into the stored 'every_n_days:N' string — see
+    // buildRecurringPattern()/applyStoredRecurringPattern() below. Keeping
+    // the custom day count as its own field means the dropdown never has to
+    // carry a fixed "every 3 days" option again.
     public string $formRecurringPattern = '';
+    public int $formRecurringCustomDays = 3;
 
     public function mount(string $carePlanId): void
     {
@@ -88,7 +96,7 @@ class CarePlanShowComponent extends Component
         $this->formPriority = $task->priority;
         $this->formRequiresPhoto = $task->requires_photo;
         $this->formRequiresSignature = $task->requires_signature;
-        $this->formRecurringPattern = $task->recurring_pattern ?? '';
+        $this->applyStoredRecurringPattern($task->recurring_pattern);
         $this->dispatch('open-drawer', 'task-form');
     }
 
@@ -100,6 +108,28 @@ class CarePlanShowComponent extends Component
         ]);
         $this->formType = 'general';
         $this->formPriority = 1;
+        $this->formRecurringCustomDays = 3;
+    }
+
+    /** Splits a stored 'every_n_days:N' pattern back into the dropdown value + its day count. */
+    protected function applyStoredRecurringPattern(?string $pattern): void
+    {
+        if ($pattern && str_starts_with($pattern, 'every_n_days:')) {
+            $this->formRecurringPattern = 'custom';
+            $this->formRecurringCustomDays = max(1, (int) substr($pattern, 13));
+        } else {
+            $this->formRecurringPattern = $pattern ?? '';
+        }
+    }
+
+    /** Combines the dropdown value back into the single string Task::recurring_pattern stores. */
+    protected function buildRecurringPattern(): ?string
+    {
+        if ($this->formRecurringPattern === 'custom') {
+            return 'every_n_days:'.max(1, $this->formRecurringCustomDays);
+        }
+
+        return $this->formRecurringPattern ?: null;
     }
 
     public function saveTask(): void
@@ -115,6 +145,8 @@ class CarePlanShowComponent extends Component
             'formScheduledAt' => 'nullable|date',
             'formDueAt' => 'nullable|date',
             'formPriority' => 'required|integer|min:1|max:5',
+            'formRecurringPattern' => 'nullable|in:daily,weekly,monthly,custom',
+            'formRecurringCustomDays' => $this->formRecurringPattern === 'custom' ? 'required|integer|min:1|max:365' : 'nullable|integer|min:1|max:365',
         ]);
 
         $data = [
@@ -128,7 +160,7 @@ class CarePlanShowComponent extends Component
             'priority' => $this->formPriority,
             'requires_photo' => $this->formRequiresPhoto,
             'requires_signature' => $this->formRequiresSignature,
-            'recurring_pattern' => $this->formRecurringPattern ?: null,
+            'recurring_pattern' => $this->buildRecurringPattern(),
             'updated_by' => Auth::id(),
         ];
 

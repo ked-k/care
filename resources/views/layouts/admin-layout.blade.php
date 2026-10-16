@@ -4,6 +4,19 @@
 <head>
     <title>@yield('title', '') | {{ config('app.name') }} — {{ config('app.tagline') }}</title>
     @include('include.head')
+
+    {{-- Batch 24: installable PWA — a home-screen icon and a standalone
+         app window on a manager's phone too, not just the two mobile-first
+         layouts below. See public/manifest.json and public/sw.js (a
+         static-asset-only cache, never pages or Livewire data — see that
+         file's own doc comment for why). --}}
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#1e3a5f">
+    <link rel="apple-touch-icon" href="{{ asset('images/brand/pwa/apple-touch-icon.png') }}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="{{ config('app.name') }}">
+
     @livewireStyles
 </head>
 
@@ -43,6 +56,7 @@
     @endif
     @livewireScripts
     @include('include.script')
+    @include('include.pwa-register')
 </body>
 
 </html>

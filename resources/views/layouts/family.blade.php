@@ -9,14 +9,23 @@
 	     notch/home-indicator safe area; the apple-mobile-web-app tags make
 	     "Add to Home Screen" on iOS open without Safari's chrome, so a
 	     family member who does that gets something that feels like a real
-	     app icon rather than a bookmark. No manifest/service-worker here —
-	     see CHANGES9.md for why an offline-caching PWA is deliberately out
-	     of scope for a portal that's always showing live data. --}}
+	     app icon rather than a bookmark.
+
+	     Batch 24: actually installable now (manifest + service worker),
+	     not just "feels like an app" once manually added to the home
+	     screen. Still deliberately NOT an offline/data-caching PWA —
+	     public/sw.js only ever caches static assets (CSS/JS/images), never
+	     a page or any live care data, so CHANGES9.md's reasoning about this
+	     portal always needing to show *current* data still holds; see that
+	     file's own doc comment. Full offline viewing stays its own,
+	     separate, not-yet-built roadmap item. --}}
 	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 	<meta name="theme-color" content="#1e3a5f">
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 	<meta name="apple-mobile-web-app-title" content="{{ config('app.name') }} Family">
+	<link rel="manifest" href="{{ asset('manifest-family.json') }}">
+	<link rel="apple-touch-icon" href="{{ asset('images/brand/pwa/apple-touch-icon.png') }}">
 
 	@livewireStyles
 </head>
@@ -51,5 +60,6 @@
 	<x-toast />
 	@livewireScripts
 	@include('include.script')
+	@include('include.pwa-register')
 </body>
 </html>

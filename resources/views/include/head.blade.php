@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
-{{-- Batch 13: favicon is now the real CareTrust mark instead of the
-     generic Radminly template placeholder. --}}
+{{-- Batch 13: favicon is now the real brand mark instead of the generic
+     Radminly template placeholder (Batch 26: platform renamed CareTrust ->
+     CareAffinity; the favicon image itself is unchanged, filename included). --}}
 <link rel="icon" type="image/png" href="{{ asset('images/brand/caretrust-favicon.png') }}" />
 <link rel="alternate icon" href="{{ asset('favicon.png') }}" />
 

@@ -30,6 +30,13 @@
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 	<meta name="apple-mobile-web-app-title" content="{{ config('app.name') }}">
 
+	{{-- Batch 24: actually installable now, not just "feels like an app"
+	     once added to the home screen manually — see public/manifest-carer.json
+	     and public/sw.js (static-asset caching only, see that file's own
+	     doc comment for why this never risks showing stale care data). --}}
+	<link rel="manifest" href="{{ asset('manifest-carer.json') }}">
+	<link rel="apple-touch-icon" href="{{ asset('images/brand/pwa/apple-touch-icon.png') }}">
+
 	@livewireStyles
 </head>
 <body class="min-h-screen bg-[#f4f6f8] font-sans text-[15px] text-[#4a5361] antialiased" x-data="{ navOpen: false }">
@@ -155,5 +162,6 @@
 	@endif
 	@livewireScripts
 	@include('include.script')
+	@include('include.pwa-register')
 </body>
 </html>

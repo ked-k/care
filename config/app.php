@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Radminly'),
+    'name' => env('APP_NAME', 'CareAffinity'),
 
     /*
     |--------------------------------------------------------------------------
