@@ -23,6 +23,8 @@
 <body class="min-h-screen bg-body font-sans text-[15px] text-[#4a5361] antialiased" x-data="{ sidebarOpen: false, chatOpen: false }"
     :class="{ 'overflow-hidden': sidebarOpen }">
 
+    @include('include.pwa-install-prompt')
+
     <a href="#content"
         class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:rounded-lg focus:bg-primary-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white">{{ __('Skip to content') }}</a>
 

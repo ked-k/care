@@ -38,6 +38,7 @@
 </head>
 
 <body class="min-h-screen bg-white font-sans text-gray-600 antialiased">
+    @include('include.pwa-install-prompt')
     <div class="flex min-h-screen">
 
         {{-- Form column --}}

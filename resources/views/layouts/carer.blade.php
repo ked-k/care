@@ -48,6 +48,8 @@
 </head>
 <body class="min-h-screen bg-[#f4f6f8] font-sans text-[15px] text-[#4a5361] antialiased" x-data="{ navOpen: false }">
 
+	@include('include.pwa-install-prompt')
+
 	@php
 		// Cheap, layout-level presence checks for the two "More" badges —
 		// this layout is shared by many unrelated Livewire root components,

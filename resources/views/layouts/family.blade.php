@@ -38,6 +38,8 @@
 </head>
 <body class="min-h-screen bg-[#f4f6f8] font-sans text-[15px] text-[#4a5361] antialiased" x-data>
 
+	@include('include.pwa-install-prompt')
+
 	<header class="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-gray-100 bg-white/90 px-4 backdrop-blur sm:h-16 sm:px-6"
 		style="padding-top: max(0px, env(safe-area-inset-top));">
 		<a href="{{ route('family.portal') }}" wire:navigate class="flex items-center text-gray-800">
