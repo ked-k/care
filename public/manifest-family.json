@@ -1,7 +1,7 @@
 {
   "id": "/family/?homescreen=family",
   "name": "CareAffinity Family Portal",
-  "short_name": "Family",
+  "short_name": "Affinity_Family",
   "description": "Check on your loved one's care, medications and care plan, and message their care team.",
   "start_url": "/family/",
   "scope": "/family/",

@@ -1,7 +1,7 @@
 {
   "id": "/?homescreen=carer",
   "name": "CareAffinity Carer",
-  "short_name": "Carer",
+  "short_name": "Affinity_Carer",
   "description": "Your rota, shift visits, medications, tasks and messages — CareAffinity for carers.",
   "start_url": "/dashboard",
   "scope": "/",
