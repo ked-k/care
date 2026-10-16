@@ -3,7 +3,7 @@
   "name": "CareAffinity Family Portal",
   "short_name": "Family",
   "description": "Check on your loved one's care, medications and care plan, and message their care team.",
-  "start_url": "/family",
+  "start_url": "/family/",
   "scope": "/family/",
   "display": "standalone",
   "orientation": "portrait",
