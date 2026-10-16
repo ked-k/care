@@ -18,6 +18,19 @@
     <title>{{ $title }}</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('img/radminly-mark.svg') }}" />
     <link rel="alternate icon" href="{{ asset('favicon.png') }}" />
+
+    {{-- Batch 27: installable from the sign-in screen itself, not just once
+         logged in — "the main link" (the bare site URL) now works as a
+         single install link for anyone, before they've even signed in.
+         Same shared public/manifest.json and public/sw.js as every other
+         layout; see those files' own doc comments. --}}
+    <meta name="theme-color" content="#1e3a5f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="{{ config('app.name') }}">
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/brand/pwa/apple-touch-icon.png') }}">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('plugins/icon-kit/dist/css/iconkit.min.css') }}">
@@ -147,6 +160,7 @@
             </div>
         </div>
     </div>
+    @include('include.pwa-register')
 </body>
 
 </html>

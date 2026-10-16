@@ -1,9 +1,9 @@
 {
-  "id": "/?homescreen=admin",
+  "id": "/",
   "name": "CareAffinity",
   "short_name": "CareAffinity",
-  "description": "Care planning, rota, medication and compliance management for CareAffinity staff.",
-  "start_url": "/dashboard",
+  "description": "Care planning, rota, medication, compliance and family engagement — all in one place for CareAffinity.",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",

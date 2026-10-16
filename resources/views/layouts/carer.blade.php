@@ -31,10 +31,17 @@
 	<meta name="apple-mobile-web-app-title" content="{{ config('app.name') }}">
 
 	{{-- Batch 24: actually installable now, not just "feels like an app"
-	     once added to the home screen manually — see public/manifest-carer.json
-	     and public/sw.js (static-asset caching only, see that file's own
-	     doc comment for why this never risks showing stale care data). --}}
-	<link rel="manifest" href="{{ asset('manifest-carer.json') }}">
+	     once added to the home screen manually — see public/sw.js
+	     (static-asset caching only, see that file's own doc comment for why
+	     this never risks showing stale care data).
+
+	     Batch 27: now points at the single shared public/manifest.json
+	     instead of its own manifest-carer.json — there's one installable
+	     app for everyone, since login already routes each person to their
+	     own portal (Admin/Manager -> /dashboard, Carer -> /dashboard,
+	     Family -> /family/). manifest-carer.json is left in place, just
+	     unreferenced (this session can't delete files on your machine). --}}
+	<link rel="manifest" href="{{ asset('manifest.json') }}">
 	<link rel="apple-touch-icon" href="{{ asset('images/brand/pwa/apple-touch-icon.png') }}">
 
 	@livewireStyles

@@ -18,13 +18,20 @@
 	     a page or any live care data, so CHANGES9.md's reasoning about this
 	     portal always needing to show *current* data still holds; see that
 	     file's own doc comment. Full offline viewing stays its own,
-	     separate, not-yet-built roadmap item. --}}
+	     separate, not-yet-built roadmap item.
+
+	     Batch 27: now points at the single shared public/manifest.json
+	     instead of its own manifest-family.json, and the iOS home-screen
+	     title dropped the " Family" suffix — one installable app for
+	     everyone, since login already routes each person to their own
+	     portal. manifest-family.json is left in place, just unreferenced
+	     (this session can't delete files on your machine). --}}
 	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 	<meta name="theme-color" content="#1e3a5f">
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-	<meta name="apple-mobile-web-app-title" content="{{ config('app.name') }} Family">
-	<link rel="manifest" href="{{ asset('manifest-family.json') }}">
+	<meta name="apple-mobile-web-app-title" content="{{ config('app.name') }}">
+	<link rel="manifest" href="{{ asset('manifest.json') }}">
 	<link rel="apple-touch-icon" href="{{ asset('images/brand/pwa/apple-touch-icon.png') }}">
 
 	@livewireStyles
