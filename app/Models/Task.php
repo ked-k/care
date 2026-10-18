@@ -106,6 +106,22 @@ class Task extends Model
         return $this->logs()->exists();
     }
 
+    /**
+     * Batch 31: single source for status() -> badge color, so the care
+     * plan's task list and the new weekly task chart show the exact same
+     * colors for the exact same statuses instead of each view keeping its
+     * own copy of this mapping.
+     */
+    public function statusBadgeColor(): string
+    {
+        return match ($this->status()) {
+            'completed' => 'success',
+            'refused', 'overdue' => 'danger',
+            'skipped' => 'secondary',
+            default => 'primary',
+        };
+    }
+
     public function complete(int $completedByUserId, string $status, ?string $notes = null, ?string $photoId = null): TaskLog
     {
         $log = $this->logs()->create([

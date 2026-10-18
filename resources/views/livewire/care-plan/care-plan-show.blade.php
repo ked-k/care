@@ -23,10 +23,19 @@
         </x-card>
     @endif
 
-    <x-card no-padding hover>
-        <x-slot:header>{{ __('Tasks') }}</x-slot:header>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+    {{-- Batch 31: "Week chart" tab, alongside the existing flat list —
+         requested after a manager couldn't tell whether a repeating
+         task's future occurrences actually existed (Batch 30 fixed the
+         generation; this is where you go to see it worked). Both tabs
+         render from data the component already computed in render(), so
+         switching tabs is instant (Alpine x-show), no Livewire round-trip
+         — only Prev/This week/Next below needs the server. --}}
+    <x-tabs :tabs="['list' => __('List'), 'chart' => __('Week chart')]">
+        <div x-show="tab === 'list'">
+            <x-card no-padding hover>
+                <x-slot:header>{{ __('Tasks') }}</x-slot:header>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
                 <thead>
                     <tr
                         class="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-gray-400 dark:border-gray-700 dark:text-gray-500">
@@ -70,16 +79,8 @@
                                 @endif
                             </td>
                             <td class="px-5 py-3">
-                                @php $status = $task->status(); @endphp
-                                <x-badge
-                                    color="{{ match ($status) {
-                                        'completed' => 'success',
-                                        'refused' => 'danger',
-                                        'skipped' => 'secondary',
-                                        'overdue' => 'danger',
-                                        default => 'primary',
-                                    } }}">
-                                    {{ ucfirst($status) }}
+                                <x-badge color="{{ $task->statusBadgeColor() }}">
+                                    {{ ucfirst($task->status()) }}
                                 </x-badge>
                             </td>
                             <td class="px-5 py-3 text-right space-x-2 whitespace-nowrap">
@@ -103,9 +104,75 @@
                         </tr>
                     @endforelse
                 </tbody>
-            </table>
+                    </table>
+                </div>
+            </x-card>
         </div>
-    </x-card>
+
+        <div x-show="tab === 'chart'" x-cloak>
+            <x-card no-padding hover>
+                <x-slot:header>
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <span>
+                            {{ __('Week of :range', [
+                                'range' => \Illuminate\Support\Carbon::parse($chartWeekStart)->format('d M').' – '.\Illuminate\Support\Carbon::parse($chartWeekStart)->addDays(6)->format('d M Y'),
+                            ]) }}
+                        </span>
+                        <div class="flex items-center gap-1">
+                            <x-button variant="outline" size="sm" wire:click="prevChartWeek" title="{{ __('Previous week') }}">
+                                <i class="ik ik-chevron-left"></i>
+                            </x-button>
+                            <x-button variant="outline" size="sm" wire:click="goToCurrentChartWeek">{{ __('This week') }}</x-button>
+                            <x-button variant="outline" size="sm" wire:click="nextChartWeek" title="{{ __('Next week') }}">
+                                <i class="ik ik-chevron-right"></i>
+                            </x-button>
+                        </div>
+                    </div>
+                </x-slot:header>
+
+                {{-- Horizontal scroll on narrow screens, same reasoning as
+                     the Care Call Timeline's own step tracker (Batch 14):
+                     7 day columns don't fit a phone, and squeezing them
+                     down to fit would make every task card unreadable
+                     instead. --}}
+                <div class="overflow-x-auto">
+                    <div class="grid min-w-[980px] grid-cols-7 divide-x divide-gray-100 dark:divide-gray-800">
+                        @foreach ($chartDays as $day)
+                            @php $isToday = $day->isToday(); @endphp
+                            <div class="min-w-[140px]">
+                                <div class="border-b border-gray-100 px-3 py-2 text-center dark:border-gray-800 {{ $isToday ? 'bg-primary-50 dark:bg-primary-500/10' : '' }}">
+                                    <div class="text-xs font-semibold uppercase tracking-wide {{ $isToday ? 'text-primary-600' : 'text-gray-400' }}">
+                                        {{ $day->format('D') }}
+                                    </div>
+                                    <div class="text-sm font-semibold {{ $isToday ? 'text-primary-700' : 'text-gray-600 dark:text-gray-300' }}">
+                                        {{ $day->format('d M') }}
+                                    </div>
+                                </div>
+                                <div class="space-y-2 p-2">
+                                    @forelse ($chartTasks->get($day->toDateString(), collect()) as $task)
+                                        <div class="rounded-lg border border-gray-100 p-2 dark:border-gray-800" wire:key="chart-task-{{ $task->id }}">
+                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">{{ $task->title }}</div>
+                                            @if ($task->recurring_pattern)
+                                                <div class="text-[11px] text-gray-400">
+                                                    <i class="ik ik-refresh-cw mr-1"></i>{{ $task->recurringPatternLabel() }}
+                                                </div>
+                                            @endif
+                                            <div class="mt-1 flex items-center justify-between gap-1">
+                                                <span class="text-[11px] text-gray-400 whitespace-nowrap">{{ $task->due_at?->format('H:i') ?? '—' }}</span>
+                                                <x-badge color="{{ $task->statusBadgeColor() }}">{{ ucfirst($task->status()) }}</x-badge>
+                                            </div>
+                                        </div>
+                                    @empty
+                                        <p class="py-4 text-center text-[11px] text-gray-300">{{ __('No tasks') }}</p>
+                                    @endforelse
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </x-card>
+        </div>
+    </x-tabs>
 
     <x-drawer name="task-form" title="{{ $editingTaskId ? __('Edit task') : __('New task') }}" width="w-[30rem]">
         <div class="space-y-4">
