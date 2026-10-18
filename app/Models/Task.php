@@ -171,4 +171,51 @@ class Task extends Model
             'created_by' => $this->created_by,
         ]);
     }
+
+    /**
+     * Batch 30: walks this recurring chain's tip forward, creating
+     * occurrences until the next one would land on or past $horizon.
+     *
+     * generateNextOccurrence() above only ever creates ONE occurrence, and
+     * only gets called from complete() — i.e. only once a carer actually
+     * marks the current one off. That's why a task could show up fine on
+     * the day someone typed it, then simply not exist on any day after:
+     * nothing ever generated tomorrow's row until today's was actioned,
+     * so a task nobody got to yet silently stalled every date after it
+     * too. This method is what lets a scheduled command
+     * (tasks:generate-occurrences) keep a rolling window of future Task
+     * rows actually existing, independent of whether anyone has
+     * completed, refused, or even looked at anything yet.
+     *
+     * Call this on a chain's tip (a task with recurring_pattern set and no
+     * childTasks yet) — that's exactly what the command's query selects.
+     */
+    public function backfillOccurrencesUntil(\Illuminate\Support\Carbon $horizon, int $maxIterations = 90): int
+    {
+        $tip = $this;
+        $created = 0;
+
+        for ($i = 0; $i < $maxIterations; $i++) {
+            $next = $tip->generateNextOccurrence();
+
+            if (! $next) {
+                break; // no recognised recurring_pattern — nothing to project forward
+            }
+
+            $created++;
+            $tip = $next;
+
+            $reference = $tip->due_at ?? $tip->scheduled_at;
+
+            // Neither date is set, so there's nothing to compare against the
+            // horizon — generate this one step and stop, same as the old
+            // single-step behaviour, rather than looping without an end
+            // condition.
+            if (! $reference || $reference->greaterThanOrEqualTo($horizon)) {
+                break;
+            }
+        }
+
+        return $created;
+    }
 }
