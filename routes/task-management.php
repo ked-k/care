@@ -2,6 +2,7 @@
 
 use App\Livewire\CarePlan\CarePlanIndexComponent;
 use App\Livewire\CarePlan\CarePlanShowComponent;
+use App\Livewire\Task\TaskChartComponent;
 use App\Livewire\Task\TaskListComponent;
 use Illuminate\Support\Facades\Route;
 
@@ -38,3 +39,9 @@ Route::get('/tasks', TaskListComponent::class)->name('tasks.index');
 // $shiftId in its mount() and scopes the list to that shift, so this now
 // just points the route at the real, working component instead.
 Route::get('/tasks/shift/{shiftId}', TaskListComponent::class)->name('tasks.by-shift');
+
+// Batch 32: caseload-wide follow-up to Batch 31's per-client Week chart
+// tab — every active client's week, side by side, so a manager can spot
+// a recurrence gap across the whole caseload without opening each client
+// in turn. Gated inside TaskChartComponent::mount() (manage_tasks).
+Route::get('/tasks/chart', TaskChartComponent::class)->name('tasks.chart');

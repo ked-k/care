@@ -96,6 +96,10 @@ return [
         ['label' => 'Care Delivery', 'icon' => 'ik ik-file-text', 'active' => 'care-plans*|tasks*', 'children' => [
             ['label' => 'Care Plans', 'icon' => 'ik ik-file-text', 'route' => 'care-plans.index', 'active' => 'care-plans.index'],
             ['label' => 'Tasks', 'icon' => 'ik ik-clipboard', 'route' => 'tasks.index', 'active' => 'tasks.index*'],
+            // Batch 32: caseload-wide week view, follow-up to Batch 31's
+            // per-client tab — manage_tasks-gated like the rest of this
+            // group's operational items.
+            ['label' => 'Task Chart', 'icon' => 'ik ik-calendar', 'route' => 'tasks.chart', 'active' => 'tasks.chart', 'can' => 'manage_tasks'],
         ]],
 
         // -- Rota & Scheduling. --
