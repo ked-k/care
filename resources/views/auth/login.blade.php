@@ -30,7 +30,7 @@
             </div>
             <div class="relative">
                 <i class="ik ik-lock pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <input id="password" name="password" placeholder="••••••••"  required :type="show ? 'text' : 'password'"
+                <input id="password" name="password" placeholder="••••••••"  required type="password" autocomplete="current-password" x-bind:type="show ? 'text' : 'password'"
                        @class([
                            str_replace('pr-3', 'pr-11', $inputCls),
                            'border-gray-200 focus:border-primary-400 focus:ring-primary-100' => ! $errors->has('password'),

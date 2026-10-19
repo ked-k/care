@@ -48,7 +48,14 @@ class FamilyServiceUserComponent extends Component
             "You don't have access to this person's record."
         );
 
-        if (! in_array($this->tab, ['overview', 'care-plan', 'medications', 'schedule', 'notes', 'messages'], true)) {
+        // Batch 37: 'profile' added — the family-safe "full profile" report
+        // (basic details, key care info, next of kin, active care plan,
+        // directions, print/download). Deliberately left off the mobile
+        // bottom tab bar (already a full 6 columns) — reached from a card
+        // on Overview instead. See the view for what's shown vs. kept
+        // staff-only (billing/payer info, care coordinator assignment,
+        // consents — none of that changes here).
+        if (! in_array($this->tab, ['overview', 'care-plan', 'medications', 'schedule', 'notes', 'messages', 'profile'], true)) {
             $this->tab = 'overview';
         }
     }

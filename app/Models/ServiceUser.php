@@ -265,6 +265,24 @@ class ServiceUser extends Model
     }
 
     /**
+     * Batch 37: a one-tap "get directions" link using this service user's
+     * geocoded/pinned coordinates when there are any (Google Maps' own
+     * directions URL scheme opens in whichever maps app the device has
+     * set as default — including Apple Maps on iOS — so this doesn't need
+     * a separate per-platform link). Null when there's nothing to point
+     * at yet, same "quietly absent" rule Batch 35 already uses for the
+     * geofenced check-in restriction — the caller just hides the button.
+     */
+    public function directionsUrl(): ?string
+    {
+        if (! $this->hasLocation()) {
+            return null;
+        }
+
+        return 'https://www.google.com/maps/dir/?api=1&destination='.$this->latitude.','.$this->longitude;
+    }
+
+    /**
      * Haversine distance in meters between this service user's stored
      * location and a carer's check-in coordinates — the core calculation
      * behind the geofenced check-in restriction (see

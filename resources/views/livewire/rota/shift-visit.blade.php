@@ -91,6 +91,15 @@
                         @if ($shift->notes)
                             <div class="pt-1"><span class="text-gray-400">{{ __('Notes') }}</span><p class="mt-1 text-gray-700 dark:text-gray-200">{{ $shift->notes }}</p></div>
                         @endif
+                        {{-- Batch 37: one tap to open turn-by-turn directions to
+                             this visit — uses the same geocoded/pinned location
+                             the geofenced check-in (Batch 35) already relies on. --}}
+                        @if ($shift->serviceUser?->directionsUrl())
+                            <a href="{{ $shift->serviceUser->directionsUrl() }}" target="_blank" rel="noopener"
+                                class="mt-1 flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:underline">
+                                <i class="ik ik-navigation"></i>{{ __('Get directions') }}
+                            </a>
+                        @endif
                     </div>
                 </x-card>
 

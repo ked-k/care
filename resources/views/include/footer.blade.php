@@ -9,10 +9,10 @@
             <span>© {{ date('Y') }} {{ __('All rights reserved.') }}</span>
         </div>
         <div class="flex items-center gap-1.5">
-            <span>{{ __('Crafted with') }}</span>
+            <span>{{ __('Developed with') }}</span>
             <i class="ik ik-heart text-accent-500" aria-label="{{ __('love') }}"></i>
             <span>{{ __('by') }}</span>
-            <a class="font-medium text-gray-700 transition-colors hover:text-primary-600" target="_blank" rel="noopener" href="https://themicly.com">Themicly</a>
+            <a class="font-medium text-gray-700 transition-colors hover:text-primary-600" target="_blank" rel="noopener" href="https://www.bing.com/ck/a?!&&p=65548a309d93a71a3e98863088a846bc08806eba0ea9403beec317c681334783JmltdHM9MTc5MjM2ODAwMA&ptn=3&ver=2&hsh=4&fclid=3a903e87-e272-62c8-1029-2973e31563ac&psq=ked+kayongo&u=a1aHR0cHM6Ly93d3cuZmFjZWJvb2suY29tL2theW9uZ28ua2VkLw">Ked</a>
         </div>
     </div>
 </footer>

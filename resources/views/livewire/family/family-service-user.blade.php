@@ -36,6 +36,8 @@
             'schedule' => ['label' => __('Schedule'), 'icon' => 'ik-calendar'],
             'notes' => ['label' => __('Notes'), 'icon' => 'ik-clock'],
             'messages' => ['label' => __('Messages'), 'icon' => 'ik-message-square'],
+            // Batch 37
+            'profile' => ['label' => __('Full Profile'), 'icon' => 'ik-user'],
         ] as $key => $meta)
             <button type="button" @click="tab = '{{ $key }}'"
                 :class="tab === '{{ $key }}' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
@@ -95,6 +97,18 @@
                     <div class="text-xs text-gray-400">{{ __('Recent update(s)') }}</div>
                 </button>
             </div>
+
+            {{-- Batch 37: entry point to the new Full Profile tab — not on
+                 the mobile bottom bar (already a full 6 columns), so phones
+                 reach it from here instead. --}}
+            <button type="button" @click="tab = 'profile'"
+                class="flex w-full items-center justify-between gap-3 rounded-xl border border-gray-100 bg-white p-4 text-left shadow-sm hover:border-primary-200 sm:hidden">
+                <span class="flex items-center gap-3">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-primary-600"><i class="ik ik-user"></i></span>
+                    <span class="text-sm font-semibold text-gray-700">{{ __('Full Profile') }}</span>
+                </span>
+                <i class="ik ik-chevron-right text-gray-300"></i>
+            </button>
 
             <x-card no-padding hover>
                 <x-slot:header>
@@ -337,6 +351,119 @@
              in include/header.blade.php) — Livewire's auto-discovery
              doesn't strip that suffix the way a tag name might suggest. --}}
         @livewire('family.family-chat-component', ['serviceUserId' => $serviceUserId], key('family-chat-'.$serviceUserId))
+    </div>
+
+    {{-- ===================== FULL PROFILE ===================== --}}
+    {{-- Batch 37: the family-safe version of the same consolidated report
+         staff get on ServiceUserProfileComponent — basic details, key care
+         info, next of kin, agency contact, and the active care plan's
+         goals/tasks (already shown on the Care Plan tab above, repeated
+         here so the printed document is self-contained). Deliberately
+         leaves out anything staff-only: billing/payer info, the named care
+         coordinator, and the Consents list — none of that is shown to
+         family anywhere else in this portal either, so this report
+         doesn't newly expose it. --}}
+    <div x-show="tab === 'profile'">
+        <div id="family-profile-document" class="space-y-4">
+            <div class="mb-2 flex items-center justify-end gap-2 print:hidden">
+                @if ($serviceUser->directionsUrl())
+                    <a href="{{ $serviceUser->directionsUrl() }}" target="_blank" rel="noopener"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        <i class="ik ik-navigation"></i>{{ __('Get directions') }}
+                    </a>
+                @endif
+                <button type="button" onclick="window.print()"
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    title="{{ __('Opens the print dialog — choose \'Save as PDF\' as the destination to download it.') }}">
+                    <i class="ik ik-printer"></i>{{ __('Print / Download PDF') }}
+                </button>
+            </div>
+
+            <x-card hover>
+                <div class="flex items-center gap-3">
+                    <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-sm font-semibold text-white">
+                        {{ collect(explode(' ', $serviceUser->name))->map(fn ($p) => mb_substr($p, 0, 1))->take(2)->implode('') }}
+                    </span>
+                    <div>
+                        <div class="font-semibold text-gray-800">{{ $serviceUser->name }}</div>
+                        <div class="text-xs text-gray-400">{{ $serviceUser->agency->name ?? config('app.name') }}</div>
+                    </div>
+                </div>
+                <div class="mt-4 grid gap-3 border-t border-gray-100 pt-4 text-sm sm:grid-cols-2">
+                    <div>
+                        <div class="text-xs uppercase tracking-wide text-gray-400">{{ __('Date of birth') }}</div>
+                        <div class="mt-0.5 text-gray-700">{{ $serviceUser->dob?->format('d M Y') ?? '—' }}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs uppercase tracking-wide text-gray-400">{{ __('Address') }}</div>
+                        <div class="mt-0.5 text-gray-700">{{ $serviceUser->address ?? '—' }}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs uppercase tracking-wide text-gray-400">{{ __('Next of kin') }}</div>
+                        <div class="mt-0.5 text-gray-700">
+                            {{ $serviceUser->next_of_kin_name ?? '—' }}
+                            @if ($serviceUser->next_of_kin_contact)
+                                <span class="text-gray-400">· {{ $serviceUser->next_of_kin_contact }}</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </x-card>
+
+            @if ($serviceUser->hasKeyCareInformation())
+                <x-card hover>
+                    <x-slot:header>{{ __('Key care information') }}</x-slot:header>
+                    <div class="grid gap-3 sm:grid-cols-2 text-sm">
+                        @if ($serviceUser->allergies)
+                            <div><span class="font-semibold text-accent-600">{{ __('Allergies') }}</span><p class="mt-0.5 text-gray-700">{{ $serviceUser->allergies }}</p></div>
+                        @endif
+                        @if ($serviceUser->medical_conditions)
+                            <div><span class="font-semibold text-gray-600">{{ __('Medical conditions') }}</span><p class="mt-0.5 text-gray-700">{{ $serviceUser->medical_conditions }}</p></div>
+                        @endif
+                        @if ($serviceUser->communication_needs)
+                            <div><span class="font-semibold text-gray-600">{{ __('Communication needs') }}</span><p class="mt-0.5 text-gray-700">{{ $serviceUser->communication_needs }}</p></div>
+                        @endif
+                        @if ($serviceUser->preferences)
+                            <div><span class="font-semibold text-gray-600">{{ __('Preferences') }}</span><p class="mt-0.5 text-gray-700">{{ $serviceUser->preferences }}</p></div>
+                        @endif
+                    </div>
+                </x-card>
+            @endif
+
+            @if ($carePlans->count())
+                <x-card hover>
+                    <x-slot:header>{{ __('Active care plan') }}</x-slot:header>
+                    @foreach ($carePlans as $plan)
+                        <div class="{{ ! $loop->first ? 'mt-4 border-t border-gray-100 pt-4' : '' }}">
+                            <div class="font-semibold text-gray-700">{{ $plan->title }}</div>
+                            @if ($plan->summary)
+                                <p class="mt-1 text-sm text-gray-500">{{ $plan->summary }}</p>
+                            @endif
+                            @if ($plan->tasks->count())
+                                <ul class="mt-2 divide-y divide-gray-50">
+                                    @foreach ($plan->tasks as $task)
+                                        <li class="flex items-center justify-between gap-3 py-1.5 text-sm">
+                                            <span class="text-gray-600">{{ $task->title }}</span>
+                                            <span class="text-xs text-gray-400">{{ $task->due_at?->format('d M, H:i') ?? '—' }}</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @endif
+                        </div>
+                    @endforeach
+                </x-card>
+            @endif
+
+            <p class="text-xs text-gray-400">{{ __('Generated :date', ['date' => now()->format('d M Y, H:i')]) }}</p>
+        </div>
+
+        <style>
+            @media print {
+                body * { visibility: hidden; }
+                #family-profile-document, #family-profile-document * { visibility: visible; }
+                #family-profile-document { position: absolute; inset: 0; width: 100%; margin: 0; }
+            }
+        </style>
     </div>
 
     {{-- Mobile bottom tab bar. Deliberately kept INSIDE this component's

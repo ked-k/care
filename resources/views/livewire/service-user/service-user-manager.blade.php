@@ -22,27 +22,41 @@
                 <thead>
                     <tr
                         class="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-gray-400 dark:border-gray-700 dark:text-gray-500">
-                        <th class="px-5 py-3 font-medium">{{ __('Name') }}</th>
+                        <th class="px-5 py-3 font-medium">{{ __('Service user') }}</th>
                         <th class="px-5 py-3 font-medium">{{ __('Date of Birth') }}</th>
                         <th class="px-5 py-3 font-medium">{{ __('Next of Kin') }}</th>
                         <th class="px-5 py-3 font-medium">{{ __('Consent') }}</th>
                         <th class="px-5 py-3 font-medium">{{ __('Status') }}</th>
+                        {{-- Batch 37: at-a-glance whether this person has a usable
+                             location on file — the same thing the geofenced
+                             check-in (Batch 35) and "Get directions" rely on. --}}
+                        <th class="px-5 py-3 font-medium">{{ __('Location') }}</th>
                         <th class="px-5 py-3 font-medium text-right">{{ __('Action') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50 dark:divide-gray-800">
                     @forelse ($serviceUsers as $su)
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/40" wire:key="su-{{ $su->id }}">
-                            <td class="px-5 py-3 font-semibold text-gray-700 dark:text-gray-200">
-                                {{ $su->name }}
-                                @if ($su->hasKeyCareInformation())
-                                    <i class="ik ik-alert-triangle ml-1 text-amber-500"
-                                        title="{{ __('Has allergies, medical conditions, or other key care information on file') }}"></i>
-                                @endif
-                                @unless ($su->hasBillingConfigured())
-                                    <i class="ik ik-dollar-sign ml-1 text-gray-300"
-                                        title="{{ __('Billing not set up yet — will be skipped on the next invoice run') }}"></i>
-                                @endunless
+                            <td class="px-5 py-3">
+                                <div class="flex items-center gap-3">
+                                    <x-avatar :name="$su->name" size="h-9 w-9" />
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-1.5 font-semibold text-gray-700 dark:text-gray-200">
+                                            <span class="truncate">{{ $su->name }}</span>
+                                            @if ($su->hasKeyCareInformation())
+                                                <i class="ik ik-alert-triangle shrink-0 text-amber-500"
+                                                    title="{{ __('Has allergies, medical conditions, or other key care information on file') }}"></i>
+                                            @endif
+                                            @unless ($su->hasBillingConfigured())
+                                                <i class="ik ik-dollar-sign shrink-0 text-gray-300"
+                                                    title="{{ __('Billing not set up yet — will be skipped on the next invoice run') }}"></i>
+                                            @endunless
+                                        </div>
+                                        @if ($su->nhs_number)
+                                            <div class="text-xs text-gray-400">{{ __('NHS') }} {{ $su->nhs_number }}</div>
+                                        @endif
+                                    </div>
+                                </div>
                             </td>
                             <td class="px-5 py-3 text-gray-500 dark:text-gray-400">
                                 {{ $su->dob?->format('d M Y') ?? '—' }}</td>
@@ -58,36 +72,69 @@
                                     {{ $su->trashed() ? __('Inactive') : __('Active') }}
                                 </x-badge>
                             </td>
-                            <td class="px-5 py-3 text-right space-x-2 whitespace-nowrap">
-                                @unless ($su->trashed())
-                                    <a href="{{ route('medications.manage', $su->id) }}" wire:navigate
-                                        class="text-primary-600 hover:underline text-sm font-medium">{{ __('Medications') }}</a>
-                                    <a href="{{ route('consents.manage', $su->id) }}" wire:navigate
-                                        class="text-primary-600 hover:underline text-sm font-medium">{{ __('Consents') }}</a>
-                                    <a href="{{ route('family.manage', $su->id) }}" wire:navigate
-                                        class="text-primary-600 hover:underline text-sm font-medium">{{ __('Family') }}</a>
-                                    <a href="{{ route('messages.manage', $su->id) }}" wire:navigate
-                                        class="text-primary-600 hover:underline text-sm font-medium">{{ __('Messages') }}</a>
-                                    <a href="{{ route('assessments.manage', $su->id) }}" wire:navigate
-                                        class="text-primary-600 hover:underline text-sm font-medium">{{ __('Assessments') }}</a>
-                                    <a href="{{ route('timeline.manage', $su->id) }}" wire:navigate
-                                        class="text-primary-600 hover:underline text-sm font-medium">{{ __('Timeline') }}</a>
-                                    <a href="{{ route('calls.manage', $su->id) }}" wire:navigate
-                                        class="text-primary-600 hover:underline text-sm font-medium">{{ __('Calls') }}</a>
-                                    <button type="button" wire:click="openEditForm('{{ $su->id }}')"
-                                        @click="$dispatch('open-drawer', 'service-user-form')"
-                                        class="text-primary-600 hover:underline text-sm font-medium">{{ __('Edit') }}</button>
-                                @endunless
-                                <button type="button" wire:click="toggleActive('{{ $su->id }}')"
-                                    wire:confirm="{{ $su->trashed() ? __('Reactivate this service user?') : __('Mark this service user inactive?') }}"
-                                    class="text-accent-500 hover:underline text-sm font-medium">
-                                    {{ $su->trashed() ? __('Reactivate') : __('Deactivate') }}
-                                </button>
+                            <td class="px-5 py-3">
+                                @if ($su->directionsUrl())
+                                    <a href="{{ $su->directionsUrl() }}" target="_blank" rel="noopener"
+                                        class="inline-flex items-center gap-1 text-xs font-medium text-primary-600 hover:underline"
+                                        title="{{ __('Open turn-by-turn directions') }}">
+                                        <i class="ik ik-navigation"></i>{{ __('Directions') }}
+                                    </a>
+                                @else
+                                    <span class="inline-flex items-center gap-1 text-xs text-gray-300"
+                                        title="{{ __('No address/location on file yet') }}">
+                                        <i class="ik ik-map-pin"></i>{{ __('Not located') }}
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="px-5 py-3 text-right whitespace-nowrap">
+                                <div class="flex items-center justify-end gap-2">
+                                    {{-- Batch 37: the new consolidated profile — the one
+                                         link most people reaching for this row actually
+                                         want, so it's a first-class button rather than
+                                         buried in the menu with everything else. --}}
+                                    <a href="{{ route('service-users.profile', $su->id) }}" wire:navigate
+                                        class="text-primary-600 hover:underline text-sm font-medium">{{ __('Full Profile') }}</a>
+
+                                    <x-dropdown align="right" width="w-48">
+                                        <x-slot:trigger>
+                                            <button type="button"
+                                                class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+                                                title="{{ __('More actions') }}">
+                                                <i class="ik ik-more-vertical"></i>
+                                            </button>
+                                        </x-slot:trigger>
+
+                                        @unless ($su->trashed())
+                                            <a href="{{ route('medications.manage', $su->id) }}" wire:navigate
+                                                class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"><i class="ik ik-heart text-gray-400"></i>{{ __('Medications') }}</a>
+                                            <a href="{{ route('consents.manage', $su->id) }}" wire:navigate
+                                                class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"><i class="ik ik-check-square text-gray-400"></i>{{ __('Consents') }}</a>
+                                            <a href="{{ route('family.manage', $su->id) }}" wire:navigate
+                                                class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"><i class="ik ik-users text-gray-400"></i>{{ __('Family') }}</a>
+                                            <a href="{{ route('messages.manage', $su->id) }}" wire:navigate
+                                                class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"><i class="ik ik-message-square text-gray-400"></i>{{ __('Messages') }}</a>
+                                            <a href="{{ route('assessments.manage', $su->id) }}" wire:navigate
+                                                class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"><i class="ik ik-clipboard text-gray-400"></i>{{ __('Assessments') }}</a>
+                                            <a href="{{ route('timeline.manage', $su->id) }}" wire:navigate
+                                                class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"><i class="ik ik-clock text-gray-400"></i>{{ __('Timeline') }}</a>
+                                            <a href="{{ route('calls.manage', $su->id) }}" wire:navigate
+                                                class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"><i class="ik ik-phone text-gray-400"></i>{{ __('Calls') }}</a>
+                                            <div class="my-1 border-t border-gray-100 dark:border-gray-800"></div>
+                                            <button type="button" wire:click="openEditForm('{{ $su->id }}')"
+                                                @click="$dispatch('open-drawer', 'service-user-form')"
+                                                class="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"><i class="ik ik-edit-3 text-gray-400"></i>{{ __('Edit') }}</button>
+                                            <div class="my-1 border-t border-gray-100 dark:border-gray-800"></div>
+                                        @endunless
+                                        <button type="button" wire:click="toggleActive('{{ $su->id }}')"
+                                            wire:confirm="{{ $su->trashed() ? __('Reactivate this service user?') : __('Mark this service user inactive?') }}"
+                                            class="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-accent-500 hover:bg-gray-50 dark:hover:bg-gray-800"><i class="ik {{ $su->trashed() ? 'ik-refresh-ccw' : 'ik-minus-circle' }}"></i>{{ $su->trashed() ? __('Reactivate') : __('Deactivate') }}</button>
+                                    </x-dropdown>
+                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-5 py-10">
+                            <td colspan="7" class="px-5 py-10">
                                 <x-empty-state title="{{ __('No service users yet') }}"
                                     description="{{ __('Add the people your carers will support.') }}"
                                     icon="ik ik-users" />

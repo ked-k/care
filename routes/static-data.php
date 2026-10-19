@@ -2,6 +2,7 @@
 
 use App\Livewire\Agency\AgencySettingsComponent;
 use App\Livewire\ServiceUser\ServiceUserManagerComponent;
+use App\Livewire\ServiceUser\ServiceUserProfileComponent;
 use App\Livewire\Staff\StaffManagerComponent;
 use Illuminate\Support\Facades\Route;
 
@@ -15,5 +16,11 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/service-users', ServiceUserManagerComponent::class)->name('service-users.index');
+
+// Batch 37: the consolidated "full profile" page — see
+// ServiceUserProfileComponent's class doc comment for what it pulls
+// together and why it's gated on canAccessServiceUser() rather than a
+// fixed role list.
+Route::get('/service-users/{serviceUserId}/profile', ServiceUserProfileComponent::class)->name('service-users.profile');
 Route::get('/staff', StaffManagerComponent::class)->name('staff.index');
 Route::get('/agency/settings', AgencySettingsComponent::class)->name('agency.settings');

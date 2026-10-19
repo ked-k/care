@@ -19,10 +19,18 @@
         <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-50 text-base font-semibold text-primary-600">
             {{ mb_strtoupper(mb_substr($serviceUser->name, 0, 1)) }}
         </span>
-        <div class="min-w-0">
+        <div class="min-w-0 flex-1">
             <h1 class="truncate text-lg font-semibold text-gray-800">{{ $serviceUser->name }}</h1>
             <p class="text-sm text-gray-400">{{ now()->format('l, d M Y') }}</p>
         </div>
+        {{-- Batch 37 --}}
+        @if ($serviceUser->directionsUrl())
+            <a href="{{ $serviceUser->directionsUrl() }}" target="_blank" rel="noopener"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-600 hover:bg-primary-100"
+                title="{{ __('Get directions') }}">
+                <i class="ik ik-navigation"></i>
+            </a>
+        @endif
     </div>
 
     @if ($serviceUser->hasKeyCareInformation())
