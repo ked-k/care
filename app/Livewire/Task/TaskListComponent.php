@@ -4,6 +4,7 @@ namespace App\Livewire\Task;
 
 use App\Models\CareTimelineEntry;
 use App\Models\MediaFile;
+use App\Models\Shift;
 use App\Models\Task;
 use App\Models\TaskLog;
 use Illuminate\Support\Facades\Auth;
@@ -52,23 +53,47 @@ class TaskListComponent extends Component
         $query = Task::with(['carePlan.serviceUser', 'assignee', 'latestLog.takeover.admin'])
             ->whereHas('carePlan.serviceUser', fn ($q) => $q->where('agency_id', $user->agency_id));
 
+        $date = $this->dateFilter;
+
         if ($this->shiftId) {
             $query->where('shift_id', $this->shiftId);
         } else {
-            if (! ($user->can('manage_tasks') ?? false)) {
-                $query->where('assigned_to', $user->id);
-            }
-
-            $date = $this->dateFilter;
             $query->where(function ($q) use ($date) {
                 $q->whereDate('scheduled_at', $date)
                   ->orWhere(function ($q2) use ($date) {
                       $q2->whereNull('scheduled_at')->whereDate('due_at', $date);
                   });
             });
+
+            // Batch 33: narrow at the DB first to the service users this
+            // carer is actually rota'd to on $date (plus anything still
+            // only reachable via the old static assigned_to fallback, for
+            // a date the rota hasn't been built out to yet) — then the
+            // exact per-task confirmation happens below, once, against
+            // Task::effectiveAssignedTo() rather than the stale column.
+            if (! ($user->can('manage_tasks') ?? false)) {
+                $serviceUserIdsToday = Shift::where('assigned_to', $user->id)
+                    ->whereDate('scheduled_start', $date)
+                    ->pluck('service_user_id');
+
+                $query->where(function ($q) use ($serviceUserIdsToday, $user) {
+                    $q->where('assigned_to', $user->id)
+                      ->orWhereHas('carePlan', fn ($cp) => $cp->whereIn('service_user_id', $serviceUserIdsToday));
+                });
+            }
         }
 
-        return $query->orderByDesc('priority')->orderBy('due_at')->get();
+        $tasks = $query->orderByDesc('priority')->orderBy('due_at')->get();
+
+        if (! $this->shiftId) {
+            Task::attachEffectiveCarers($tasks);
+
+            if (! ($user->can('manage_tasks') ?? false)) {
+                $tasks = $tasks->filter(fn (Task $t) => $t->effective_assigned_to === $user->id)->values();
+            }
+        }
+
+        return $tasks;
     }
 
     #[Computed]

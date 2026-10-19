@@ -78,7 +78,7 @@ class TaskChartComponent extends Component
             ->sortBy(fn (CarePlan $plan) => $plan->serviceUser->name)
             ->values();
 
-        $tasksByPlan = Task::with(['assignee', 'latestLog'])
+        $tasksFlat = Task::with(['assignee', 'latestLog'])
             ->whereIn('care_plan_id', $plans->pluck('id'))
             ->where(function ($q) use ($rangeStart, $rangeEnd) {
                 $q->whereBetween('due_at', [$rangeStart, $rangeEnd])
@@ -87,8 +87,16 @@ class TaskChartComponent extends Component
                   });
             })
             ->orderBy('due_at')
-            ->get()
-            ->groupBy('care_plan_id');
+            ->get();
+
+        // Batch 33: resolve each task's rota-derived carer before grouping,
+        // so this caseload-wide view shows the same "who's actually
+        // covering it" as the per-client list/week chart and the shift
+        // visit screen, instead of whatever was copied onto the row the
+        // last time its recurrence chain generated an occurrence.
+        Task::attachEffectiveCarers($tasksFlat);
+
+        $tasksByPlan = $tasksFlat->groupBy('care_plan_id');
 
         $rows = $plans->map(function (CarePlan $plan) use ($tasksByPlan) {
             $tasksByDay = $tasksByPlan->get($plan->id, collect())

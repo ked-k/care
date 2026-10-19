@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Collection;
 
 class Task extends Model
 {
@@ -233,5 +234,113 @@ class Task extends Model
         }
 
         return $created;
+    }
+
+    /**
+     * Batch 33: who actually covers this task TODAY, per the rota — not
+     * whatever was last typed into assigned_to when this task (or the
+     * recurring parent it was cloned from) was created.
+     *
+     * The bug this fixes: generateNextOccurrence() above copies
+     * assigned_to forward unchanged on every auto-generated occurrence,
+     * so a recurring task created with carer X stayed "X's task" forever,
+     * even though the rota has a different carer covering that client on
+     * most days (the real example that surfaced this: Chester has a
+     * different carer different days, but his recurring tasks all kept
+     * showing carer X). assigned_to is kept around, but from here on it's
+     * only a FALLBACK — used when no Shift exists yet for this service
+     * user on this date (rota not built that far out, or an ad-hoc task
+     * with no rota link at all).
+     *
+     * Pass $shiftsForDate already scoped to this task's service user +
+     * date to avoid a Shift query per task — see effectiveAssignedToMany()
+     * for the batch-safe way to resolve a whole list of tasks at once.
+     */
+    public function effectiveAssignedTo(?Collection $shiftsForDate = null): ?string
+    {
+        $date = $this->due_at ?? $this->scheduled_at;
+        $serviceUserId = $this->carePlan?->service_user_id;
+
+        if (! $date || ! $serviceUserId) {
+            return $this->assigned_to;
+        }
+
+        $shifts = $shiftsForDate ?? Shift::where('service_user_id', $serviceUserId)
+            ->whereDate('scheduled_start', $date)
+            ->orderBy('scheduled_start')
+            ->get();
+
+        if ($shifts->isEmpty()) {
+            return $this->assigned_to;
+        }
+
+        // Several shifts can cover the same client the same day (AM/PM
+        // split, double-handed visits) — prefer the one whose own window
+        // actually contains the task's time, falling back to the day's
+        // first shift when the task has no precise time to match against.
+        $withinWindow = $shifts->first(fn (Shift $s) => $s->scheduled_start && $s->scheduled_end
+            && $date->betweenIncluded($s->scheduled_start, $s->scheduled_end));
+
+        return ($withinWindow ?? $shifts->first())->assigned_to ?? $this->assigned_to;
+    }
+
+    /**
+     * Batch 33: resolves effectiveAssignedTo() for a whole collection of
+     * tasks in one Shift query instead of one per task. Returns
+     * [task_id => assigned_to-or-null].
+     */
+    public static function effectiveAssignedToMany(Collection $tasks): array
+    {
+        $eligible = $tasks->filter(fn (Task $t) => $t->carePlan?->service_user_id && ($t->due_at ?? $t->scheduled_at));
+
+        if ($eligible->isEmpty()) {
+            return [];
+        }
+
+        $serviceUserIds = $eligible->map(fn (Task $t) => $t->carePlan->service_user_id)->unique()->values();
+        $dates = $eligible->map(fn (Task $t) => ($t->due_at ?? $t->scheduled_at)->toDateString());
+
+        $shiftsByKey = Shift::whereIn('service_user_id', $serviceUserIds)
+            ->whereDate('scheduled_start', '>=', $dates->min())
+            ->whereDate('scheduled_start', '<=', $dates->max())
+            ->orderBy('scheduled_start')
+            ->get()
+            ->groupBy(fn (Shift $s) => $s->service_user_id.'|'.$s->scheduled_start->toDateString());
+
+        $result = [];
+        foreach ($tasks as $task) {
+            $date = $task->due_at ?? $task->scheduled_at;
+            $serviceUserId = $task->carePlan?->service_user_id;
+            $key = $serviceUserId && $date ? $serviceUserId.'|'.$date->toDateString() : null;
+
+            $result[$task->id] = $task->effectiveAssignedTo($key ? $shiftsByKey->get($key, new Collection) : new Collection);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Batch 33: resolves and overwrites the assignee() relation in-memory
+     * on every task in $tasks with the rota-derived carer, so every view
+     * that already reads $task->assignee->name (task list, week chart,
+     * caseload task chart) shows the right person with no blade changes —
+     * it just stops trusting the stored column and starts trusting the
+     * rota. Also sets effective_assigned_to on each task for anywhere
+     * that needs the raw id (e.g. filtering a carer's own task list).
+     */
+    public static function attachEffectiveCarers(Collection $tasks): Collection
+    {
+        $map = static::effectiveAssignedToMany($tasks);
+
+        $carerIds = collect($map)->filter()->unique()->values();
+        $carers = $carerIds->isEmpty() ? collect() : User::whereIn('id', $carerIds)->get()->keyBy('id');
+
+        foreach ($tasks as $task) {
+            $effectiveId = $map[$task->id] ?? $task->assigned_to;
+            $task->setAttribute('effective_assigned_to', $effectiveId);
+            $task->setRelation('assignee', $effectiveId ? $carers->get($effectiveId) : null);
+        }
+
+        return $tasks;
     }
 }

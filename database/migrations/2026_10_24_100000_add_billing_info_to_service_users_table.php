@@ -14,6 +14,7 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // return;
         Schema::table('service_users', function (Blueprint $table) {
             $table->enum('billing_type', ['per_visit', 'flat_package'])->default('per_visit')->after('care_coordinator_id');
             $table->decimal('billing_rate', 8, 2)->nullable()->after('billing_type');

@@ -75,4 +75,22 @@ class Agency extends Model
     {
         return $this->hasMany(BreachReport::class);
     }
+
+    /**
+     * Batch 35: whether a carer who's outside the geofence (or who sent no
+     * location at all) is still allowed to check in — logged as an
+     * override and notified to Admin/Manager either way — rather than
+     * being blocked outright. Off by default: a fresh agency gets the
+     * stricter behaviour until someone deliberately turns this on.
+     */
+    public function allowsRemoteCheckin(): bool
+    {
+        return (bool) ($this->settings['allow_remote_checkin'] ?? false);
+    }
+
+    /** How close (in meters) a check-in must be to a service user's stored location to count as verified. */
+    public function checkinRadiusMeters(): int
+    {
+        return (int) ($this->settings['checkin_radius_meters'] ?? 150);
+    }
 }

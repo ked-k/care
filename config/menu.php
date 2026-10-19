@@ -130,6 +130,8 @@ return [
         ['label' => 'Compliance', 'icon' => 'ik ik-check-square', 'active' => 'policies*|training*|compliance*|audits*', 'children' => [
             ['label' => 'Policies', 'icon' => 'ik ik-file-text', 'route' => 'policies.index', 'active' => 'policies.index'],
             ['label' => 'Training', 'icon' => 'ik ik-award', 'route' => 'training.index', 'active' => 'training.index'],
+            // Batch 36
+            ['label' => 'Training Matrix', 'icon' => 'ik ik-grid', 'route' => 'training.matrix', 'active' => 'training.matrix', 'can' => 'training.manage'],
             ['label' => 'Compliance Dashboard', 'icon' => 'ik ik-check-square', 'route' => 'compliance.dashboard', 'active' => 'compliance.dashboard'],
             ['label' => 'Missing Documentation', 'icon' => 'ik ik-alert-triangle', 'route' => 'compliance.missing-documentation', 'active' => 'compliance.missing-documentation', 'can' => 'compliance.manage'],
             ['label' => 'Audit Log', 'icon' => 'ik ik-list', 'route' => 'audits.index', 'active' => 'audits.index', 'can' => 'compliance.manage'],

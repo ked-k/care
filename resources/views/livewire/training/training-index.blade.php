@@ -83,6 +83,13 @@
                 </x-form.select>
                 <x-form.input type="number" name="formDurationMinutes" label="{{ __('Duration (minutes)') }}" wire:model="formDurationMinutes" />
             </div>
+            <div class="grid grid-cols-2 gap-3 items-end">
+                <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                    <input type="checkbox" wire:model="formIsMandatory" class="rounded border-gray-300">
+                    {{ __('Mandatory for all staff') }}
+                </label>
+                <x-form.input type="number" name="formRenewalPeriodDays" label="{{ __('Renews every (days, optional)') }}" wire:model="formRenewalPeriodDays" placeholder="e.g. 365" />
+            </div>
         </div>
         <x-slot:footer>
             <x-button wire:click="saveModule">{{ __('Save') }}</x-button>
@@ -96,6 +103,13 @@
                 <option value="completed">{{ __('Completed') }}</option>
             </x-form.select>
             <x-form.input type="number" name="logScore" label="{{ __('Score (optional)') }}" wire:model="logScore" placeholder="0-100" />
+            <x-form.input type="date" name="logExpiresAt" label="{{ __('Certificate expiry (optional)') }}" wire:model="logExpiresAt" />
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-600 dark:text-gray-300">{{ __('Certificate (optional)') }}</label>
+                <input type="file" wire:model="logCertificate" accept=".pdf,.jpg,.jpeg,.png" class="block w-full text-sm text-gray-500">
+                @error('logCertificate') <span class="text-xs text-danger-600">{{ $message }}</span> @enderror
+                <div wire:loading wire:target="logCertificate" class="text-xs text-gray-400">{{ __('Uploading...') }}</div>
+            </div>
         </div>
         <x-slot:footer>
             <x-button wire:click="logProgress">{{ __('Save') }}</x-button>

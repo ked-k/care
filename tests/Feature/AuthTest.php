@@ -62,4 +62,13 @@ class AuthTest extends TestCase
             ->assertOk()
             ->assertSee('Dashboard');
     }
+
+    public function test_manager_only_training_matrix_returns_forbidden_for_non_manager(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/training/matrix')
+            ->assertForbidden();
+    }
 }

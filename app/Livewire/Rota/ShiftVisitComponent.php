@@ -2,17 +2,23 @@
 
 namespace App\Livewire\Rota;
 
+use App\Mail\RemoteCheckinMail;
 use App\Models\CareTimelineEntry;
 use App\Models\MediaFile;
 use App\Models\Medication;
 use App\Models\MedicationAdministration;
+use App\Models\Notification;
 use App\Models\Shift;
 use App\Models\ShiftTakeover;
 use App\Models\Task;
 use App\Models\TaskLog;
+use App\Models\User;
 use App\Models\VisitCheckin;
+use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
@@ -155,7 +161,16 @@ class ShiftVisitComponent extends Component
 
     // ===================== CHECK-IN / CHECK-OUT =====================
 
-    public function checkIn(): void
+    /**
+     * Batch 35: $lat/$lng come from the browser's navigator.geolocation,
+     * read and passed in by shift-visit.blade.php's Check in button before
+     * this method ever runs server-side — see that file's comment. Either
+     * can be null (no GPS, permission denied, an old browser), which is
+     * handled the same as "too far away": allowed only if the agency's
+     * "allow remote check-in" setting is on, and always logged/notified
+     * when it happens.
+     */
+    public function checkIn(?float $lat = null, ?float $lng = null): void
     {
         $this->authorizeRecording();
         $shift = $this->shift();
@@ -164,16 +179,154 @@ class ShiftVisitComponent extends Component
             return;
         }
 
-        VisitCheckin::create([
+        $geo = $this->evaluateCheckinLocation($shift, $lat, $lng);
+
+        if ($geo['blocked']) {
+            $this->dispatch('toast', message: $geo['message'], type: 'danger');
+
+            return;
+        }
+
+        $checkin = VisitCheckin::create([
             'shift_id' => $shift->id,
             'shift_takeover_id' => $this->activeTakeoverId,
             'user_id' => Auth::id(),
-            'checkin_method' => 'manual',
+            'checkin_method' => $geo['method'],
             'checkin_time' => now(),
+            'latitude' => $lat,
+            'longitude' => $lng,
+            'location_verified' => $geo['verified'],
+            'distance_from_location' => $geo['distance'],
+            'deviation_reason' => $geo['deviationReason'],
             'created_by' => Auth::id(),
         ]);
 
-        $this->dispatch('toast', message: 'Checked in.', type: 'success');
+        if ($geo['notifyOverride']) {
+            $this->notifyRemoteCheckin($shift, $checkin, $geo['deviationReason']);
+        }
+
+        $this->dispatch('toast', message: $geo['message'], type: $geo['verified'] ? 'success' : 'warning');
+    }
+
+    /**
+     * Batch 35: the geofenced check-in restriction. Decides whether a
+     * check-in at ($lat, $lng) is close enough to the service user's
+     * stored location (App\Models\ServiceUser::distanceInMetersTo()), and
+     * what to do when it isn't — block it, or let it through as a logged,
+     * notified override, per Agency::allowsRemoteCheckin(). Returns
+     * everything checkIn() needs: blocked, verified, distance, a
+     * deviation reason for the audit trail, whether to notify Admin/
+     * Manager, the checkin_method to record, and the toast message.
+     *
+     * A service user with no location on file yet (no address, address
+     * not yet geocoded, no manual pin) is treated exactly as before this
+     * feature existed — a plain, unverified manual check-in — rather than
+     * blocking every check-in until every client has a pinned location.
+     */
+    protected function evaluateCheckinLocation(Shift $shift, ?float $lat, ?float $lng): array
+    {
+        $serviceUser = $shift->serviceUser;
+
+        if (! $serviceUser || ! $serviceUser->hasLocation()) {
+            return [
+                'blocked' => false, 'verified' => false, 'distance' => null, 'deviationReason' => null,
+                'notifyOverride' => false, 'method' => 'manual', 'message' => __('Checked in.'),
+            ];
+        }
+
+        $agency = Auth::user()->agency;
+        $allowRemote = $agency?->allowsRemoteCheckin() ?? false;
+        $radius = $agency?->checkinRadiusMeters() ?? 150;
+
+        if ($lat === null || $lng === null) {
+            if (! $allowRemote) {
+                return [
+                    'blocked' => true, 'verified' => false, 'distance' => null, 'deviationReason' => null,
+                    'notifyOverride' => false, 'method' => 'manual',
+                    'message' => __("Check-in needs your location, and this agency doesn't allow remote check-in. Please enable location access on your device and try again at :name's address.", ['name' => $serviceUser->name]),
+                ];
+            }
+
+            return [
+                'blocked' => false, 'verified' => false, 'distance' => null,
+                'deviationReason' => __('No location reached the server (denied, or unavailable on this device).'),
+                'notifyOverride' => true, 'method' => 'remote_override',
+                'message' => __('Checked in without a location — your manager has been notified.'),
+            ];
+        }
+
+        $distance = $serviceUser->distanceInMetersTo($lat, $lng);
+
+        if ($distance !== null && $distance <= $radius) {
+            return [
+                'blocked' => false, 'verified' => true, 'distance' => round($distance), 'deviationReason' => null,
+                'notifyOverride' => false, 'method' => 'gps', 'message' => __('Checked in.'),
+            ];
+        }
+
+        $roundedDistance = $distance !== null ? round($distance) : null;
+
+        if (! $allowRemote) {
+            return [
+                'blocked' => true, 'verified' => false, 'distance' => $roundedDistance, 'deviationReason' => null,
+                'notifyOverride' => false, 'method' => 'gps',
+                'message' => __("You're too far from :name's address to check in (:distance m away). Get closer and try again, or ask a manager to turn on remote check-in if this address looks wrong.", [
+                    'name' => $serviceUser->name,
+                    'distance' => $roundedDistance ?? '?',
+                ]),
+            ];
+        }
+
+        return [
+            'blocked' => false, 'verified' => false, 'distance' => $roundedDistance,
+            'deviationReason' => __(':distance m from :name\'s recorded address.', ['distance' => $roundedDistance ?? '?', 'name' => $serviceUser->name]),
+            'notifyOverride' => true, 'method' => 'remote_override',
+            'message' => __("Checked in from outside :name's address — your manager has been notified.", ['name' => $serviceUser->name]),
+        ];
+    }
+
+    /**
+     * Notifies every Admin/Manager/Super Admin at this carer's agency —
+     * "admin and manager are notified" was the explicit ask — both as an
+     * in-app notification (App\Services\NotificationService, same as any
+     * other alert in this app) and by email (App\Mail\RemoteCheckinMail),
+     * so it's seen even by someone not currently logged in. A mail failure
+     * (bad SMTP config, no connectivity) is logged and swallowed — it must
+     * never undo or block a check-in that's already been recorded.
+     */
+    protected function notifyRemoteCheckin(Shift $shift, VisitCheckin $checkin, ?string $deviationReason): void
+    {
+        $carer = Auth::user();
+
+        $recipients = User::where('agency_id', $carer->agency_id)
+            ->whereHas('roles', fn ($q) => $q->whereIn('name', ['Manager', 'Admin', 'Super Admin']))
+            ->get();
+
+        $clientName = $shift->serviceUser->name ?? __('an unassigned visit');
+        $title = __('Remote check-in: :carer', ['carer' => $carer->name]);
+        $message = __(':carer checked in for :client outside the expected location.', [
+            'carer' => $carer->name,
+            'client' => $clientName,
+        ]).($deviationReason ? ' '.$deviationReason : '');
+
+        foreach ($recipients as $recipient) {
+            NotificationService::send(
+                $recipient->id,
+                'remote_checkin',
+                $title,
+                $message,
+                Notification::PRIORITY_HIGH,
+                ['shift_id' => $shift->id, 'checkin_id' => $checkin->id, 'carer_id' => $carer->id]
+            );
+
+            if ($recipient->email) {
+                try {
+                    Mail::to($recipient->email)->send(new RemoteCheckinMail($recipient, $carer, $shift, $checkin, $deviationReason));
+                } catch (\Throwable $e) {
+                    Log::warning('RemoteCheckinMail failed to send: '.$e->getMessage(), ['recipient' => $recipient->id]);
+                }
+            }
+        }
     }
 
     public function checkOut(): void
@@ -196,12 +349,23 @@ class ShiftVisitComponent extends Component
     {
         $shift = $this->shift();
 
-        // Tasks linked to this shift, plus the carer's tasks for this person
-        // scheduled (or, if unscheduled, due) on the shift's date — care-plan
-        // tasks are assigned to a carer and a time, never to a shift id.
+        // Tasks linked to this shift, plus every task on this client's
+        // active care plan scheduled (or, if unscheduled, due) on the
+        // shift's date.
+        //
+        // Batch 33: this used to also require assigned_to = $shift->assigned_to
+        // — i.e. the task's own static carer column had to already match
+        // today's rota carer, or the task silently never showed up here.
+        // That's backwards: a care-plan task is permanent for the service
+        // user — only WHO carries it out changes with the rota. Requiring
+        // the two to already agree meant whoever covers a client via a
+        // takeover, or on any day the rota assigned someone different from
+        // whoever a recurring task happened to be created with, saw an
+        // empty or short task list on a real visit. The rota (this shift)
+        // is the source of truth for "who's covering this today" — it
+        // doesn't also need the stored column's blessing.
         return Task::with(['carePlan.serviceUser', 'latestLog.takeover.admin'])
             ->where(fn ($q) => $q->where('shift_id', $this->shiftId)->orWhere(fn ($q2) => $q2
-                ->where('assigned_to', $shift->assigned_to)
                 ->whereHas('carePlan', fn ($cp) => $cp->where('service_user_id', $shift->service_user_id)->where('is_active', true))
                 ->where(fn ($d) => $d->whereDate('scheduled_at', $shift->scheduled_start)
                     ->orWhere(fn ($d2) => $d2->whereNull('scheduled_at')->whereDate('due_at', $shift->scheduled_start)))))

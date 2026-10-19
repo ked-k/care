@@ -40,7 +40,7 @@
                     <tr
                         class="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-gray-400 dark:border-gray-700 dark:text-gray-500">
                         <th class="px-5 py-3 font-medium">{{ __('Task') }}</th>
-                        <th class="px-5 py-3 font-medium">{{ __('Assigned To') }}</th>
+                        <th class="px-5 py-3 font-medium">{{ __('Carer') }}</th>
                         <th class="px-5 py-3 font-medium">{{ __('Due') }}</th>
                         <th class="px-5 py-3 font-medium">{{ __('Priority') }}</th>
                         <th class="px-5 py-3 font-medium">{{ __('Requires') }}</th>
@@ -206,8 +206,14 @@
                     wire:model="formDueAt" />
             </div>
 
-            <x-form.select name="formAssignedTo" label="{{ __('Assign to (optional)') }}" wire:model="formAssignedTo">
-                <option value="">{{ __('Unassigned') }}</option>
+            {{-- Batch 33: this is a FALLBACK only, used on a date the rota
+                 hasn't been built out to yet. Day to day, "who's covering
+                 this" is read straight off the rota instead — so a
+                 recurring task doesn't keep showing the one carer who
+                 happened to be picked here when it (or the occurrence it
+                 was cloned from) was first created. --}}
+            <x-form.select name="formAssignedTo" label="{{ __('Fallback carer (used only if no rota shift covers this date)') }}" wire:model="formAssignedTo">
+                <option value="">{{ __('None — rely on the rota') }}</option>
                 @foreach ($carerOptions as $id => $name)
                     <option value="{{ $id }}">{{ $name }}</option>
                 @endforeach

@@ -116,13 +116,43 @@
                             <div class="text-sm">
                                 <div class="font-semibold text-gray-700 dark:text-gray-200">{{ __('Checked in') }}</div>
                                 <div class="text-xs text-gray-400">{{ $openCheckin->checkin_time->format('H:i') }}</div>
+                                {{-- Batch 35: surfaces what the geofence decided for this
+                                     check-in, same language as the toast the carer saw at the
+                                     time, so a manager glancing here later sees it too. --}}
+                                @if ($openCheckin->checkin_method === 'remote_override')
+                                    <div class="mt-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+                                        <i class="ik ik-alert-triangle mr-1"></i>{{ __('Remote check-in — manager notified.') }}
+                                        @if ($openCheckin->deviation_reason)
+                                            {{ $openCheckin->deviation_reason }}
+                                        @endif
+                                    </div>
+                                @elseif ($openCheckin->location_verified)
+                                    <div class="mt-1 text-xs text-green-600 dark:text-green-400">
+                                        <i class="ik ik-check-circle mr-1"></i>{{ __('Location verified.') }}
+                                    </div>
+                                @endif
                             </div>
                             <x-button variant="danger" size="sm" wire:click="checkOut">{{ __('Check out') }}</x-button>
                         </div>
                     @else
                         <div class="flex items-center justify-between">
                             <p class="text-sm text-gray-400">{{ __('Not checked in yet.') }}</p>
-                            <x-button size="sm" wire:click="checkIn">{{ __('Check in') }}</x-button>
+                            {{-- Batch 35: reads the browser's GPS location (if the carer
+                                 allows it) before calling checkIn() server-side, which is
+                                 what actually enforces the geofence — see
+                                 App\Livewire\Rota\ShiftVisitComponent::checkIn(). Falls back
+                                 to calling checkIn() with no coordinates (treated the same
+                                 as "too far away") when geolocation is unavailable, denied,
+                                 or times out, rather than leaving the carer stuck. --}}
+                            <x-button size="sm" x-data="{ locating: false }" x-on:click="
+                                locating = true;
+                                if (! navigator.geolocation) { locating = false; $wire.checkIn(null, null); return; }
+                                navigator.geolocation.getCurrentPosition(
+                                    (pos) => { locating = false; $wire.checkIn(pos.coords.latitude, pos.coords.longitude); },
+                                    ()    => { locating = false; $wire.checkIn(null, null); },
+                                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+                                );
+                            " x-bind:disabled="locating">{{ __('Check in') }}</x-button>
                         </div>
                     @endif
                 </x-card>

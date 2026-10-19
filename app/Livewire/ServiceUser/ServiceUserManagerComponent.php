@@ -55,6 +55,15 @@ class ServiceUserManagerComponent extends Component
     public string $formLocalAuthorityReference = '';
     public ?float $formLocalAuthorityShareAmount = null;
 
+    // Batch 35: geofenced check-in restriction — see
+    // App\Models\ServiceUser::distanceInMetersTo() and
+    // App\Livewire\Rota\ShiftVisitComponent::checkIn(). Location is
+    // auto-geocoded from the address by default; formManualLocation
+    // switches to a manually-pinned lat/long instead.
+    public bool $formManualLocation = false;
+    public ?float $formLatitude = null;
+    public ?float $formLongitude = null;
+
     public function mount(): void
     {
         // abort_unless(Auth::user()->hasAnyRole(['admin', 'manager']), 403);
@@ -107,6 +116,9 @@ class ServiceUserManagerComponent extends Component
         $this->formLocalAuthorityName         = $su->local_authority_name ?? '';
         $this->formLocalAuthorityReference    = $su->local_authority_reference ?? '';
         $this->formLocalAuthorityShareAmount  = $su->local_authority_share_amount !== null ? (float) $su->local_authority_share_amount : null;
+        $this->formManualLocation = $su->location_source === 'manual';
+        $this->formLatitude       = $su->latitude !== null ? (float) $su->latitude : null;
+        $this->formLongitude      = $su->longitude !== null ? (float) $su->longitude : null;
         $this->dispatch('open-drawer', 'service-user-form');
     }
 
@@ -120,6 +132,7 @@ class ServiceUserManagerComponent extends Component
             'formBillingType', 'formBillingRate', 'formBillingPackageAmount', 'formBillingPackagePeriod',
             'formPayerType', 'formPayerName', 'formPayerAddress', 'formPayerEmail',
             'formLocalAuthorityName', 'formLocalAuthorityReference', 'formLocalAuthorityShareAmount',
+            'formManualLocation', 'formLatitude', 'formLongitude',
         ]);
         $this->formBillingType = 'per_visit';
         $this->formBillingPackagePeriod = 'weekly';
@@ -153,6 +166,8 @@ class ServiceUserManagerComponent extends Component
             'formLocalAuthorityName'        => 'nullable|string|max:255',
             'formLocalAuthorityReference'   => 'nullable|string|max:255',
             'formLocalAuthorityShareAmount' => 'nullable|numeric|min:0',
+            'formLatitude'  => $this->formManualLocation ? 'required|numeric|between:-90,90' : 'nullable|numeric|between:-90,90',
+            'formLongitude' => $this->formManualLocation ? 'required|numeric|between:-180,180' : 'nullable|numeric|between:-180,180',
         ]);
 
         $data = [
@@ -191,12 +206,44 @@ class ServiceUserManagerComponent extends Component
             $su = ServiceUser::findOrFail($this->editingServiceUserId);
             $su->update($data);
         } else {
-            ServiceUser::create($data);
+            $su = ServiceUser::create($data);
         }
+
+        $this->applyLocation($su);
 
         $this->resetForm();
         $this->dispatch('close-drawer', 'service-user-form');
         $this->dispatch('toast', message: 'Service user saved.', type: 'success');
+    }
+
+    /**
+     * Batch 35: sets this service user's geofence location either to the
+     * manager's exact manual pin, or — the default — auto-geocoded from
+     * the address whenever ServiceUser::needsGeocoding() says it's missing
+     * or stale. A failed geocode (bad address, network hiccup) is silent
+     * by design: the geofence simply isn't enforced for this person until
+     * an address/pin resolves, exactly as if this feature didn't exist.
+     */
+    protected function applyLocation(ServiceUser $su): void
+    {
+        if ($this->formManualLocation && $this->formLatitude !== null && $this->formLongitude !== null) {
+            $su->forceFill([
+                'latitude' => $this->formLatitude,
+                'longitude' => $this->formLongitude,
+                'location_source' => 'manual',
+                'geocoded_address' => null,
+            ])->save();
+
+            return;
+        }
+
+        if ($su->location_source === 'manual') {
+            $su->forceFill(['location_source' => null])->save();
+        }
+
+        if ($su->needsGeocoding()) {
+            $su->geocodeAddress();
+        }
     }
 
     public function toggleActive(string $serviceUserId): void

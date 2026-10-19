@@ -115,6 +115,25 @@
             </div>
 
             <x-form.textarea name="formAddress" label="{{ __('Address') }}" rows="2" wire:model="formAddress" />
+
+            {{-- Batch 35: geofenced check-in restriction — a carer must be
+                 within the agency's configured radius of this location to
+                 check in. Auto-located from the address above by default. --}}
+            <x-form.checkbox name="formManualLocation"
+                label="{{ __('Pin exact location manually (instead of locating it from the address above)') }}"
+                wire:model.live="formManualLocation" />
+
+            @if ($formManualLocation)
+                <div class="grid grid-cols-2 gap-3">
+                    <x-form.input type="number" step="0.0000001" name="formLatitude" label="{{ __('Latitude') }}" wire:model="formLatitude" />
+                    <x-form.input type="number" step="0.0000001" name="formLongitude" label="{{ __('Longitude') }}" wire:model="formLongitude" />
+                </div>
+            @else
+                <p class="text-xs text-gray-400 -mt-2">
+                    {{ __('Location for check-in geofencing is located automatically from the address above when this is saved.') }}
+                </p>
+            @endif
+
             <x-form.input name="formNhsNumber" label="{{ __('NHS number (optional)') }}" wire:model="formNhsNumber" />
 
             <div class="grid grid-cols-2 gap-3">

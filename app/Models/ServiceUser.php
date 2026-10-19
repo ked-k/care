@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Services\GeocodingService;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -17,6 +18,9 @@ class ServiceUser extends Model
 
     protected $fillable = [
         'agency_id', 'name', 'dob', 'gender', 'address', 'nhs_number',
+        // Batch 35: geofenced check-in — see the migration's doc comment
+        // and GeocodingService.
+        'latitude', 'longitude', 'location_source', 'geocoded_address',
         'next_of_kin_name', 'next_of_kin_contact', 'metadata', 'consent_status',
         // Batch 15: key care information, kept on the profile itself so it's
         // visible without needing a care plan to exist first — see the
@@ -42,6 +46,8 @@ class ServiceUser extends Model
         'billing_rate' => 'decimal:2',
         'billing_package_amount' => 'decimal:2',
         'local_authority_share_amount' => 'decimal:2',
+        'latitude' => 'float',
+        'longitude' => 'float',
     ];
 
     /**
@@ -203,5 +209,88 @@ class ServiceUser extends Model
             ->whereNull('read_at')
             ->whereDoesntHave('sender.roles', fn ($q) => $q->where('name', 'Family'))
             ->count();
+    }
+
+    /**
+     * Batch 35: whether this service user has a usable location for the
+     * geofenced check-in restriction — either geocoded from the address or
+     * pinned manually.
+     */
+    public function hasLocation(): bool
+    {
+        return $this->latitude !== null && $this->longitude !== null;
+    }
+
+    /**
+     * True when the address has changed since the last successful geocode,
+     * or there's no location at all yet. Never true for a manually-pinned
+     * location — a manager's exact pin isn't something a later address
+     * edit should silently overwrite.
+     */
+    public function needsGeocoding(): bool
+    {
+        if (! $this->address || $this->location_source === 'manual') {
+            return false;
+        }
+
+        return ! $this->hasLocation() || $this->geocoded_address !== $this->address;
+    }
+
+    /**
+     * Geocodes the current address via GeocodingService and saves the
+     * result. Silently does nothing (returns false) if there's no address
+     * or the lookup fails — see that class's doc comment for why a failed
+     * geocode is never an error the caller needs to handle.
+     */
+    public function geocodeAddress(): bool
+    {
+        if (! $this->address) {
+            return false;
+        }
+
+        $result = app(GeocodingService::class)->geocode($this->address);
+
+        if (! $result) {
+            return false;
+        }
+
+        $this->forceFill([
+            'latitude' => $result['latitude'],
+            'longitude' => $result['longitude'],
+            'location_source' => 'geocoded',
+            'geocoded_address' => $this->address,
+        ])->save();
+
+        return true;
+    }
+
+    /**
+     * Haversine distance in meters between this service user's stored
+     * location and a carer's check-in coordinates — the core calculation
+     * behind the geofenced check-in restriction (see
+     * App\Livewire\Rota\ShiftVisitComponent::checkIn()). Null if this
+     * service user has no location on file yet, so the caller can tell
+     * "too far away" apart from "nothing to check against".
+     */
+    public function distanceInMetersTo(float $lat, float $lng): ?float
+    {
+        if (! $this->hasLocation()) {
+            return null;
+        }
+
+        $earthRadiusMeters = 6371000;
+
+        $latFrom = deg2rad((float) $this->latitude);
+        $lngFrom = deg2rad((float) $this->longitude);
+        $latTo = deg2rad($lat);
+        $lngTo = deg2rad($lng);
+
+        $latDelta = $latTo - $latFrom;
+        $lngDelta = $lngTo - $lngFrom;
+
+        $a = sin($latDelta / 2) ** 2 + cos($latFrom) * cos($latTo) * sin($lngDelta / 2) ** 2;
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadiusMeters * $c;
     }
 }

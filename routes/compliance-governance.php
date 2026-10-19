@@ -7,6 +7,7 @@ use App\Livewire\DataProtection\BreachReportIndexComponent;
 use App\Livewire\DataProtection\SarIndexComponent;
 use App\Livewire\Policy\PolicyIndexComponent;
 use App\Livewire\Training\TrainingIndexComponent;
+use App\Livewire\Training\TrainingMatrixComponent;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -21,6 +22,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/policies', PolicyIndexComponent::class)->name('policies.index');
 Route::get('/training', TrainingIndexComponent::class)->name('training.index');
+Route::get('/training/matrix', TrainingMatrixComponent::class)->name('training.matrix'); // Batch 36
 Route::get('/compliance', ComplianceDashboardComponent::class)->name('compliance.dashboard');
 Route::get('/compliance/missing-documentation', MissingDocumentationComponent::class)->name('compliance.missing-documentation'); // Batch 19
 Route::get('/audits', AuditIndexComponent::class)->name('audits.index');
