@@ -180,28 +180,42 @@
                         </div>
                     @endif
 
+                    {{-- Batch 38: $plan->tasks is now scoped to routineOnly()
+                         (one row per defined task, not every auto-generated
+                         future occurrence — see Task::scopeRoutineOnly()).
+                         A recurring task's own status/due_at reflect only
+                         its very first occurrence, which is stale and
+                         misleading once the chain has moved on (it would
+                         show "Completed" forever even once today's visit
+                         hasn't happened yet) — so a recurring row shows its
+                         pattern instead of a badge; a one-off task's status
+                         is still accurate and keeps the badge. --}}
                     @if (count($plan->tasks))
                         <div class="mt-3 border-t border-gray-50 pt-3">
                             <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{{ __('Care tasks') }}</p>
                             <ul class="divide-y divide-gray-50">
                                 @foreach ($plan->tasks as $task)
-                                    @php
-                                        $status = $task->status();
-                                        $color = match ($status) {
-                                            'completed' => 'success',
-                                            'overdue', 'refused' => 'danger',
-                                            'skipped' => 'gray',
-                                            default => 'primary',
-                                        };
-                                    @endphp
                                     <li class="flex items-center justify-between gap-3 py-2 text-sm">
                                         <div>
                                             <div class="font-medium text-gray-700">{{ $task->title }}</div>
-                                            @if ($task->due_at)
+                                            @if ($task->recurring_pattern)
+                                                <div class="text-xs text-gray-400">{{ $task->recurringPatternLabel() }}{{ $task->due_at ? ', '.$task->due_at->format('H:i') : '' }}</div>
+                                            @elseif ($task->due_at)
                                                 <div class="text-xs text-gray-400">{{ $task->due_at->format('D d M, H:i') }}</div>
                                             @endif
                                         </div>
-                                        <x-badge color="{{ $color }}">{{ ucfirst($status) }}</x-badge>
+                                        @unless ($task->recurring_pattern)
+                                            @php
+                                                $status = $task->status();
+                                                $color = match ($status) {
+                                                    'completed' => 'success',
+                                                    'overdue', 'refused' => 'danger',
+                                                    'skipped' => 'gray',
+                                                    default => 'primary',
+                                                };
+                                            @endphp
+                                            <x-badge color="{{ $color }}">{{ ucfirst($status) }}</x-badge>
+                                        @endunless
                                     </li>
                                 @endforeach
                             </ul>
@@ -439,12 +453,20 @@
                             @if ($plan->summary)
                                 <p class="mt-1 text-sm text-gray-500">{{ $plan->summary }}</p>
                             @endif
+                            {{-- Batch 38: routine, not every occurrence — see the
+                                 identical note on the Care Plan tab above. --}}
                             @if ($plan->tasks->count())
                                 <ul class="mt-2 divide-y divide-gray-50">
                                     @foreach ($plan->tasks as $task)
                                         <li class="flex items-center justify-between gap-3 py-1.5 text-sm">
                                             <span class="text-gray-600">{{ $task->title }}</span>
-                                            <span class="text-xs text-gray-400">{{ $task->due_at?->format('d M, H:i') ?? '—' }}</span>
+                                            <span class="text-xs text-gray-400">
+                                                @if ($task->recurring_pattern)
+                                                    {{ $task->recurringPatternLabel() }}{{ $task->due_at ? ', '.$task->due_at->format('H:i') : '' }}
+                                                @else
+                                                    {{ $task->due_at?->format('d M, H:i') ?? '—' }}
+                                                @endif
+                                            </span>
                                         </li>
                                     @endforeach
                                 </ul>

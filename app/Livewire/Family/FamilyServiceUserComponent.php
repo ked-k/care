@@ -69,9 +69,16 @@ class FamilyServiceUserComponent extends Component
     {
         $serviceUser = ServiceUser::with('agency')->findOrFail($this->serviceUserId);
 
+        // Batch 38: routineOnly() — one row per DEFINED task (a one-off, or
+        // the original of a recurring chain), not every occurrence
+        // tasks:generate-occurrences has since created going forward. This
+        // is what was behind the "long scroll" — a 24-hour routine's 6-8
+        // tasks/day, times 30+ days of pre-generated occurrences, all
+        // rendered flat with no grouping. See Task::scopeRoutineOnly() and
+        // CHANGES38.md.
         $carePlans = $serviceUser->carePlans()
             ->where('is_active', true)
-            ->with(['tasks' => fn ($q) => $q->orderBy('due_at')->with('latestLog')])
+            ->with(['tasks' => fn ($q) => $q->routineOnly()->orderBy('due_at')->with('latestLog')])
             ->orderByDesc('review_date')
             ->get();
 

@@ -219,7 +219,25 @@ class CarePlanShowComponent extends Component
     public function render()
     {
         $plan = $this->carePlan();
-        $tasks = $plan->tasks()->with(['assignee', 'latestLog'])->orderBy('due_at')->get();
+
+        // Batch 38: the "List" tab used to show EVERY task row that exists
+        // for this plan — fine for a handful of one-off tasks, but once
+        // tasks:generate-occurrences (Batch 30) has been pre-generating 30
+        // days of a recurring routine daily for weeks, that became
+        // hundreds of rows (confirmed from a real exported care plan —
+        // see CHANGES38.md). Bounded here to overdue + the next 14 days,
+        // which is what a manager actually needs to action day-to-day;
+        // the Week Chart tab (Batch 31) is still the place to browse any
+        // other week, and nothing here changes what a recurring task's
+        // OWN edit drawer can do (still edits the whole chain's pattern).
+        $listHorizon = now()->addDays(14);
+        $tasks = $plan->tasks()
+            ->with(['assignee', 'latestLog'])
+            ->where(function ($q) use ($listHorizon) {
+                $q->whereNull('due_at')->orWhere('due_at', '<=', $listHorizon);
+            })
+            ->orderBy('due_at')
+            ->get();
 
         // Batch 33: this list has always shown every task on the plan to
         // anyone who can open the page at all (canAccessServiceUser() in

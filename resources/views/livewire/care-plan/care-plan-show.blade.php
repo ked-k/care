@@ -33,7 +33,14 @@
     <x-tabs :tabs="['list' => __('List'), 'chart' => __('Week chart')]">
         <div x-show="tab === 'list'">
             <x-card no-padding hover>
-                <x-slot:header>{{ __('Tasks') }}</x-slot:header>
+                <x-slot:header>
+                    <div class="flex items-center justify-between">
+                        <span>{{ __('Tasks') }}</span>
+                        {{-- Batch 38: this tab is bounded to overdue + the next
+                             14 days now — see CarePlanShowComponent::render(). --}}
+                        <span class="text-xs font-normal text-gray-400">{{ __('Overdue and next 14 days — use Week chart to browse further ahead') }}</span>
+                    </div>
+                </x-slot:header>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                 <thead>

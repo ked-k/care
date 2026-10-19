@@ -51,9 +51,15 @@ class ServiceUserProfileComponent extends Component
             ->with(['careCoordinator', 'agency'])
             ->findOrFail($this->serviceUserId);
 
+        // Batch 38: routineOnly() — one row per DEFINED task, not every
+        // occurrence tasks:generate-occurrences has created going forward.
+        // Before this, a 24-hour routine with 6-8 tasks a day could put
+        // hundreds of near-identical rows on this page (and, worse, in the
+        // printed/PDF version) once 30+ days of occurrences existed — see
+        // Task::scopeRoutineOnly()'s doc comment and CHANGES38.md.
         $carePlans = $serviceUser->carePlans()
             ->where('is_active', true)
-            ->with(['tasks' => fn ($q) => $q->orderBy('due_at')])
+            ->with(['tasks' => fn ($q) => $q->routineOnly()->orderBy('due_at')])
             ->orderByDesc('review_date')
             ->get();
 

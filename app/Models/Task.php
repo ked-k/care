@@ -66,6 +66,24 @@ class Task extends Model
     }
 
     /**
+     * Batch 38: one row per DEFINED task — a one-off task, or the original
+     * (parent_task_id null) task of a recurring chain — rather than every
+     * auto-generated occurrence Batch 30's tasks:generate-occurrences has
+     * since created going forward. A care plan read as a document (the
+     * Full Profile report, the family portal) wants "Morning personal
+     * care and toileting — Daily, 09:00" once, not that same title
+     * repeated as a separate row for every one of the next 30+ days.
+     * Operational views that genuinely need individual occurrences
+     * (TaskListComponent's day view, the care plan's own task list) don't
+     * use this scope — see App\Livewire\CarePlan\CarePlanShowComponent
+     * for how that one is bounded instead.
+     */
+    public function scopeRoutineOnly($query)
+    {
+        return $query->whereNull('parent_task_id');
+    }
+
+    /**
      * Batch 25: human-readable form of recurring_pattern for display — the
      * raw 'every_n_days:3' string previously leaked straight into the UI
      * (ucfirst/str_replace on it produced "Every n days:3").

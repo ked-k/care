@@ -142,15 +142,32 @@
                             @endif
                         </div>
 
+                        {{-- Batch 38: the care ROUTINE — one line per defined
+                             task, not every auto-generated future occurrence
+                             (see Task::scopeRoutineOnly()). A recurring task
+                             shows its pattern ("Daily, 09:00") since its own
+                             due_at is just when the routine started, not a
+                             meaningful "next" date; a one-off task shows its
+                             actual due date. For the day-by-day schedule,
+                             the care plan's own Week Chart tab is the right
+                             place to look — linked below. --}}
                         @if ($plan->tasks->count())
                             <ul class="mt-3 divide-y divide-gray-50 dark:divide-gray-800">
                                 @foreach ($plan->tasks as $task)
                                     <li class="flex items-center justify-between gap-3 py-1.5 text-sm">
                                         <span class="text-gray-600 dark:text-gray-300">{{ $task->title }}</span>
-                                        <span class="text-xs text-gray-400">{{ $task->due_at?->format('d M, H:i') ?? ($task->recurring_pattern ? __('Recurring') : '—') }}</span>
+                                        <span class="text-xs text-gray-400">
+                                            @if ($task->recurring_pattern)
+                                                {{ $task->recurringPatternLabel() }}{{ $task->due_at ? ', '.$task->due_at->format('H:i') : '' }}
+                                            @else
+                                                {{ $task->due_at?->format('d M, H:i') ?? '—' }}
+                                            @endif
+                                        </span>
                                     </li>
                                 @endforeach
                             </ul>
+                            <a href="{{ route('care-plans.show', $plan->id) }}" wire:navigate
+                                class="mt-3 inline-block text-xs font-medium text-primary-600 hover:underline print:hidden">{{ __('View day-by-day schedule') }} →</a>
                         @endif
                     </div>
                 @empty
