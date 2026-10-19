@@ -57,9 +57,9 @@
             {{ __('Sign in') }} <i class="ik ik-arrow-right"></i>
         </button>
 
-        <p class="text-center text-sm text-gray-500">
+        {{-- <p class="text-center text-sm text-gray-500">
             {{ __("Don't have an account?") }}
             <a href="{{ url('register') }}" class="font-semibold text-primary-600 hover:underline">{{ __('Create one') }}</a>
-        </p>
+        </p> --}}
     </form>
 </x-auth-split>
