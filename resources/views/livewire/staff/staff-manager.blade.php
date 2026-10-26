@@ -22,6 +22,8 @@
                         <th class="px-5 py-3 font-medium">{{ __('Employee No.') }}</th>
                         <th class="px-5 py-3 font-medium">{{ __('Hourly Rate') }}</th>
                         <th class="px-5 py-3 font-medium">{{ __('Status') }}</th>
+                        {{-- Batch 39 --}}
+                        <th class="px-5 py-3 font-medium">{{ __('Compliance') }}</th>
                         <th class="px-5 py-3 font-medium text-right">{{ __('Action') }}</th>
                     </tr>
                 </thead>
@@ -29,8 +31,14 @@
                     @forelse ($staff as $user)
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/40" wire:key="user-{{ $user->id }}">
                             <td class="px-5 py-3">
-                                <div class="font-semibold text-gray-700 dark:text-gray-200">{{ $user->name }}</div>
-                                <div class="text-xs text-gray-400">{{ $user->email }}</div>
+                                <div class="flex items-center gap-3">
+                                    <x-avatar :name="$user->full_name" :src="$user->avatarUrl()" size="h-8 w-8" />
+                                    <div>
+                                        <a href="{{ route('staff.profile', $user->id) }}"
+                                            class="font-semibold text-gray-700 hover:text-primary-600 hover:underline dark:text-gray-200">{{ $user->name }}</a>
+                                        <div class="text-xs text-gray-400">{{ $user->email }}</div>
+                                    </div>
+                                </div>
                             </td>
                             <td class="px-5 py-3">
                                 <x-badge
@@ -51,7 +59,20 @@
                                     {{ $user->is_active ? __('Active') : __('Inactive') }}
                                 </x-badge>
                             </td>
+                            <td class="px-5 py-3">
+                                @php($compliance = $complianceByUserId->get($user->id))
+                                <x-badge color="{{ $compliance['hasGap'] ? 'warning' : 'success' }}">
+                                    {{ $compliance['hasGap'] ? __('Needs attention') : __('Compliant') }}
+                                </x-badge>
+                                @if ($compliance['pendingReviewCount'] > 0)
+                                    <div class="mt-1 text-xs text-blue-500">
+                                        {{ trans_choice(':count pending review|:count pending review', $compliance['pendingReviewCount'], ['count' => $compliance['pendingReviewCount']]) }}
+                                    </div>
+                                @endif
+                            </td>
                             <td class="px-5 py-3 text-right space-x-2 whitespace-nowrap">
+                                <a href="{{ route('staff.profile', $user->id) }}"
+                                    class="text-primary-600 hover:underline text-sm font-medium">{{ __('Profile') }}</a>
                                 <button type="button" wire:click="openEditForm({{ $user->id }})"
                                     @click="$dispatch('open-drawer', 'staff-form')"
                                     class="text-primary-600 hover:underline text-sm font-medium">{{ __('Edit') }}</button>
@@ -64,7 +85,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-5 py-10">
+                            <td colspan="7" class="px-5 py-10">
                                 <x-empty-state title="{{ __('No staff yet') }}"
                                     description="{{ __('Add a manager or carer to get started.') }}"
                                     icon="ik ik-user" />
@@ -102,6 +123,10 @@
                     required />
                 <x-form.input name="formJobTitle" label="{{ __('Job title') }}" wire:model="formJobTitle" />
             </div>
+
+            {{-- Batch 39 --}}
+            <x-form.input type="date" name="formEmploymentStartDate" label="{{ __('Employment start date (optional)') }}"
+                wire:model="formEmploymentStartDate" />
 
             <div class="grid grid-cols-2 gap-3">
                 <x-form.select name="formEmploymentType" label="{{ __('Employment type') }}"

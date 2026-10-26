@@ -48,7 +48,18 @@ Route::group(['middleware' => ['auth', 'not-family']], function () {
 
     // dashboard route
     Route::get('/dashboard', AnalyticsDashboardComponent::class)->name('dashboard');
-    Route::get('/profile', function () { return view('pages.profile'); });
+    // Batch 39: found while adding a "My documents" link to the real
+    // profile page — this leftover starter-template route was registered
+    // ahead of operational.php's named `/profile` -> ProfileComponent
+    // route, and since Laravel matches GET /profile in registration
+    // order, this dummy closure (static "John Doe" demo markup, never
+    // reading Auth::user()) has been winning every time, making
+    // ProfileComponent — the actual "My Profile" page with the real
+    // name/email/phone/address form — unreachable at its own URL. Same
+    // kind of dead leftover Batch 4 un-wired elsewhere; left as a comment
+    // rather than deleted for the same reason (this session can't delete
+    // files on your machine). See CHANGES39.md.
+    // Route::get('/profile', function () { return view('pages.profile'); });
 
     //only those have manage_user permission will get access
     Route::group(['middleware' => 'can:manage_user'], function () {

@@ -28,7 +28,25 @@
         <x-card hover>
             <div class="flex items-start justify-between gap-4">
                 <div class="flex items-center gap-4">
-                    <x-avatar :name="$serviceUser->name" size="h-14 w-14" class="text-base" />
+                    <div>
+                        <x-avatar :name="$serviceUser->name" :src="$serviceUser->photoUrl()" size="h-14 w-14" class="text-base" />
+                        {{-- Batch 39 --}}
+                        @if ($canManage)
+                            <div class="mt-1 flex items-center gap-2 text-xs print:hidden">
+                                <label class="cursor-pointer font-medium text-primary-600 hover:underline">
+                                    {{ __('Upload') }}
+                                    <input type="file" wire:model="photoUpload" class="hidden" accept="image/*">
+                                </label>
+                                @if ($serviceUser->photo_path)
+                                    <button type="button" wire:click="removePhoto" wire:confirm="{{ __('Remove this photo?') }}"
+                                        class="font-medium text-accent-500 hover:underline">{{ __('Remove') }}</button>
+                                @endif
+                            </div>
+                            @error('photoUpload')
+                                <div class="text-xs text-red-500">{{ $message }}</div>
+                            @enderror
+                        @endif
+                    </div>
                     <div>
                         <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ $serviceUser->name }}</h2>
                         <p class="text-sm text-gray-400">
@@ -169,6 +187,38 @@
                             <a href="{{ route('care-plans.show', $plan->id) }}" wire:navigate
                                 class="mt-3 inline-block text-xs font-medium text-primary-600 hover:underline print:hidden">{{ __('View day-by-day schedule') }} →</a>
                         @endif
+
+                        {{-- Batch 39: a signed PDF a manager attaches to
+                             this specific plan — separate from the
+                             Print/Download PDF button above, which always
+                             regenerates a fresh copy of the live record. --}}
+                        <div class="mt-3 flex items-center gap-2 text-xs">
+                            @if ($plan->signedDocument)
+                                <a href="{{ $plan->signedDocument->url() }}" target="_blank"
+                                    class="font-medium text-primary-600 hover:underline">
+                                    <i class="ik ik-file-text mr-1"></i>{{ __('Signed care plan on file') }}
+                                </a>
+                                @if ($canManage)
+                                    <button type="button" wire:click="removeSignedDocument('{{ $plan->id }}')"
+                                        wire:confirm="{{ __('Remove the signed document?') }}"
+                                        class="text-accent-500 hover:underline print:hidden">{{ __('Remove') }}</button>
+                                @endif
+                            @elseif ($canManage)
+                                <label class="cursor-pointer font-medium text-primary-600 hover:underline print:hidden">
+                                    {{ __('Choose file…') }}
+                                    <input type="file" wire:model="signedDocumentUpload" class="hidden" accept=".pdf,.jpg,.jpeg,.png">
+                                </label>
+                                <span wire:loading wire:target="signedDocumentUpload" class="text-gray-400">{{ __('Uploading…') }}</span>
+                                <button type="button" wire:click="uploadSignedDocument('{{ $plan->id }}')"
+                                    wire:loading.attr="disabled" wire:target="signedDocumentUpload"
+                                    class="font-medium text-primary-600 hover:underline disabled:opacity-40 print:hidden">
+                                    {{ __('Save as signed care plan') }}
+                                </button>
+                            @endif
+                        </div>
+                        @error('signedDocumentUpload')
+                            <div class="text-xs text-red-500">{{ $message }}</div>
+                        @enderror
                     </div>
                 @empty
                     <div class="px-5 py-8">

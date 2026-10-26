@@ -3,7 +3,10 @@ namespace App\Livewire\Staff;
 
 use App\Mail\AccountAccessMail;
 use App\Models\EmployeePayProfile;
+use App\Models\Notification;
+use App\Models\StaffDocument;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -43,6 +46,9 @@ class StaffManagerComponent extends Component
     public string $formBankName                    = '';
     public string $formBankAccountNo               = '';
     public string $formMobileMoneyNumber           = '';
+    // Batch 39: one of the client's requested "personal details" fields —
+    // see App\Models\StaffDocument's class doc comment for the rest.
+    public string $formEmploymentStartDate         = '';
 
     public array $roleOptions    = [];
     public array $managerOptions = [];
@@ -57,6 +63,77 @@ class StaffManagerComponent extends Component
         $this->roleOptions    = Role::pluck('name', 'name')->toArray();
         $this->managerOptions = User::where('agency_id', Auth::user()->agency_id)
             ->orderBy('name')->pluck('name', 'id')->toArray();
+
+        // Batch 39: same "compute it where it's needed" pattern as
+        // TrainingMatrixComponent::sendRenewalReminders() — this page is the
+        // closest thing to a cross-staff view this batch ships (the full
+        // dashboard is deferred), so it's where the dedup'd reminder sweep
+        // runs rather than on a schedule (no cron on WAMP).
+        $this->sendDocumentExpiryReminders();
+    }
+
+    /**
+     * Notifies a staff member (and, for any category, their agency's
+     * managers too — unlike training there's no per-category "mandatory"
+     * flag yet, so every category counts) the first time one of their
+     * documents is found expired or expiring within 30 days, then
+     * re-checks no sooner than 7 days later. Uploading a fresh document in
+     * the same category doesn't reset this clock automatically — only the
+     * specific row that's expiring gets dedup'd, same granularity
+     * TrainingProgress uses.
+     */
+    protected function sendDocumentExpiryReminders(): void
+    {
+        $agencyId = Auth::user()->agency_id;
+
+        $candidates = StaffDocument::query()
+            ->where('agency_id', $agencyId)
+            ->where('status', StaffDocument::STATUS_APPROVED)
+            ->whereNotNull('expires_at')
+            ->where(function ($q) {
+                $q->whereNull('last_reminded_at')
+                    ->orWhere('last_reminded_at', '<=', now()->subDays(7));
+            })
+            ->with('user')
+            ->get()
+            ->filter(fn (StaffDocument $d) => $d->isExpired() || $d->isExpiringSoon());
+
+        if ($candidates->isEmpty()) {
+            return;
+        }
+
+        $managerIds = User::where('agency_id', $agencyId)
+            ->whereHas('roles', fn ($q) => $q->whereIn('name', ['Manager', 'Admin', 'Super Admin']))
+            ->pluck('id');
+
+        foreach ($candidates as $document) {
+            $staffMember = $document->user;
+            if (! $staffMember) {
+                continue;
+            }
+
+            $verb = $document->isExpired() ? __('has expired') : __('is expiring soon');
+            $message = sprintf(
+                '%s: "%s" (%s) %s (%s)',
+                $staffMember->full_name, $document->title, StaffDocument::categoryLabel($document->category),
+                $verb, $document->expires_at->format('d M Y'),
+            );
+
+            $recipients = collect([$staffMember->id])->concat($managerIds)->unique()->filter();
+
+            foreach ($recipients as $recipientId) {
+                NotificationService::send(
+                    $recipientId,
+                    'staff_document_renewal_due',
+                    __('Staff document renewal due'),
+                    $message,
+                    $document->isExpired() ? Notification::PRIORITY_HIGH : Notification::PRIORITY_NORMAL,
+                    ['staff_document_id' => $document->id],
+                );
+            }
+
+            $document->update(['last_reminded_at' => now()]);
+        }
     }
 
     public function updatingSearch(): void
@@ -84,6 +161,7 @@ class StaffManagerComponent extends Component
 
         $this->formEmployeeNo                   = $profile?->employee_no ?? '';
         $this->formJobTitle                     = $profile?->job_title ?? '';
+        $this->formEmploymentStartDate          = optional($profile?->employment_start_date)->format('Y-m-d') ?? '';
         $this->formEmploymentType               = $profile?->employment_type ?? 'full_time';
         $this->formManagerId                    = $profile?->manager_id;
         $this->formHourlyRate                   = (float) ($profile?->hourly_rate ?? 0);
@@ -102,7 +180,7 @@ class StaffManagerComponent extends Component
     {
         $this->reset([
             'editingUserId', 'formName', 'formEmail', 'formPassword',
-            'formEmployeeNo', 'formJobTitle', 'formManagerId', 'formBankName',
+            'formEmployeeNo', 'formJobTitle', 'formEmploymentStartDate', 'formManagerId', 'formBankName',
             'formBankAccountNo', 'formMobileMoneyNumber',
         ]);
         $this->formRole                         = 'Carer';
@@ -127,6 +205,7 @@ class StaffManagerComponent extends Component
             'formOvertimeMultiplier'           => 'required|numeric|min:1',
             'formWeeklyOvertimeThresholdHours' => 'required|numeric|min:1',
             'formLiveInDailyRate'              => 'nullable|numeric|min:0',
+            'formEmploymentStartDate'          => 'nullable|date',
         ]);
 
         $agencyId = Auth::user()->agency_id;
@@ -167,6 +246,7 @@ class StaffManagerComponent extends Component
                 'manager_id'                      => $this->formManagerId ?: null,
                 'employee_no'                     => $this->formEmployeeNo,
                 'job_title'                       => $this->formJobTitle ?: null,
+                'employment_start_date'           => $this->formEmploymentStartDate ?: null,
                 'employment_type'                 => $this->formEmploymentType,
                 'hourly_rate'                     => $this->formHourlyRate,
                 'overtime_multiplier'             => $this->formOvertimeMultiplier,
@@ -263,6 +343,12 @@ class StaffManagerComponent extends Component
             ->orderBy('name')
             ->paginate(12);
 
-        return view('livewire.staff.staff-manager', compact('staff'));
+        // Batch 39: a one-word compliance badge per row, built from the
+        // same StaffDocument::complianceSummaryFor() the full checklist on
+        // StaffProfileComponent uses — see that method's doc comment.
+        $complianceByUserId = collect($staff->items())
+            ->mapWithKeys(fn (User $user) => [$user->id => StaffDocument::complianceSummaryFor($user->id)]);
+
+        return view('livewire.staff.staff-manager', compact('staff', 'complianceByUserId'));
     }
 }

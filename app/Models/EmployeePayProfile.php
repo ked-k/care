@@ -14,7 +14,10 @@ class EmployeePayProfile extends Model
     use HasUuids, SoftDeletes;
 
     protected $fillable = [
-        'agency_id', 'user_id', 'manager_id', 'employee_no', 'job_title', 'employment_type',
+        'agency_id', 'user_id', 'manager_id', 'employee_no', 'job_title',
+        // Batch 39: one of the client's requested "personal details" fields.
+        'employment_start_date',
+        'employment_type',
         'hourly_rate', 'overtime_multiplier', 'weekly_overtime_threshold_hours',
         // Batch 18: flat rate paid per live-in day — see RotaPeriod::generateTimesheets().
         'live_in_daily_rate',
@@ -23,6 +26,7 @@ class EmployeePayProfile extends Model
     ];
 
     protected $casts = [
+        'employment_start_date' => 'date',
         'hourly_rate' => 'decimal:2',
         'overtime_multiplier' => 'decimal:2',
         'weekly_overtime_threshold_hours' => 'decimal:2',

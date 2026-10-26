@@ -39,7 +39,8 @@
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/40" wire:key="su-{{ $su->id }}">
                             <td class="px-5 py-3">
                                 <div class="flex items-center gap-3">
-                                    <x-avatar :name="$su->name" size="h-9 w-9" />
+                                    {{-- Batch 39: photo if one's been uploaded, initials otherwise. --}}
+                                    <x-avatar :name="$su->name" :src="$su->photoUrl()" size="h-9 w-9" />
                                     <div class="min-w-0">
                                         <div class="flex items-center gap-1.5 font-semibold text-gray-700 dark:text-gray-200">
                                             <span class="truncate">{{ $su->name }}</span>

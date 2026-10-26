@@ -2,9 +2,12 @@
 
 namespace App\Livewire\ServiceUser;
 
+use App\Models\CarePlan;
+use App\Models\MediaFile;
 use App\Models\ServiceUser;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 /**
  * Batch 37: the "full profile" page the Service Users list didn't have —
@@ -30,7 +33,21 @@ use Livewire\Component;
  */
 class ServiceUserProfileComponent extends Component
 {
+    use WithFileUploads;
+
     public string $serviceUserId;
+
+    // Batch 39: a profile photo and a signed care plan PDF — see the
+    // migrations' doc comments. Gated separately from plain viewing
+    // (canAccessServiceUser(), below) because uploading an official
+    // document/photo is an office action, not something every carer who
+    // happens to have a shift with this person should be able to do —
+    // same gate StaffManagerComponent already uses for staff management.
+    public bool $canManage = false;
+
+    public $photoUpload = null;
+
+    public $signedDocumentUpload = null;
 
     public function mount(string $serviceUserId): void
     {
@@ -43,6 +60,75 @@ class ServiceUserProfileComponent extends Component
             403,
             __("You don't have access to this person's record.")
         );
+
+        $this->canManage = Auth::user()->can('manage_user') || Auth::user()->hasAnyRole(['Admin', 'Super Admin', 'Manager']);
+    }
+
+    public function uploadPhoto(): void
+    {
+        abort_unless($this->canManage, 403);
+
+        $this->validate(['photoUpload' => 'required|image|max:2048']);
+
+        $serviceUser = ServiceUser::withTrashed()->findOrFail($this->serviceUserId);
+        $serviceUser->update(['photo_path' => $this->photoUpload->store('service-user-photos', 'public')]);
+
+        $this->reset(['photoUpload']);
+        $this->dispatch('toast', message: 'Photo updated.', type: 'success');
+    }
+
+    public function removePhoto(): void
+    {
+        abort_unless($this->canManage, 403);
+
+        ServiceUser::withTrashed()->findOrFail($this->serviceUserId)->update(['photo_path' => null]);
+        $this->dispatch('toast', message: 'Photo removed.', type: 'success');
+    }
+
+    /**
+     * A signed (scanned/wet-signature) copy of this care plan — separate
+     * from the Batch 37 "Download PDF" button, which always regenerates a
+     * fresh copy of the live record rather than storing an actual signed
+     * document. Two-step MediaFile attachment, same convention as
+     * training certificates.
+     */
+    public function uploadSignedDocument(string $carePlanId): void
+    {
+        abort_unless($this->canManage, 403);
+
+        $this->validate(['signedDocumentUpload' => 'required|file|mimes:pdf,jpg,jpeg,png|max:8192']);
+
+        $plan = CarePlan::where('service_user_id', $this->serviceUserId)->findOrFail($carePlanId);
+
+        $path = $this->signedDocumentUpload->store('signed-care-plans', 'public');
+
+        $media = MediaFile::create([
+            'file_name' => $this->signedDocumentUpload->getClientOriginalName(),
+            'file_path' => $path,
+            'file_type' => $this->signedDocumentUpload->getMimeType(),
+            'file_size' => $this->signedDocumentUpload->getSize(),
+            'uploaded_by' => Auth::id(),
+        ]);
+
+        $plan->update(['signed_document_media_id' => $media->id]);
+
+        MediaFile::whereKey($media->id)->update([
+            'related_type' => CarePlan::class,
+            'related_id' => $plan->id,
+        ]);
+
+        $this->reset(['signedDocumentUpload']);
+        $this->dispatch('toast', message: 'Signed care plan uploaded.', type: 'success');
+    }
+
+    public function removeSignedDocument(string $carePlanId): void
+    {
+        abort_unless($this->canManage, 403);
+
+        CarePlan::where('service_user_id', $this->serviceUserId)->findOrFail($carePlanId)
+            ->update(['signed_document_media_id' => null]);
+
+        $this->dispatch('toast', message: 'Signed document removed.', type: 'success');
     }
 
     public function render()
@@ -59,7 +145,7 @@ class ServiceUserProfileComponent extends Component
         // Task::scopeRoutineOnly()'s doc comment and CHANGES38.md.
         $carePlans = $serviceUser->carePlans()
             ->where('is_active', true)
-            ->with(['tasks' => fn ($q) => $q->routineOnly()->orderBy('due_at')])
+            ->with(['tasks' => fn ($q) => $q->routineOnly()->orderBy('due_at'), 'signedDocument'])
             ->orderByDesc('review_date')
             ->get();
 

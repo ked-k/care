@@ -395,9 +395,16 @@
 
             <x-card hover>
                 <div class="flex items-center gap-3">
-                    <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-sm font-semibold text-white">
-                        {{ collect(explode(' ', $serviceUser->name))->map(fn ($p) => mb_substr($p, 0, 1))->take(2)->implode('') }}
-                    </span>
+                    {{-- Batch 39: photo if one's been uploaded (staff-side,
+                         read-only here), initials otherwise. --}}
+                    @if ($serviceUser->photoUrl())
+                        <img src="{{ $serviceUser->photoUrl() }}" alt="{{ $serviceUser->name }}"
+                            class="h-12 w-12 shrink-0 rounded-full object-cover">
+                    @else
+                        <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-sm font-semibold text-white">
+                            {{ collect(explode(' ', $serviceUser->name))->map(fn ($p) => mb_substr($p, 0, 1))->take(2)->implode('') }}
+                        </span>
+                    @endif
                     <div>
                         <div class="font-semibold text-gray-800">{{ $serviceUser->name }}</div>
                         <div class="text-xs text-gray-400">{{ $serviceUser->agency->name ?? config('app.name') }}</div>
@@ -470,6 +477,16 @@
                                         </li>
                                     @endforeach
                                 </ul>
+                            @endif
+
+                            {{-- Batch 39: read-only here — family can view/
+                                 download a signed care plan a manager has
+                                 attached, not upload one themselves. --}}
+                            @if ($plan->signedDocument)
+                                <a href="{{ $plan->signedDocument->url() }}" target="_blank"
+                                    class="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary-600 hover:underline">
+                                    <i class="ik ik-file-text"></i>{{ __('Signed care plan') }}
+                                </a>
                             @endif
                         </div>
                     @endforeach

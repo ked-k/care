@@ -6,11 +6,17 @@
     <div class="lg:col-span-1">
         <x-card>
             <div class="text-center">
-                <img src="{{ asset('img/user.jpg') }}" class="mx-auto h-32 w-32 rounded-full object-cover" alt="">
+                {{-- Batch 39: was a hardcoded asset('img/user.jpg') for every
+                     user — now the real avatar (photo if one's been
+                     uploaded, initials otherwise), same component the
+                     Staff list and Staff Profile page use. --}}
+                <x-avatar :name="$name" :src="auth()->user()->avatarUrl()" size="h-32 w-32" class="mx-auto text-2xl" />
                 <h4 class="mt-4 text-lg font-semibold text-gray-800">{{ $name }}</h4>
                 <p class="text-sm text-gray-400">{{ $email }}</p>
                 <div class="mt-4 flex justify-center gap-6 text-sm">
-                    <a href="#" class="text-gray-600 hover:text-primary-600"><i class="ik ik-user"></i> <span class="font-medium">{{ __('Profile') }}</span></a>
+                    <a href="{{ route('staff.profile', auth()->id()) }}" class="text-gray-600 hover:text-primary-600">
+                        <i class="ik ik-file-text"></i> <span class="font-medium">{{ __('My documents') }}</span>
+                    </a>
                 </div>
             </div>
             <hr class="my-5 border-gray-100">

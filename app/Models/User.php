@@ -26,7 +26,10 @@ class User extends Authenticatable
 
     protected $fillable = [
         'uid', 'name', 'first_name', 'last_name', 'email', 'password',
-        'phone_number', 'agency_id', 'is_active', 'avatar', 'signature',
+        // Batch 39: 'address' is a new column (see the migration's doc
+        // comment — ProfileComponent has read/written it for a while with
+        // no column to back it).
+        'phone_number', 'address', 'agency_id', 'is_active', 'avatar', 'signature',
         'two_factor_auth_enabled', 'created_by', 'updated_by',
     ];
 
@@ -76,6 +79,15 @@ class User extends Authenticatable
     public function payProfile()
     {
         return $this->hasOne(EmployeePayProfile::class, 'user_id');
+    }
+
+    /**
+     * Batch 39 (Staff Profile & Document Management): every document filed
+     * in this staff member's digital personnel file — see StaffDocument.
+     */
+    public function staffDocuments()
+    {
+        return $this->hasMany(StaffDocument::class, 'user_id');
     }
 
     public function safeguardingReportsFiled()
@@ -183,6 +195,18 @@ class User extends Authenticatable
     public function appNotifications()
     {
         return $this->hasMany(Notification::class);
+    }
+
+    /**
+     * Batch 39: `avatar` has been a plain fillable column since this table
+     * was created, but nothing ever wrote or read it until this batch
+     * wired up a profile-photo upload on ProfileComponent/StaffManager. A
+     * plain storage path, same convention as ServiceUser::photoUrl() —
+     * no MediaFile row, no audit need for a decorative photo.
+     */
+    public function avatarUrl(): ?string
+    {
+        return $this->avatar ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->avatar) : null;
     }
 
     // Accessors

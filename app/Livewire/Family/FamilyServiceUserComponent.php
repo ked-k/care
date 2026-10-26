@@ -78,7 +78,7 @@ class FamilyServiceUserComponent extends Component
         // CHANGES38.md.
         $carePlans = $serviceUser->carePlans()
             ->where('is_active', true)
-            ->with(['tasks' => fn ($q) => $q->routineOnly()->orderBy('due_at')->with('latestLog')])
+            ->with(['tasks' => fn ($q) => $q->routineOnly()->orderBy('due_at')->with('latestLog'), 'signedDocument'])
             ->orderByDesc('review_date')
             ->get();
 

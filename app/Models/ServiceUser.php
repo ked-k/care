@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Services\GeocodingService;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -17,7 +18,11 @@ class ServiceUser extends Model
     use HasUuids, SoftDeletes, LogsActivity;
 
     protected $fillable = [
-        'agency_id', 'name', 'dob', 'gender', 'address', 'nhs_number',
+        'agency_id', 'name',
+        // Batch 39: profile photo — plain storage path, same reasoning as
+        // users.avatar (no audit/approval need for a decorative photo).
+        'photo_path',
+        'dob', 'gender', 'address', 'nhs_number',
         // Batch 35: geofenced check-in — see the migration's doc comment
         // and GeocodingService.
         'latitude', 'longitude', 'location_source', 'geocoded_address',
@@ -72,6 +77,16 @@ class ServiceUser extends Model
     public function agency(): BelongsTo
     {
         return $this->belongsTo(Agency::class);
+    }
+
+    /**
+     * Batch 39: full URL for the profile photo, or null when none has been
+     * uploaded yet — the caller falls back to the initials avatar, same as
+     * App\Models\User::avatarUrl().
+     */
+    public function photoUrl(): ?string
+    {
+        return $this->photo_path ? Storage::disk('public')->url($this->photo_path) : null;
     }
 
     public function shifts(): HasMany
