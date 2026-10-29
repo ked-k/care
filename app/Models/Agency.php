@@ -51,6 +51,12 @@ class Agency extends Model
         return $this->hasMany(InvoiceRun::class);
     }
 
+    /** Batch 40: the agency's online shop (created the first time someone opens the Shop workspace). */
+    public function shopStore(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(\App\Models\Shop\ShopStore::class);
+    }
+
     public function employeePayProfiles(): HasMany
     {
         return $this->hasMany(EmployeePayProfile::class);

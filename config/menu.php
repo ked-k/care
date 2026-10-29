@@ -41,7 +41,13 @@ return [
     |----------------------------------------------------------------------
     */
     'top'  => [
-        ['label' => 'Care Management', 'desc' => 'Manage care plans', 'icon' => 'ik ik-heart', 'route' => 'care-management.plan', 'active' => 'care-management*'],
+        // Batch 40: now points at the care Dashboard (was the legacy
+        // care-management.plan page) so switching back from the Shop
+        // workspace lands somewhere useful. Still the default/fallback entry.
+        ['label' => 'Care Management', 'desc' => 'Care, rota, people & finance', 'icon' => 'ik ik-heart', 'route' => 'dashboard', 'active' => 'care-management*'],
+        // Batch 40: the agency's online shop — its own sidebar ('shop' below).
+        // 'can' is honoured by include/topmenu.blade.php.
+        ['label' => 'Shop', 'desc' => 'Online store, orders & stock', 'icon' => 'ik ik-shopping-bag', 'route' => 'shop.admin.dashboard', 'active' => 'shop-admin*', 'can' => 'manage_shop'],
         // ['label' => 'Main Dashboard', 'desc' => 'Overview & admin', 'icon' => 'ik ik-home', 'route' => 'dashboard', 'active' => 'dashboard'],
         // ['label' => 'Inventory', 'desc' => 'Products, stock & sales', 'icon' => 'ik ik-shopping-cart', 'url' => 'inventory', 'active' => 'inventory|products*|categories|sales*|purchases*|suppliers|customers'],
         // ['label' => 'Accounting', 'desc' => 'Income, expense & banking', 'icon' => 'ik ik-pie-chart', 'url' => 'accounting', 'active' => 'accounting|presale*|banking*|income*|expense*|budget-planner*|goal|assets'],
@@ -144,5 +150,35 @@ return [
             ['label' => 'Data Breaches', 'icon' => 'ik ik-alert-triangle', 'route' => 'data-protection.breaches', 'active' => 'data-protection.breaches'],
         ]],
 
+    ],
+
+    /*
+    |----------------------------------------------------------------------
+    | Shop workspace sidebar (Batch 40)
+    |----------------------------------------------------------------------
+    | Shown instead of 'care' on every /shop-admin page — see
+    | layouts/sidebar.blade.php. Every route here is behind manage_shop.
+    */
+    'shop' => [
+        ['label' => 'Shop dashboard', 'icon' => 'ik ik-bar-chart-2', 'route' => 'shop.admin.dashboard', 'active' => 'shop-admin'],
+        ['label' => 'Orders', 'icon' => 'ik ik-shopping-cart', 'route' => 'shop.admin.orders', 'active' => 'shop-admin/orders*'],
+
+        ['heading' => 'Catalogue'],
+        ['label' => 'Products', 'icon' => 'ik ik-package', 'route' => 'shop.admin.products', 'active' => 'shop-admin/products*'],
+        ['label' => 'Categories', 'icon' => 'ik ik-folder', 'route' => 'shop.admin.categories', 'active' => 'shop-admin/categories*'],
+
+        ['heading' => 'Stock'],
+        ['label' => 'Inventory', 'icon' => 'ik ik-layers', 'route' => 'shop.admin.inventory', 'active' => 'shop-admin/inventory*'],
+        ['label' => 'Goods received', 'icon' => 'ik ik-download', 'route' => 'shop.admin.receiving', 'active' => 'shop-admin/receiving*'],
+        ['label' => 'Suppliers', 'icon' => 'ik ik-briefcase', 'route' => 'shop.admin.suppliers', 'active' => 'shop-admin/suppliers*'],
+
+        ['heading' => 'Selling'],
+        ['label' => 'Customers', 'icon' => 'ik ik-users', 'route' => 'shop.admin.customers', 'active' => 'shop-admin/customers*'],
+        ['label' => 'Discount codes', 'icon' => 'ik ik-tag', 'route' => 'shop.admin.discounts', 'active' => 'shop-admin/discounts*'],
+        ['label' => 'Delivery options', 'icon' => 'ik ik-truck', 'route' => 'shop.admin.delivery', 'active' => 'shop-admin/delivery*'],
+
+        ['heading' => 'Shop'],
+        ['label' => 'Settings & payments', 'icon' => 'ik ik-settings', 'route' => 'shop.admin.settings', 'active' => 'shop-admin/settings*'],
+        ['label' => 'View storefront', 'icon' => 'ik ik-external-link', 'route' => 'shop.admin.storefront'],
     ],
 ];

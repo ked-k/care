@@ -70,6 +70,15 @@ class Handler extends ExceptionHandler
         // requests included) so Livewire's existing page-expired
         // handling is untouched — this only covers the case that had no
         // handling at all before: a plain full-page browser navigation.
+        // Batch 40: a stale form on the public shop (e.g. "Sign out" left
+        // open past session expiry) goes back to that shop's home page, not
+        // the staff login a shop customer has nothing to do with.
+        if ($this->shouldRedirectHome($request, $exception) && $request->is('store/*')
+            && ($slug = $request->segment(2)) && \App\Models\Shop\ShopStore::where('slug', $slug)->exists()) {
+            return redirect()->route('shop.home', $slug)
+                ->with('warning', $this->redirectMessageFor($exception));
+        }
+
         if ($this->shouldRedirectHome($request, $exception)) {
             return redirect()
                 ->route($this->homeRouteNameFor($request->user()))

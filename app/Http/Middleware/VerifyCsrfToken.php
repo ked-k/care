@@ -12,6 +12,9 @@ class VerifyCsrfToken extends Middleware
      * @var array
      */
     protected $except = [
-        //
+        // Batch 40: Stripe posts payment events server-to-server with no
+        // session or CSRF token; the endpoint verifies Stripe's own
+        // signature instead (StorefrontController::stripeWebhook()).
+        'store-webhooks/*',
     ];
 }

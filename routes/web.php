@@ -41,6 +41,10 @@ Route::post('password/reset', [ResetPasswordController::class, 'reset'])->name('
 // routes/family-portal.php for why.
 include __DIR__ . '/family-portal.php';
 
+// Batch 40: the public shop storefront (/store/{slug}) — top level, no staff
+// login involved. See routes/shop.php.
+include __DIR__ . '/shop.php';
+
 Route::group(['middleware' => ['auth', 'not-family']], function () {
     // logout route
 
@@ -99,6 +103,8 @@ Route::group(['middleware' => ['auth', 'not-family']], function () {
     include __DIR__ . '/safeguarding-consent-family.php';
     include __DIR__ . '/compliance-governance.php';
     include __DIR__ . '/operational.php';
+    // Batch 40: the Shop workspace (staff side) — /shop-admin, manage_shop.
+    include __DIR__ . '/shop-admin.php';
     // get permissions
     Route::get('get-role-permissions-badge', [PermissionController::class, 'getPermissionBadgeByRole']);
 

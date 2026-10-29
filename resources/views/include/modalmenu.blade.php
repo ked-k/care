@@ -17,7 +17,8 @@
         @php
             // Every page in the CareTrust sidebar (config/menu.php "care"), flattened, that this user may open.
             $apps = [];
-            foreach (config('menu.care', []) as $item) {
+            // Batch 40: follows the current workspace, same as the sidebar.
+            foreach (config(request()->is('shop-admin*') ? 'menu.shop' : 'menu.care', []) as $item) {
                 foreach ($item['children'] ?? [$item] as $entry) {
                     if (empty($entry['route']) || (! empty($entry['can']) && ! auth()->user()?->can($entry['can']))) continue;
                     $apps[] = [$entry['icon'] ?? 'ik ik-corner-down-right', $entry['label'], route($entry['route'])];

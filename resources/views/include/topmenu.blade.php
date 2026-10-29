@@ -1,5 +1,7 @@
 @php
-    $top = config('menu.top', []);
+    // Batch 40: entries can now carry a 'can' permission (the Shop
+    // workspace needs manage_shop), same rule as the sidebar's nav/menu.
+    $top = array_values(array_filter(config('menu.top', []), fn ($i) => empty($i['can']) || auth()->user()?->can($i['can'])));
 
     $href = function ($i) {
         return ! empty($i['route']) ? route($i['route']) : url($i['url'] ?? '#');

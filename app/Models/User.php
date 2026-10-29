@@ -173,6 +173,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Batch 40: the Shop workspace (products, orders, stock, payments) —
+     * its own permission, since running a shop is a different job from
+     * running care, and seeded to Admin only by ShopSeeder.
+     */
+    public function canManageShop(): bool
+    {
+        return $this->can('manage_shop');
+    }
+
+    /**
      * Batch 23: who gets the floating "Start a conversation" button (see
      * App\Livewire\Messaging\NewConversationComponent) — Admin and Manager
      * were the starting ask, Carer was explicitly added, and Super Admin is

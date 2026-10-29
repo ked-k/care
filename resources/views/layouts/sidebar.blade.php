@@ -1,9 +1,15 @@
+@php
+    // Batch 40: the sidebar follows the workspace picked in the top-bar
+    // switcher — every /shop-admin page shows the Shop menu, everything
+    // else the care menu (config/menu.php 'shop' / 'care').
+    $inShop = request()->is('shop-admin*');
+@endphp
 <aside
     class="fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-sidebar sidebar-brand transition-transform duration-300 lg:translate-x-0"
     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
 
     <div class="flex h-16 shrink-0 items-center justify-between border-b border-sidebar-border px-5">
-        <a href="{{ route('dashboard') }}" class="flex items-center text-white" title="{{ config('app.name') }}">
+        <a href="{{ route($inShop ? 'shop.admin.dashboard' : 'dashboard') }}" class="flex items-center text-white" title="{{ config('app.name') }}">
             <x-brand-logo markClass="h-8 w-8" textClass="text-lg" />
         </a>
         <button @click="sidebarOpen = false" class="text-sidebar-text hover:text-white lg:hidden"><i
@@ -11,6 +17,6 @@
     </div>
 
     <nav class="scrollbar-thin flex-1 overflow-y-auto py-2">
-        <x-nav.menu :items="config('menu.care')" />
+        <x-nav.menu :items="config($inShop ? 'menu.shop' : 'menu.care')" />
     </nav>
 </aside>

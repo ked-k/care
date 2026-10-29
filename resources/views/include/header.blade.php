@@ -39,6 +39,13 @@
                     </button>
                 </x-slot:trigger>
                 <div class="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">{{ __('Quick create') }}</div>
+                {{-- Batch 40: shop shortcuts while in the Shop workspace --}}
+                @if (request()->is('shop-admin*'))
+                    <a href="{{ route('shop.admin.products.create') }}" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"><i class="ik ik-package text-gray-400"></i> {{ __('Product') }}</a>
+                    <a href="{{ route('shop.admin.discounts') }}" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"><i class="ik ik-tag text-gray-400"></i> {{ __('Discount code') }}</a>
+                    <a href="{{ route('shop.admin.receiving.create') }}" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"><i class="ik ik-download text-gray-400"></i> {{ __('Stock delivery') }}</a>
+                    <div class="my-1 border-t border-gray-100"></div>
+                @endif
                 <a href="{{ route('safeguarding.index') }}" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"><i class="ik ik-shield text-gray-400"></i> {{ __('Safeguarding concern') }}</a>
                 <a href="{{ route('service-users.index') }}" class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"><i class="ik ik-heart text-gray-400"></i> {{ __('Service user') }}</a>
                 @can('manage_rota')

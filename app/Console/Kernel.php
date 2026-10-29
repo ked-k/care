@@ -40,6 +40,13 @@ class Kernel extends ConsoleKernel
         // that command every minute (Laravel itself decides daily/hourly
         // from there) — see CHANGES30.md for the exact setup.
         $schedule->command('tasks:generate-occurrences')->daily();
+
+        // Batch 40: cancel card/PayPal orders the customer never paid for
+        // and put their stock back on sale (needs the same Task Scheduler
+        // entry described above).
+        $schedule->command('shop:release-unpaid')->hourly();
+        // Batch 42: expired batches off sale overnight.
+        $schedule->command('shop:expire-lots')->dailyAt('00:10');
     }
 
     /**

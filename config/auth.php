@@ -45,6 +45,15 @@ return [
             'driver' => 'passport',
             'provider' => 'users'
         ],
+
+        // Batch 40: public shop customers (App\Models\Shop\ShopCustomer).
+        // Kept completely separate from 'web' so a shop sign-up can never
+        // become a staff/family login, and signing in or out of the shop
+        // never touches a staff session in the same browser.
+        'shop' => [
+            'driver' => 'session',
+            'provider' => 'shop_customers',
+        ],
     ],
 
     /*
@@ -68,6 +77,12 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => App\Models\User::class,
+        ],
+
+        // Batch 40
+        'shop_customers' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Shop\ShopCustomer::class,
         ],
 
         // 'users' => [
@@ -95,6 +110,14 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => 'password_resets',
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+
+        // Batch 40: shop customer "forgot password" links.
+        'shop_customers' => [
+            'provider' => 'shop_customers',
+            'table' => 'shop_password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,
         ],

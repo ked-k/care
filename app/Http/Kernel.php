@@ -71,5 +71,8 @@ class Kernel extends HttpKernel
         'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
         'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         'not-family' => \App\Http\Middleware\EnsureNotFamilyMember::class,
+
+        // Batch 40: resolves /store/{storeSlug} to the agency's shop.
+        'shop.store' => \App\Http\Middleware\ResolveShopStore::class,
     ];
 }
