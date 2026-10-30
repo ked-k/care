@@ -24,6 +24,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        // Uploaded files (product photos, avatars, certificates...) get their
+        // URL from this disk setting, which is built from APP_URL. When that
+        // differs from the host the site is actually served on, every upload
+        // saves fine but displays as a broken image — so in a web request,
+        // follow the current host, the same way asset() already does.
+        if (! $this->app->runningInConsole()) {
+            config(['filesystems.disks.public.url' => asset('storage')]);
+        }
+
         Livewire::component('care-timeline.care-call-timeline', \App\Livewire\CareTimeline\CareCallTimelineComponent::class);
 
         // Batch 17: wellbeing-observation and handover were nested on both
