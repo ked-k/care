@@ -112,7 +112,13 @@ class ShopSettingsComponent extends ShopAdminComponent
                 }
             }
         }
-        $this->validate($rules, ['required' => __('Needed to turn this payment method on.')]);
+        // Livewire treats validate([]) as "use the component's $rules", which
+        // this component doesn't have — so only validate when something
+        // switched on actually needs a field (e.g. not for pay-on-delivery
+        // alone, or when everything is switched off).
+        if ($rules) {
+            $this->validate($rules, ['required' => __('Needed to turn this payment method on.')]);
+        }
 
         foreach (PaymentManager::all() as $code => $gateway) {
             $next = ['enabled' => (bool) ($this->payments[$code]['enabled'] ?? false)];
