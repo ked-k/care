@@ -183,6 +183,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Batch 43: the Finance & Accounts workspace — ledger, sales invoices,
+     * bills, bank, financial years and reports. Seeded to Admin only by
+     * AccountingSeeder.
+     */
+    public function canManageAccounts(): bool
+    {
+        return $this->can('manage_accounts');
+    }
+
+    /**
      * Batch 23: who gets the floating "Start a conversation" button (see
      * App\Livewire\Messaging\NewConversationComponent) — Admin and Manager
      * were the starting ask, Carer was explicitly added, and Super Admin is

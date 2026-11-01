@@ -48,5 +48,9 @@ class AppServiceProvider extends ServiceProvider
         // blocks every carer's shift-visit Handover tab outright.
         Livewire::component('wellbeing.wellbeing-observation', \App\Livewire\Wellbeing\WellbeingObservationComponent::class);
         Livewire::component('handover.handover', \App\Livewire\Handover\HandoverComponent::class);
+
+        // Batch 43: care invoices, payroll runs and shop activity post
+        // themselves into the Finance ledger (App\Services\Accounting).
+        \App\Services\Accounting\AutoPosting::register();
     }
 }

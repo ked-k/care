@@ -48,6 +48,8 @@ return [
         // Batch 40: the agency's online shop — its own sidebar ('shop' below).
         // 'can' is honoured by include/topmenu.blade.php.
         ['label' => 'Shop', 'desc' => 'Online store, orders & stock', 'icon' => 'ik ik-shopping-bag', 'route' => 'shop.admin.dashboard', 'active' => 'shop-admin*', 'can' => 'manage_shop'],
+        // Batch 43: the ledger, invoices & bills, bank, reports — sidebar 'accounts' below.
+        ['label' => 'Finance & Accounts', 'desc' => 'Books, invoices, bank & reports', 'icon' => 'ik ik-pie-chart', 'route' => 'accounts.dashboard', 'active' => 'accounts*', 'can' => 'manage_accounts'],
         // ['label' => 'Main Dashboard', 'desc' => 'Overview & admin', 'icon' => 'ik ik-home', 'route' => 'dashboard', 'active' => 'dashboard'],
         // ['label' => 'Inventory', 'desc' => 'Products, stock & sales', 'icon' => 'ik ik-shopping-cart', 'url' => 'inventory', 'active' => 'inventory|products*|categories|sales*|purchases*|suppliers|customers'],
         // ['label' => 'Accounting', 'desc' => 'Income, expense & banking', 'icon' => 'ik ik-pie-chart', 'url' => 'accounting', 'active' => 'accounting|presale*|banking*|income*|expense*|budget-planner*|goal|assets'],
@@ -127,6 +129,8 @@ return [
             ['label' => 'Payroll', 'icon' => 'ik ik-dollar-sign', 'route' => 'payroll.index', 'active' => 'payroll.index'],
             // Batch 21
             ['label' => 'Invoicing', 'icon' => 'ik ik-file-text', 'route' => 'invoicing.index', 'active' => 'invoicing*|invoices*', 'can' => 'manage_invoicing'],
+            // Batch 43: the full books — opens the Finance & Accounts workspace.
+            ['label' => 'Accounts & reports', 'icon' => 'ik ik-pie-chart', 'route' => 'accounts.dashboard', 'can' => 'manage_accounts'],
         ]],
 
         // -- Compliance: policies, training and the day-to-day compliance
@@ -180,5 +184,42 @@ return [
         ['heading' => 'Shop'],
         ['label' => 'Settings & payments', 'icon' => 'ik ik-settings', 'route' => 'shop.admin.settings', 'active' => 'shop-admin/settings*'],
         ['label' => 'View storefront', 'icon' => 'ik ik-external-link', 'route' => 'shop.admin.storefront'],
+    ],
+
+    /*
+    |----------------------------------------------------------------------
+    | Finance & Accounts workspace sidebar (Batch 43)
+    |----------------------------------------------------------------------
+    | Shown instead of 'care' on every /accounts page. Every route here is
+    | behind manage_accounts. Care invoicing and payroll are linked at the
+    | bottom: they stay in the care workspace and post here automatically.
+    */
+    'accounts' => [
+        ['label' => 'Finance dashboard', 'icon' => 'ik ik-pie-chart', 'route' => 'accounts.dashboard', 'active' => 'accounts'],
+
+        ['heading' => 'Sales'],
+        ['label' => 'Sales invoices', 'icon' => 'ik ik-file-text', 'route' => 'accounts.invoices', 'active' => 'accounts/invoices*|accounts/documents/new/invoice'],
+        ['label' => 'Receipts', 'icon' => 'ik ik-download', 'route' => 'accounts.receipts', 'active' => 'accounts/receipts*'],
+        ['label' => 'Customers', 'icon' => 'ik ik-users', 'route' => 'accounts.customers', 'active' => 'accounts/customers*'],
+
+        ['heading' => 'Purchases'],
+        ['label' => 'Supplier bills', 'icon' => 'ik ik-file-minus', 'route' => 'accounts.bills', 'active' => 'accounts/bills*|accounts/documents/new/bill'],
+        ['label' => 'Supplier payments', 'icon' => 'ik ik-upload', 'route' => 'accounts.payments', 'active' => 'accounts/payments'],
+        ['label' => 'Suppliers', 'icon' => 'ik ik-truck', 'route' => 'accounts.suppliers', 'active' => 'accounts/suppliers*'],
+
+        ['heading' => 'Bank & books'],
+        ['label' => 'Bank & cash', 'icon' => 'ik ik-credit-card', 'route' => 'accounts.banking', 'active' => 'accounts/banking*'],
+        ['label' => 'Money in / out', 'icon' => 'ik ik-repeat', 'route' => 'accounts.money', 'active' => 'accounts/money*|accounts/documents/new/money*'],
+        ['label' => 'Journals', 'icon' => 'ik ik-book', 'route' => 'accounts.journals', 'active' => 'accounts/journals*'],
+        ['label' => 'Chart of accounts', 'icon' => 'ik ik-list', 'route' => 'accounts.chart', 'active' => 'accounts/chart-of-accounts*'],
+
+        ['heading' => 'Reports & year end'],
+        ['label' => 'Reports', 'icon' => 'ik ik-bar-chart-2', 'route' => 'accounts.reports', 'active' => 'accounts/reports*'],
+        ['label' => 'Financial years', 'icon' => 'ik ik-calendar', 'route' => 'accounts.years', 'active' => 'accounts/financial-years*'],
+        ['label' => 'Settings', 'icon' => 'ik ik-settings', 'route' => 'accounts.settings', 'active' => 'accounts/settings*'],
+
+        ['heading' => 'Posts here automatically'],
+        ['label' => 'Care invoicing', 'icon' => 'ik ik-file-text', 'route' => 'invoicing.index', 'can' => 'manage_invoicing'],
+        ['label' => 'Payroll', 'icon' => 'ik ik-dollar-sign', 'route' => 'payroll.index'],
     ],
 ];

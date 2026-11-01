@@ -25,6 +25,8 @@ class DatabaseSeeder extends Seeder
             InvoicingSeeder::class,
             // Batch 40: the 'manage_shop' permission, granted to Admin.
             ShopSeeder::class,
+            // Batch 43: the 'manage_accounts' permission, granted to Admin.
+            AccountingSeeder::class,
             // Batch 4: one-time repair for a database seeded before this
             // batch rewrote the seeders above — see RoleCleanupSeeder's
             // own docblock. Safe to leave in the call list permanently,

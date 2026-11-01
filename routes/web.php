@@ -113,6 +113,8 @@ Route::group(['middleware' => ['auth', 'not-family']], function () {
     include __DIR__ . '/operational.php';
     // Batch 40: the Shop workspace (staff side) — /shop-admin, manage_shop.
     include __DIR__ . '/shop-admin.php';
+    // Batch 43: the Finance & Accounts workspace — /accounts, manage_accounts.
+    include __DIR__ . '/accounts.php';
     // get permissions
     Route::get('get-role-permissions-badge', [PermissionController::class, 'getPermissionBadgeByRole']);
 
