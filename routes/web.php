@@ -10,6 +10,7 @@ use App\Http\Controllers\RolesController;
 use App\Http\Controllers\UserController;
 use App\Livewire\Care\CarePlanManagerComponent;
 use App\Livewire\Dashboard\AnalyticsDashboardComponent;
+use App\Models\Shop\ShopStore;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -23,6 +24,13 @@ use Illuminate\Support\Facades\Route;
 |
 */
 // Route::get('/', function () {return view('home');});
+// Shop subdomain: open the storefront instead of the care login.
+Route::domain('shop.affinityhealthcareltd.co.uk')->group(function () {
+    Route::get('/', function () {
+        $store = ShopStore::where('is_live', true)->firstOrFail();
+        return redirect()->route('shop.home', $store->slug);
+    });
+});
 
 Route::get('/', [LoginController::class, 'showLoginForm'])->name('index');
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
