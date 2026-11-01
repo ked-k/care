@@ -20,6 +20,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title }}</title>
+    {{-- Batch 43b: one address per page for search engines (the shop's own domain when it has one). --}}
+    <link rel="canonical" href="{{ url()->current() }}">
     <meta name="description" content="{{ $store->tagline ?: __('Medical and care supplies from :name.', ['name' => $store->name]) }}">
     <meta name="theme-color" content="{{ $store->brand_color }}">
     <link rel="icon" type="image/png" href="{{ $store->logoUrl() ?: asset('images/brand/caretrust-favicon.png') }}">

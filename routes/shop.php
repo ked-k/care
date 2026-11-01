@@ -39,6 +39,8 @@ Route::prefix('store/{storeSlug}')->name('shop.')->middleware('shop.store')->gro
     Route::get('/basket', CartComponent::class)->name('cart');
     Route::get('/checkout', CheckoutComponent::class)->name('checkout');
     Route::get('/order/{orderNumber}', OrderComponent::class)->name('order');
+    // Batch 43b: for search engines (most useful on the shop's own web address).
+    Route::get('/sitemap.xml', [StorefrontController::class, 'sitemap'])->name('sitemap');
     Route::get('/info/{page}', PageComponent::class)->name('page')->where('page', 'about|delivery|returns|terms|privacy');
 
     // Coming back from Stripe / PayPal.

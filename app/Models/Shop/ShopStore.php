@@ -21,7 +21,7 @@ class ShopStore extends Model
     use HasUuids;
 
     protected $fillable = [
-        'agency_id', 'name', 'slug', 'tagline', 'logo_path', 'brand_color', 'accent_color',
+        'agency_id', 'name', 'slug', 'domain', 'tagline', 'logo_path', 'brand_color', 'accent_color',
         'contact_email', 'orders_email', 'phone', 'address', 'company_number', 'vat_number',
         'currency', 'prices_include_vat', 'default_vat_rate', 'order_prefix', 'next_order_number',
         'about', 'delivery_info', 'returns_policy', 'terms', 'privacy',
@@ -36,6 +36,13 @@ class ShopStore extends Model
     ];
 
     protected $hidden = ['payment_settings'];
+
+    protected static function booted(): void
+    {
+        // Batch 43b: the host → shop map is cached for every request.
+        static::saved(fn () => \App\Support\Shop\ShopDomains::forget());
+        static::deleted(fn () => \App\Support\Shop\ShopDomains::forget());
+    }
 
     public function agency(): BelongsTo
     {

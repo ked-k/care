@@ -14,7 +14,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        // Batch 43b: links to public shop pages use the shop's own web address
+        // when it has one (see App\Routing\ShopAwareUrlGenerator).
+        $this->app->extend('url', fn ($url) => $url instanceof \Illuminate\Routing\UrlGenerator
+            ? \App\Routing\ShopAwareUrlGenerator::from($url) : $url);
     }
 
     /**

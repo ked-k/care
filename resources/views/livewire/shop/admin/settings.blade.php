@@ -46,7 +46,10 @@
                 <x-card title="{{ __('Shop details') }}" icon="ik ik-shopping-bag">
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <x-form.input name="form.name" label="{{ __('Shop name') }}" wire:model="form.name" required />
-                        <x-form.input name="form.slug" label="{{ __('Web address') }}" wire:model="form.slug" hint="{{ url('/store') }}/{{ $form['slug'] }}" />
+                        <x-form.input name="form.slug" :label="__('Short name in links')" wire:model="form.slug" :hint="$form['domain'] ? __('Used on the care site: :u', ['u' => url('/store').'/'.$form['slug']]) : url('/store').'/'.$form['slug']" />
+                        {{-- Batch 43b: the shop's own address --}}
+                        <x-form.input name="form.domain" :label="__('Shop web address (optional)')" wire:model="form.domain" placeholder="shop.yourdomain.co.uk"
+                                      :hint="__('Point this address at the same server as the care app (same public folder, with an SSL certificate). Customers then shop at it directly, and old /store links redirect there.')" />
                         <div class="sm:col-span-2"><x-form.input name="form.tagline" label="{{ __('Tagline') }}" wire:model="form.tagline" placeholder="{{ __('e.g. Gloves, PPE and first aid for care teams') }}" hint="{{ __('The headline on your shop’s home page.') }}" /></div>
                         <x-form.input type="email" name="form.contact_email" label="{{ __('Customer contact email') }}" wire:model="form.contact_email" />
                         <x-form.input type="email" name="form.orders_email" label="{{ __('Send new-order alerts to') }}" wire:model="form.orders_email" />

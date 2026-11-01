@@ -15,6 +15,9 @@ class Kernel extends HttpKernel
      */
     protected $middleware = [
         \App\Http\Middleware\TrustProxies::class,
+        // Batch 43b: a shop on its own web address (shop.example.com) is mapped
+        // onto the /store/{slug} routes before anything else is matched.
+        \App\Http\Middleware\ServeShopDomain::class,
         \Illuminate\Http\Middleware\HandleCors::class,
         \App\Http\Middleware\CheckForMaintenanceMode::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,

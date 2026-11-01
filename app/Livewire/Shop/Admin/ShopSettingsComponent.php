@@ -29,9 +29,9 @@ class ShopSettingsComponent extends ShopAdminComponent
     {
         $store = $this->store();
         $this->form = collect($store->only([
-            'name', 'slug', 'tagline', 'brand_color', 'accent_color', 'contact_email', 'orders_email', 'phone', 'address',
+            'name', 'slug', 'domain', 'tagline', 'brand_color', 'accent_color', 'contact_email', 'orders_email', 'phone', 'address',
             'company_number', 'vat_number', 'prices_include_vat', 'default_vat_rate', 'order_prefix',
-            'about', 'delivery_info', 'returns_policy', 'terms', 'privacy', 'is_live',
+            'about', 'delivery_info', 'returns_policy', 'terms', 'privacy', 'is_live', 'domain',
         ]))->map(fn ($v) => is_bool($v) ? $v : (string) ($v ?? ''))->all();
         $this->form['default_vat_rate'] = (string) (float) $store->default_vat_rate;
         $this->form['prices_include_vat'] = $store->prices_include_vat ? '1' : '0';
@@ -50,9 +50,17 @@ class ShopSettingsComponent extends ShopAdminComponent
     {
         $store = $this->store();
         $this->form['slug'] = Str::slug($this->form['slug'] ?: $this->form['name']);
+        $this->form['domain'] = (string) \App\Support\Shop\ShopDomains::normalise($this->form['domain'] ?? '');
         $this->validate([
             'form.name' => 'required|string|max:120',
             'form.slug' => ['required', 'string', 'max:80', Rule::unique('shop_stores', 'slug')->ignore($store->id)],
+            'form.domain' => ['nullable', 'string', 'max:190', 'regex:/^(?=.{1,190}$)([a-z0-9](-?[a-z0-9])*\.)+[a-z]{2,}$/',
+                Rule::unique('shop_stores', 'domain')->ignore($store->id),
+                function ($attr, $value, $fail) {
+                    if ($value && strtolower($value) === strtolower(request()->getHost())) {
+                        $fail(__('That’s the address of the care app itself — use a separate one such as shop.yourdomain.co.uk.'));
+                    }
+                }],
             'form.tagline' => 'nullable|string|max:160',
             'form.brand_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'form.accent_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
@@ -78,7 +86,9 @@ class ShopSettingsComponent extends ShopAdminComponent
             $this->logo = null;
         }
         $store->update($data + ['updated_by' => Auth::id()]);
-        $this->toast(__('Shop details saved.'));
+        $this->toast($store->wasChanged('domain') && $store->domain
+            ? __('Saved. The shop now answers at :d once that address points at this server.', ['d' => $store->domain])
+            : __('Shop details saved.'));
     }
 
     public function savePolicies(): void

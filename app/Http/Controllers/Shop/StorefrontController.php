@@ -101,4 +101,24 @@ class StorefrontController extends Controller
 
         return $order;
     }
+
+    /** Batch 43b: sitemap.xml — home, catalogue, categories and every product on sale. */
+    public function sitemap(string $storeSlug)
+    {
+        $store = app('shop.store');
+        $urls = [route('shop.home', $storeSlug), route('shop.catalogue', $storeSlug)];
+        foreach ($store->categories()->active()->get(['slug']) as $c) {
+            $urls[] = route('shop.category', [$storeSlug, $c->slug]);
+        }
+        foreach ($store->products()->active()->get(['slug', 'updated_at']) as $p) {
+            $urls[] = [route('shop.product', [$storeSlug, $p->slug]), $p->updated_at];
+        }
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n".'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+        foreach ($urls as $u) {
+            [$loc, $mod] = is_array($u) ? $u : [$u, null];
+            $xml .= '<url><loc>'.e($loc).'</loc>'.($mod ? '<lastmod>'.$mod->toDateString().'</lastmod>' : '').'</url>';
+        }
+
+        return response($xml.'</urlset>', 200, ['Content-Type' => 'application/xml']);
+    }
 }

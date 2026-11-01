@@ -73,8 +73,12 @@ class Handler extends ExceptionHandler
         // Batch 40: a stale form on the public shop (e.g. "Sign out" left
         // open past session expiry) goes back to that shop's home page, not
         // the staff login a shop customer has nothing to do with.
-        if ($this->shouldRedirectHome($request, $exception) && $request->is('store/*')
-            && ($slug = $request->segment(2)) && \App\Models\Shop\ShopStore::where('slug', $slug)->exists()) {
+        // Batch 43b: on a shop's own web address there's no /store/{slug} in the
+        // path, so take the shop from the host instead.
+        $domainSlug = app()->bound('shop.domain_slug') ? app('shop.domain_slug') : null;
+        if ($this->shouldRedirectHome($request, $exception) && ($domainSlug || ($request->is('store/*')
+            && ($slug = $request->segment(2)) && \App\Models\Shop\ShopStore::where('slug', $slug)->exists()))) {
+            $slug = $domainSlug ?? $slug;
             return redirect()->route('shop.home', $slug)
                 ->with('warning', $this->redirectMessageFor($exception));
         }
