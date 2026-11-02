@@ -119,7 +119,12 @@ class BankingComponent extends AccountsComponent
 
         return $this->page('livewire.accounting.banking', [
             'accounts' => $all->map(fn ($a) => ['account' => $a, 'balance' => $nets[$a->id] ?? 0,
-                'in' => (float) ($monthIn[$a->id]->i ?? 0), 'out' => (float) ($monthIn[$a->id]->o ?? 0)]),
+                'in' => (float) ($monthIn[$a->id]->i ?? 0), 'out' => (float) ($monthIn[$a->id]->o ?? 0),
+                // Batch 44a
+                'reconciled' => \App\Models\Accounting\Reconciliation::where('account_id', $a->id)->where('status', 'completed')->max('statement_date')
+                    ? \Illuminate\Support\Carbon::parse(\App\Models\Accounting\Reconciliation::where('account_id', $a->id)->where('status', 'completed')->max('statement_date')) : null,
+                'inProgress' => \App\Models\Accounting\Reconciliation::where('account_id', $a->id)->where('status', 'in_progress')->exists(),
+            ]),
             'active' => $all->where('is_active', true),
         ], __('Bank & cash'));
     }

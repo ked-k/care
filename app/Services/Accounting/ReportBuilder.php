@@ -17,10 +17,13 @@ class ReportBuilder
     public const REPORTS = [
         'income-statement' => ['income_statement', 'What came in and went out over a period, with last year alongside', 'ik ik-trending-up'],
         'balance-sheet' => ['balance_sheet', 'What the organisation owns and owes on a date, with last year alongside', 'ik ik-layers'],
+        'cash-flow' => ['Statement of cash flows', 'Where the cash came from and went to, with last year alongside', 'ik ik-activity'],
+        'changes-in-equity' => ['Statement of changes in equity', 'How share capital, reserves and retained earnings moved over the year', 'ik ik-pie-chart'],
         'trial-balance' => ['Trial balance', 'Every account’s balance on a date — debits must equal credits', 'ik ik-check-square'],
         'ledger' => ['General ledger', 'Every entry on one account, with a running balance', 'ik ik-book-open'],
         'aged-receivables' => ['Aged debtors', 'Who owes you, and how overdue it is', 'ik ik-download'],
         'aged-payables' => ['Aged creditors', 'Who you owe, and how overdue it is', 'ik ik-upload'],
+        'fixed-assets' => ['Property, plant and equipment', 'Cost, depreciation and book value by category for the year (the PPE note)', 'ik ik-box'],
     ];
 
     public function __construct(public AccountingSetting $settings)
@@ -100,6 +103,40 @@ class ReportBuilder
                 foreach ($data['lines'] as $l) {
                     $csv[] = [$l->date->toDateString(), $l->journal->number, $l->journal->typeLabel(), $l->description ?: $l->journal->memo,
                         $l->contact?->name, (float) $l->debit ?: '', (float) $l->credit ?: '', $l->running];
+                }
+                break;
+            case 'cash-flow':
+                $data = (new Statements($s))->cashFlow($p['from'], $p['to'], $p['compare']);
+                $subtitle = __('For the period :a to :b', ['a' => $d($p['from']), 'b' => $d($p['to'])]);
+                $csv = [[__('Line'), __('This period'), __('Comparative')]];
+                foreach (['operating' => __('Operating activities'), 'investing' => __('Investing activities'), 'financing' => __('Financing activities')] as $k => $label) {
+                    $csv[] = [$label, '', ''];
+                    foreach ($data['sections'][$k]['rows'] as $row) {
+                        $csv[] = ['  '.$row['label'], $row['current'], $row['previous']];
+                    }
+                    $csv[] = [__('Net cash from').' '.mb_strtolower($label), $data['sections'][$k]['current'], $data['sections'][$k]['previous']];
+                }
+                $csv[] = [__('Net increase / (decrease) in cash'), $data['net']['current'], $data['net']['previous']];
+                $csv[] = [__('Cash at the start'), $data['opening']['current'], $data['opening']['previous']];
+                $csv[] = [__('Cash at the end'), $data['closing']['current'], $data['closing']['previous']];
+                break;
+            case 'changes-in-equity':
+                $data = (new Statements($s))->changesInEquity($p['from'], $p['to']);
+                $subtitle = __('For the period :a to :b', ['a' => $d($p['from']), 'b' => $d($p['to'])]);
+                $csv = [array_merge([''], $data['cols']->map(fn ($a) => $a->id === $data['reId'] ? $s->term('retained') : $a->name)->all(), [__('Total')])];
+                $line = fn ($label, $vals) => array_merge([$label], $data['cols']->map(fn ($a) => $vals[$a->id] ?? 0)->all(), [round($data['cols']->sum(fn ($a) => $vals[$a->id] ?? 0), 2)]);
+                $csv[] = $line(__('At the start'), $data['start']);
+                foreach (['opening' => __('Opening balances brought in'), 'result' => $s->term('result'), 'approp' => __('Appropriations'), 'other' => __('Other movements')] as $k => $label) {
+                    $csv[] = $line($label, $data['rows'][$k]);
+                }
+                $csv[] = $line(__('At the end'), $data['end']);
+                break;
+            case 'fixed-assets':
+                $data = FixedAssets::schedule($s->agency_id, $p['from'], $p['to']);
+                $subtitle = __('For the period :a to :b', ['a' => $d($p['from']), 'b' => $d($p['to'])]);
+                $csv = [[__('Category'), __('Cost b/f'), __('Additions'), __('Disposals'), __('Cost c/f'), __('Depreciation b/f'), __('Charge'), __('On disposals'), __('Depreciation c/f'), __('Book value c/f'), __('Book value b/f')]];
+                foreach ($data['rows'] + ['total' => $data['total'] + ['label' => __('Total')]] as $row) {
+                    $csv[] = [$row['label'], $row['cost_bf'], $row['additions'], $row['disposals'], $row['cost_cf'], $row['dep_bf'], $row['charge'], $row['dep_disposals'], $row['dep_cf'], $row['nbv_cf'], $row['nbv_bf']];
                 }
                 break;
             default: // aged

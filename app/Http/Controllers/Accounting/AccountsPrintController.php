@@ -80,4 +80,39 @@ class AccountsPrintController extends Controller
             fclose($out);
         }, $name, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
+
+    /**
+     * Batch 44b: the year's full set of accounts in one printable document —
+     * cover, approval page, the four statements with comparatives, the
+     * notes (written and from the ledger), the trial balance and, if asked,
+     * every account's ledger. Print or "Save as PDF" from the browser.
+     */
+    public function auditPack(Request $request, string $yearId)
+    {
+        $cur = AccountingSetting::forAgency($this->agencyId());
+        $year = \App\Models\Accounting\FinancialYear::where('agency_id', $cur->agency_id)->findOrFail($yearId);
+        $b = new ReportBuilder($cur);
+        $in = ['year' => $year->id, 'from' => $year->starts_on->toDateString(), 'to' => $year->ends_on->toDateString(), 'as_at' => $year->ends_on->toDateString(), 'compare' => true];
+        $statements = collect(['income-statement', 'balance-sheet', 'changes-in-equity', 'cash-flow'])->mapWithKeys(fn ($r) => [$r => $b->build($r, $in)]);
+        $ledgers = [];
+        if ($request->boolean('ledgers')) {
+            $reports = new Reports($cur);
+            foreach (\App\Models\Accounting\Account::where('agency_id', $cur->agency_id)->orderBy('code')->get() as $a) {
+                $l = $reports->ledger($a, $in['from'], $in['to']);
+                if ($l['lines']->isNotEmpty() || abs($l['opening']) >= 0.005) {
+                    $ledgers[] = $l;
+                }
+            }
+        }
+
+        return view('accounting.audit-pack', [
+            'cur' => $cur, 'year' => $year, 'agency' => Auth::user()->agency,
+            'statements' => $statements,
+            'tb' => $b->build('trial-balance', $in),
+            'notes' => \App\Services\Accounting\Notes::forYear($year),
+            'figures' => \App\Services\Accounting\Notes::figures($year),
+            'ledgers' => $ledgers, 'withLedgers' => $request->boolean('ledgers'),
+            'closed' => $year->isClosed(),
+        ]);
+    }
 }

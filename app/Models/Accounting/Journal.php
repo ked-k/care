@@ -41,6 +41,8 @@ class Journal extends Model
         'shop_sale' => 'Shop sale',
         'stock' => 'Stock movement',
         'grn' => 'Goods received',
+        'asset' => 'Fixed asset',
+        'depreciation' => 'Depreciation',
         'reversal' => 'Reversal',
         'year_end' => 'Year-end close',
     ];
@@ -93,6 +95,8 @@ class Journal extends Model
             'payroll_run' => \Illuminate\Support\Facades\Route::has('payroll.show') ? route('payroll.show', $this->source_id) : null,
             'shop_order' => \Illuminate\Support\Facades\Route::has('shop.admin.orders.show') ? route('shop.admin.orders.show', $this->source_id) : null,
             'shop_grn' => \Illuminate\Support\Facades\Route::has('shop.admin.receiving.show') ? route('shop.admin.receiving.show', $this->source_id) : null,
+            'fixed_asset' => route('accounts.assets.show', $this->source_id),
+            'financial_year' => route('accounts.years'),
             default => null,
         };
     }

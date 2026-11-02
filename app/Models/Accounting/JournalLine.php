@@ -14,7 +14,7 @@ class JournalLine extends Model
 
     protected $table = 'acc_journal_lines';
 
-    protected $fillable = ['journal_id', 'account_id', 'contact_id', 'agency_id', 'date', 'description', 'debit', 'credit', 'sort_order'];
+    protected $fillable = ['journal_id', 'account_id', 'contact_id', 'reconciliation_id', 'agency_id', 'date', 'description', 'debit', 'credit', 'sort_order'];
 
     protected $casts = ['date' => 'date', 'debit' => 'decimal:2', 'credit' => 'decimal:2'];
 

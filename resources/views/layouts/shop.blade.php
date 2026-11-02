@@ -31,7 +31,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('plugins/fontawesome-free/css/all.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/shop.css') }}?v=45">
+    <link rel="stylesheet" href="{{ asset('css/shop.css') }}?v=46">
     <style>
         :root { --ink: {{ $store->brand_color }}; --action: {{ $store->accent_color }}; }
     </style>

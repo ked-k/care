@@ -1,7 +1,7 @@
 <div>
     @php
         $p = $rep['params'];
-        $period = in_array($report, ['income-statement', 'ledger']);
+        $period = in_array($report, ['income-statement', 'ledger', 'fixed-assets', 'cash-flow', 'changes-in-equity']);
         $asAtOnly = in_array($report, ['balance-sheet', 'trial-balance', 'aged-receivables', 'aged-payables']);
     @endphp
     <x-page-header :title="($rep['title'])" :subtitle="($rep['subtitle'])" :icon="(\App\Services\Accounting\ReportBuilder::REPORTS[$report][2])"
@@ -48,7 +48,7 @@
                     <input type="date" wire:model.live="asAt" class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 outline-none focus:border-primary-500">
                 </div>
             @endif
-            @if (in_array($report, ['income-statement', 'balance-sheet']))
+            @if (in_array($report, ['income-statement', 'balance-sheet', 'cash-flow']))
                 <label class="flex items-center gap-2 pb-2 text-sm text-gray-600"><input type="checkbox" wire:model.live="compare" class="rounded border-gray-300 text-primary-600">{{ __('Compare with last year') }}</label>
             @endif
             <span wire:loading class="pb-2 text-xs text-gray-400">{{ __('Updating…') }}</span>

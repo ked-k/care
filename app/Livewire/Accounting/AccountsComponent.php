@@ -53,6 +53,21 @@ abstract class AccountsComponent extends Component
         }
     }
 
+    /** Like attempt(), for actions that return nothing: true when it worked. */
+    protected function attemptOk(callable $fn, ?string $success = null): bool
+    {
+        try {
+            $fn();
+            $success && $this->toast($success);
+
+            return true;
+        } catch (LedgerException|RuntimeException $e) {
+            $this->toast($e->getMessage(), 'error');
+
+            return false;
+        }
+    }
+
     protected function accountOptions(?array $types = null, bool $includeMoney = true)
     {
         return Account::where('agency_id', $this->agencyId())->where('is_active', true)

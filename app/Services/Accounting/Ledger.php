@@ -62,7 +62,7 @@ class Ledger
                 }
             }
             $account = self::account($settings, $line['account']);
-            if (! $account->is_active && empty($header['system'])) {
+            if ($account->is_active === false && empty($header['system'])) {
                 throw new LedgerException(__('The account :a is archived — choose another one.', ['a' => $account->label()]));
             }
             $resolved[] = [
@@ -136,7 +136,8 @@ class Ledger
         return DB::transaction(function () use ($journal, $reason, $date, $event) {
             $reversal = self::post($journal->agency_id, [
                 'date' => $date,
-                'type' => 'reversal',
+                // Undoing a year-end close stays out of the profit and loss, like the close itself.
+                'type' => $journal->type === 'year_end' ? 'year_end' : 'reversal',
                 'reference' => $journal->number,
                 'memo' => trim(__('Reversal of :n', ['n' => $journal->number]).($reason ? ' — '.$reason : '')),
                 'source_type' => $journal->source_type,

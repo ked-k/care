@@ -32,10 +32,11 @@
                                 </td>
                                 <td class="whitespace-nowrap px-5 py-3 text-right text-sm">
                                     <a href="{{ route('accounts.reports.show', ['report' => 'income-statement', 'year' => $y->id]) }}" wire:navigate class="text-primary-600 hover:underline">{{ __('Statements') }}</a>
+                                    <a href="{{ route('accounts.audit-pack', $y->id) }}" target="_blank" class="ml-3 text-primary-600 hover:underline">{{ __('Audit pack') }}</a>
                                     @if ($y->isClosed())
                                         <button type="button" wire:click="askReopen('{{ $y->id }}')" class="ml-3 text-gray-500 hover:underline">{{ __('Re-open') }}</button>
                                     @elseif (! $y->ends_on->isFuture())
-                                        <button type="button" wire:click="close('{{ $y->id }}')" wire:confirm="{{ __('Close :y? Nothing can then be posted into it, and the books are locked up to :d.', ['y' => $y->name, 'd' => $y->ends_on->format('d M Y')]) }}" class="ml-3 text-gray-500 hover:underline">{{ __('Close year') }}</button>
+                                        <a href="{{ route('accounts.years.close', $y->id) }}" wire:navigate class="ml-3 font-medium text-primary-600 hover:underline">{{ __('Close year') }}</a>
                                     @endif
                                 </td>
                             </tr>
@@ -43,7 +44,7 @@
                     </tbody>
                 </table>
             </x-card>
-            <p class="mt-3 text-xs text-gray-400">{{ __('Closing a year locks it. Year-end appropriations (reserves, dividends, transfers to retained earnings) and the audit pack come in the next update.') }}</p>
+            <p class="mt-3 text-xs text-gray-400">{{ __('Closing a year moves its result into retained earnings and reserves (the appropriations in Settings) and locks it. The statements for the year still show the full figures.') }}</p>
         </div>
 
         <div class="space-y-6">

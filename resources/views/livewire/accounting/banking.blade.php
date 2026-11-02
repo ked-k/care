@@ -25,8 +25,14 @@
                 </div>
                 <p @class(['mt-4 text-2xl font-bold', 'text-accent-600' => $row['balance'] < 0, 'text-gray-800' => $row['balance'] >= 0])>{{ $cur->money($row['balance']) }}</p>
                 <p class="mt-1 text-xs text-gray-400">{{ __('This month: :in in · :out out', ['in' => $cur->money($row['in']), 'out' => $cur->money($row['out'])]) }}</p>
+                <p class="mt-1 text-xs {{ $row['reconciled'] ? 'text-gray-400' : 'text-amber-600' }}">
+                    @if ($row['inProgress'])<i class="ik ik-clock"></i> {{ __('Reconciliation in progress') }}
+                    @elseif ($row['reconciled'])<i class="ik ik-check"></i> {{ __('Reconciled to :d', ['d' => $row['reconciled']->format('d M Y')]) }}
+                    @else {{ __('Never reconciled') }}@endif
+                </p>
                 <div class="mt-4 flex gap-3 border-t border-gray-100 pt-3 text-sm">
                     <a href="{{ route('accounts.reports.show', ['report' => 'ledger', 'account' => $a->id]) }}" wire:navigate class="font-medium text-primary-600 hover:underline">{{ __('Register') }}</a>
+                    <a href="{{ route('accounts.reconcile', $a->id) }}" wire:navigate class="font-medium text-primary-600 hover:underline">{{ __('Reconcile') }}</a>
                     <a href="{{ route('accounts.documents.create', 'money_out') }}" wire:navigate class="text-gray-500 hover:underline">{{ __('Spend') }}</a>
                     <a href="{{ route('accounts.documents.create', 'money_in') }}" wire:navigate class="text-gray-500 hover:underline">{{ __('Receive') }}</a>
                 </div>

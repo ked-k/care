@@ -52,6 +52,10 @@ Route::prefix('accounts')->name('accounts.')->middleware('can:manage_accounts')-
     Route::get('/contacts/{contactId}/statement', [AccountsPrintController::class, 'statement'])->name('contacts.statement');
 
     Route::get('/banking', BankingComponent::class)->name('banking');
+    // Batch 44a
+    Route::get('/banking/{accountId}/reconcile', \App\Livewire\Accounting\ReconcileComponent::class)->name('reconcile');
+    Route::get('/fixed-assets', \App\Livewire\Accounting\AssetIndexComponent::class)->name('assets');
+    Route::get('/fixed-assets/{assetId}', \App\Livewire\Accounting\AssetShowComponent::class)->name('assets.show');
 
     Route::get('/journals', JournalIndexComponent::class)->name('journals');
     Route::get('/journals/new', JournalFormComponent::class)->name('journals.create');
@@ -59,8 +63,12 @@ Route::prefix('accounts')->name('accounts.')->middleware('can:manage_accounts')-
 
     Route::get('/chart-of-accounts', ChartComponent::class)->name('chart');
     Route::get('/financial-years', YearsComponent::class)->name('years');
+    Route::get('/financial-years/{yearId}/close', \App\Livewire\Accounting\YearEndComponent::class)->name('years.close');
 
     Route::get('/reports', ReportIndexComponent::class)->name('reports');
+    // Batch 44b
+    Route::get('/notes', \App\Livewire\Accounting\NotesComponent::class)->name('notes');
+    Route::get('/audit-pack/{yearId}', [AccountsPrintController::class, 'auditPack'])->name('audit-pack');
     Route::get('/reports/{report}', ReportComponent::class)->name('reports.show');
     Route::get('/reports/{report}/print', [AccountsPrintController::class, 'report'])->name('reports.print');
     Route::get('/reports/{report}/csv', [AccountsPrintController::class, 'csv'])->name('reports.csv');

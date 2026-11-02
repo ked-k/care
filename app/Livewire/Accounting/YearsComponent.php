@@ -55,26 +55,6 @@ class YearsComponent extends AccountsComponent
         $this->toast(__(':y added — use it for opening balances and comparatives.', ['y' => $year->name]));
     }
 
-    public function close(string $id): void
-    {
-        $y = FinancialYear::where('agency_id', $this->agencyId())->findOrFail($id);
-        if ($y->ends_on->isFuture()) {
-            $this->toast(__(':y hasn’t ended yet.', ['y' => $y->name]), 'warning');
-
-            return;
-        }
-        DB::transaction(function () use ($y) {
-            $y->update(['status' => 'closed', 'closed_at' => now(), 'closed_by' => Auth::id()]);
-            $s = $this->settings();
-            if (! $s->lock_date || $s->lock_date->lt($y->ends_on)) {
-                $s->update(['lock_date' => $y->ends_on->toDateString()]);
-                $this->lockDate = $y->ends_on->toDateString();
-            }
-        });
-        activity('accounts')->performedOn($y)->causedBy(Auth::user())->log(__(':y closed', ['y' => $y->name]));
-        $this->toast(__(':y closed and locked.', ['y' => $y->name]));
-    }
-
     public function askReopen(string $id): void
     {
         $this->reopenId = $id;
@@ -86,15 +66,12 @@ class YearsComponent extends AccountsComponent
     {
         $this->validate(['reopenReason' => 'required|string|min:5|max:500'], ['reopenReason.required' => __('Say why — re-opening a closed year is recorded in the audit log.')]);
         $y = FinancialYear::where('agency_id', $this->agencyId())->findOrFail($this->reopenId);
-        $y->update(['status' => 'open', 'closed_at' => null, 'closed_by' => null]);
-        $s = $this->settings();
-        if ($s->lock_date && $s->lock_date->gte($y->starts_on)) {
-            $s->update(['lock_date' => $y->starts_on->copy()->subDay()->toDateString()]);
-            $this->lockDate = $s->lock_date->toDateString();
+        // Batch 44a: also reverses the year-end closing and appropriation journals.
+        if ($this->attemptOk(fn () => \App\Services\Accounting\YearEnd::reopen($y, $this->reopenReason, Auth::id()), __(':y re-opened.', ['y' => $y->name]))) {
+            $this->lockDate = (string) $this->settings()->fresh()->lock_date?->toDateString();
+            \App\Models\Accounting\AccountingSetting::forgetCache();
+            $this->dispatch('close-drawer', 'reopen');
         }
-        activity('accounts')->performedOn($y)->causedBy(Auth::user())->withProperties(['reason' => $this->reopenReason])->log(__(':y re-opened', ['y' => $y->name]));
-        $this->dispatch('close-drawer', 'reopen');
-        $this->toast(__(':y re-opened.', ['y' => $y->name]));
     }
 
     public function render()

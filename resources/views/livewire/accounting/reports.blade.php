@@ -10,5 +10,15 @@
             </a>
         @endforeach
     </div>
-    <p class="mt-6 text-sm text-gray-400">{{ __('Coming next: cash flow statement, statement of changes in equity, notes and the year-end audit pack.') }}</p>
+    {{-- Batch 44b --}}
+    <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <a href="{{ route('accounts.notes') }}" wire:navigate class="flex items-center gap-4 rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition hover:border-primary-200">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-500/10 text-primary-600"><i class="ik ik-edit-3"></i></span>
+            <span><span class="block font-semibold text-gray-800">{{ __('Notes to the accounts') }}</span><span class="text-sm text-gray-500">{{ __('Accounting policies and other written notes, per year') }}</span></span>
+        </a>
+        <a href="{{ route('accounts.years') }}" wire:navigate class="flex items-center gap-4 rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition hover:border-primary-200">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-500/10 text-primary-600"><i class="ik ik-printer"></i></span>
+            <span><span class="block font-semibold text-gray-800">{{ __('Audit pack') }}</span><span class="text-sm text-gray-500">{{ __('Every statement, the notes, trial balance and ledgers for a year in one printable document — from Financial years') }}</span></span>
+        </a>
+    </div>
 </div>

@@ -30,18 +30,66 @@
                 </div>
             </div>
 
-            {{-- Visual: a stack of the shop's own best sellers, plus a floating delivery badge --}}
-            <div class="s-hero-art" aria-hidden="true">
-                <div class="s-hero-ring"></div>
-                @foreach ($featured->take(3) as $i => $product)
-                    <div class="s-hero-card s-hero-card-{{ $i + 1 }}">
-                        @include('shop.partials.product-visual', ['product' => $product])
-                        <div class="s-hero-card-meta">
-                            <span>{{ \Illuminate\Support\Str::limit($product->labelTitle(), 28) }}</span>
-                            <strong class="num">{{ $store->money($product->displayPrice()) }}</strong>
-                        </div>
-                    </div>
-                @endforeach
+            {{-- Visual: the shop's own best sellers on a slowly turning carousel.
+                 Every few seconds each card moves round one place (left → front
+                 → right → behind); the cards bob gently, the dashed ring turns,
+                 and the whole stage tilts towards the mouse. Pauses on hover and
+                 when the tab is hidden; stands still for "reduce motion". --}}
+            @php
+                $heroItems = $featured->take(6)->values();
+                $n = $heroItems->count();
+                $slotFor = function (int $i, int $step = 0) use ($n) {
+                    $k = ($i - $step + $n) % max(1, $n);
+                    return match (true) {
+                        $k === 0 => 'center', $k === 1 => 'right', $k === $n - 1 => 'left',
+                        $k === 2 => 'back-right', $k === $n - 2 => 'back-left', default => 'hidden',
+                    };
+                };
+            @endphp
+            <div class="s-hero-art"
+                 x-data="{
+                     n: {{ $n }}, step: 0, paused: false, rx: 0, ry: 0, timer: null,
+                     init() {
+                         if (this.n < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+                         this.timer = setInterval(() => { if (! this.paused && ! document.hidden) this.next() }, 3200);
+                     },
+                     destroy() { clearInterval(this.timer) },
+                     next() { this.step = (this.step + 1) % this.n },
+                     go(i) { this.step = i },
+                     slot(i) {
+                         const k = (i - this.step + this.n) % this.n;
+                         if (k === 0) return 'center';
+                         if (k === 1) return 'right';
+                         if (k === this.n - 1) return 'left';
+                         if (k === 2) return 'back-right';
+                         if (k === this.n - 2) return 'back-left';
+                         return 'hidden';
+                     },
+                     tilt(e) {
+                         const r = this.$el.getBoundingClientRect();
+                         this.ry = ((e.clientX - r.left) / r.width - .5) * 12;
+                         this.rx = -((e.clientY - r.top) / r.height - .5) * 8;
+                     },
+                 }"
+                 @mouseenter="paused = true" @mouseleave="paused = false; rx = 0; ry = 0" @mousemove="tilt($event)"
+                 :style="`--rx: ${rx}deg; --ry: ${ry}deg`">
+                <div class="s-hero-stage">
+                    <div class="s-hero-ring" aria-hidden="true"></div>
+                    <div class="s-hero-orbit-dot" aria-hidden="true"></div>
+                    @foreach ($heroItems as $i => $product)
+                        <a href="{{ route('shop.product', [$store->slug, $product->slug]) }}" tabindex="-1"
+                           class="s-hero-card" data-slot="{{ $slotFor($i) }}" :data-slot="slot({{ $i }})" style="--i: {{ $i }}"
+                           @click.prevent="slot({{ $i }}) === 'center' ? (window.Livewire ? Livewire.navigate($el.href) : location.assign($el.href)) : go({{ $i }})">
+                            <div class="s-hero-float">
+                                @include('shop.partials.product-visual', ['product' => $product])
+                                <div class="s-hero-card-meta">
+                                    <span>{{ \Illuminate\Support\Str::limit($product->labelTitle(), 28) }}</span>
+                                    <strong class="num">{{ $store->money($product->displayPrice()) }}</strong>
+                                </div>
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
                 <div class="s-hero-badge">
                     <i class="fas fa-truck"></i>
                     <span>
@@ -52,6 +100,14 @@
                         @endif
                     </span>
                 </div>
+                @if ($n > 1)
+                    <div class="s-hero-dots">
+                        @foreach ($heroItems as $i => $product)
+                            <button type="button" @click="go({{ $i }})" :class="step === {{ $i }} && 'is-on'" @class(['is-on' => $i === 0])
+                                    aria-label="{{ __('Show :name', ['name' => $product->labelTitle()]) }}"></button>
+                        @endforeach
+                    </div>
+                @endif
             </div>
         </div>
 

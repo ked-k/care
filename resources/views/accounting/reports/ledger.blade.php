@@ -1,6 +1,10 @@
 @php $lg = $rep['data']; $a = $lg['account']; $sign = $a->isDebitNature() ? 1 : -1; @endphp
 <div class="st">
-    @include('accounting.reports._header')
+    @if (empty($noHeader))
+        @include('accounting.reports._header')
+    @elseif ($rep['title'])
+        <h4 style="margin:6px 0 8px;font-size:13px">{{ $rep['title'] }}</h4>
+    @endif
     <table>
         <thead><tr><th>{{ __('Date') }}</th><th>{{ __('Entry') }}</th><th>{{ __('Details') }}</th><th class="n">{{ __('Debit') }}</th><th class="n">{{ __('Credit') }}</th><th class="n">{{ __('Balance') }}</th></tr></thead>
         <tbody>

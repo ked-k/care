@@ -27,10 +27,17 @@ class DefaultChart
         '1540' => ['Stock of Finished Goods', 'inventory', null],
         '1550' => ['Goods Received Clearing account', 'inventory', null],
         '1810' => ['Land and Buildings', 'non_current_asset', null],
+        '1815' => ['Accum. depreciation - Buildings', 'non_current_asset', null],
         '1820' => ['Office Furniture and Equipment', 'non_current_asset', null],
         '1825' => ['Accum. depreciation - Furniture and Equipment', 'non_current_asset', null],
+        '1830' => ['Computers and IT Equipment', 'non_current_asset', null],
+        '1835' => ['Accum. depreciation - Computers', 'non_current_asset', null],
         '1840' => ['Motor Vehicle', 'non_current_asset', null],
         '1845' => ['Accum. depreciation - Motor Vehicle', 'non_current_asset', null],
+        '1850' => ['Equipment and Machinery', 'non_current_asset', null],
+        '1855' => ['Accum. depreciation - Equipment', 'non_current_asset', null],
+        '1860' => ['Other Fixed Assets', 'non_current_asset', null],
+        '1865' => ['Accum. depreciation - Other Assets', 'non_current_asset', null],
         // Liabilities
         '2100' => ['Accounts Payable', 'payable', 'payables'],
         '2105' => ['Deferred Income', 'current_liability', null],
@@ -78,6 +85,7 @@ class DefaultChart
         '4435' => ['Sundry Income', 'other_income', null],
         '4440' => ['Interest Received', 'other_income', null],
         '4450' => ['Foreign Exchange Gain', 'other_income', null],
+        '4460' => ['Gain on Disposal of Assets', 'other_income', 'disposal_gain'],
         '4500' => ['Unallocated Income', 'other_income', null],
         '4510' => ['Discounts Received', 'other_income', null],
         // Cost of sales
@@ -141,6 +149,7 @@ class DefaultChart
         '5795' => ['Registrations', 'admin_expenses', null],
         '5800' => ['Licenses', 'admin_expenses', null],
         '5810' => ['Foreign Exchange Loss', 'finance_costs', null],
+        '5815' => ['Loss on Disposal of Assets', 'other_expenses', 'disposal_loss'],
     ];
 
     /** system_key => default code — what posting looks up. */
@@ -152,6 +161,7 @@ class DefaultChart
         'share_capital' => '3350', 'shop_sales' => '4010', 'care_income' => '4020',
         'delivery_income' => '4430', 'cogs' => '5010', 'stock_adjustments' => '5027',
         'wages' => '5410', 'overtime' => '5420', 'depreciation' => '5660', 'bank_charges' => '5690',
+        'disposal_gain' => '4460', 'disposal_loss' => '5815',
     ];
 
     /** What each system account is for, shown on the settings page. */
@@ -181,6 +191,8 @@ class DefaultChart
         'share_capital' => 'Share capital',
         'depreciation' => 'Depreciation',
         'bank_charges' => 'Bank charges',
+        'disposal_gain' => 'Profit on selling a fixed asset',
+        'disposal_loss' => 'Loss on selling or scrapping a fixed asset',
     ];
 
     public static function install(string $agencyId): int
@@ -205,6 +217,18 @@ class DefaultChart
         return $made;
     }
 
+    /** Make sure an account with this code exists (from the standard chart), and return it. */
+    public static function byCode(string $agencyId, string $code): Account
+    {
+        if ($found = Account::where('agency_id', $agencyId)->where('code', $code)->first()) {
+            return $found;
+        }
+        [$name, $subtype] = self::CHART[$code];
+
+        return Account::create(['agency_id' => $agencyId, 'code' => $code, 'name' => $name,
+            'type' => Account::SUBTYPES[$subtype][0], 'subtype' => $subtype, 'is_active' => true]);
+    }
+
     /** Make sure one system account exists (re-creating it under a free code if needed). */
     public static function ensure(string $agencyId, string $key): Account
     {
@@ -225,7 +249,7 @@ class DefaultChart
 
         return Account::create([
             'agency_id' => $agencyId, 'code' => $code, 'name' => $name,
-            'type' => Account::SUBTYPES[$subtype][0], 'subtype' => $subtype, 'system_key' => $key,
+            'type' => Account::SUBTYPES[$subtype][0], 'subtype' => $subtype, 'system_key' => $key, 'is_active' => true,
         ]);
     }
 }

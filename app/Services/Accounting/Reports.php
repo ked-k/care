@@ -153,7 +153,9 @@ class Reports
         $build = function (string $date) {
             $nets = $this->nets(null, $date);
             $year = $this->settings->yearFor($date);
-            $yearResult = $this->nets($year->starts_on->toDateString(), $date, true);
+            // Batch 44a: includes year-end journals, so a closed year shows its
+            // result already moved into retained earnings and reserves.
+            $yearResult = $this->nets($year->starts_on->toDateString(), $date);
 
             return [$nets, $yearResult];
         };

@@ -210,6 +210,7 @@ return [
         ['heading' => 'Bank & books'],
         ['label' => 'Bank & cash', 'icon' => 'ik ik-credit-card', 'route' => 'accounts.banking', 'active' => 'accounts/banking*'],
         ['label' => 'Money in / out', 'icon' => 'ik ik-repeat', 'route' => 'accounts.money', 'active' => 'accounts/money*|accounts/documents/new/money*'],
+        ['label' => 'Fixed assets', 'icon' => 'ik ik-box', 'route' => 'accounts.assets', 'active' => 'accounts/fixed-assets*'],
         ['label' => 'Journals', 'icon' => 'ik ik-book', 'route' => 'accounts.journals', 'active' => 'accounts/journals*'],
         ['label' => 'Chart of accounts', 'icon' => 'ik ik-list', 'route' => 'accounts.chart', 'active' => 'accounts/chart-of-accounts*'],
 
