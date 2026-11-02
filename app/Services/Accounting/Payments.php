@@ -30,7 +30,7 @@ class Payments
             throw new LedgerException(__('The amount must be more than zero.'));
         }
         if (empty($data['contact_id'])) {
-            throw new LedgerException($data['kind'] === 'receipt' ? __('Choose who paid you.') : __('Choose who you paid.'));
+            throw new LedgerException(in_array($data['kind'], ['receipt', 'refund_in'], true) ? __('Choose who paid you.') : __('Choose who you paid.'));
         }
         $allocations = array_filter(array_map(fn ($v) => round((float) $v, 2), $allocations), fn ($v) => $v > 0);
         if (round(array_sum($allocations), 2) > $amount + 0.004) {
@@ -42,11 +42,15 @@ class Payments
                 ->where('source_type', $data['source_type'])->where('source_id', $data['source_id'])->where('status', 'posted')->first())) {
                 return $existing;
             }
-            $receipt = $data['kind'] === 'receipt';
+            // Batch 44c: refunds — money back to a customer against a credit
+            // note, or from a supplier against their credit note.
+            $kind = in_array($data['kind'], array_keys(Payment::SETTLES), true) ? $data['kind'] : 'payment';
+            $moneyIn = in_array($kind, ['receipt', 'refund_in'], true);
+            $customer = in_array($kind, ['receipt', 'refund'], true);
             $payment = Payment::create([
                 'agency_id' => $agencyId,
-                'kind' => $data['kind'],
-                'number' => AccountingSetting::takeNumber($agencyId, $receipt ? 'receipt' : 'payment'),
+                'kind' => $kind,
+                'number' => AccountingSetting::takeNumber($agencyId, $kind),
                 'contact_id' => $data['contact_id'],
                 'bank_account_id' => $data['bank_account_id'],
                 'date' => $data['date'],
@@ -63,7 +67,7 @@ class Payments
 
             $journal = Ledger::post($agencyId, [
                 'date' => $payment->date,
-                'type' => $receipt ? 'receipt' : 'payment',
+                'type' => $kind,
                 'reference' => $payment->number.($payment->reference ? ' / '.$payment->reference : ''),
                 'memo' => $payment->kindLabel().' — '.$payment->contact->name,
                 'source_type' => 'payment',
@@ -73,9 +77,9 @@ class Payments
                 'system' => ! empty($data['source_type']),
             ], [
                 ['account' => $payment->bank_account_id, 'contact_id' => $payment->contact_id, 'description' => $payment->contact->name,
-                    $receipt ? 'debit' : 'credit' => $amount],
-                ['account' => $receipt ? 'receivables' : 'payables', 'contact_id' => $payment->contact_id, 'description' => $payment->number,
-                    $receipt ? 'credit' : 'debit' => $amount],
+                    $moneyIn ? 'debit' : 'credit' => $amount],
+                ['account' => $customer ? 'receivables' : 'payables', 'contact_id' => $payment->contact_id, 'description' => $payment->number,
+                    $moneyIn ? 'credit' : 'debit' => $amount],
             ]);
             $payment->update(['journal_id' => $journal->id]);
 
@@ -92,9 +96,9 @@ class Payments
     {
         return DB::transaction(function () use ($payment, $doc, $amount) {
             $doc = Document::lockForUpdate()->findOrFail($doc->id);
-            $expected = $payment->kind === 'receipt' ? 'invoice' : 'bill';
+            $expected = $payment->settlesKind();
             if ($doc->kind !== $expected || $doc->contact_id !== $payment->contact_id || $doc->agency_id !== $payment->agency_id) {
-                throw new LedgerException(__(':n isn’t an open :k for this contact.', ['n' => $doc->number, 'k' => $expected === 'invoice' ? __('invoice') : __('bill')]));
+                throw new LedgerException(__(':n isn’t an open :k for this contact.', ['n' => $doc->number, 'k' => mb_strtolower(__(Document::KINDS[$expected][0]))]));
             }
             if (! $doc->isOpen()) {
                 throw new LedgerException(__(':n is not open for payment.', ['n' => $doc->number]));

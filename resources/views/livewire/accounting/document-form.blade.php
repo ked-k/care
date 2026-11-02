@@ -1,12 +1,13 @@
 <div>
     @php
-        $back = match ($kind) { 'bill' => route('accounts.bills'), 'invoice' => route('accounts.invoices'), default => route('accounts.money') };
-        $listName = match ($kind) { 'bill' => 'Supplier bills', 'invoice' => 'Sales invoices', default => 'Money in / out' };
-        $whoLabel = match ($kind) { 'invoice' => __('Customer'), 'bill' => __('Supplier'), 'money_in' => __('Received from'), default => __('Paid to') };
+        $back = match ($kind) { 'bill' => route('accounts.bills'), 'invoice' => route('accounts.invoices'), 'credit_note' => route('accounts.credit-notes'), 'bill_credit' => route('accounts.supplier-credits'), default => route('accounts.money') };
+        $listName = match ($kind) { 'bill' => 'Supplier bills', 'invoice' => 'Sales invoices', 'credit_note' => 'Credit notes', 'bill_credit' => 'Supplier credit notes', default => 'Money in / out' };
+        $whoLabel = match ($kind) { 'invoice', 'credit_note' => __('Customer'), 'bill', 'bill_credit' => __('Supplier'), 'money_in' => __('Received from'), default => __('Paid to') };
+        $customerSide = in_array($kind, ['invoice', 'money_in', 'credit_note']);
         $decimals = (int) $cur->currency_decimals;
     @endphp
     <x-page-header :title="($documentId ? __('Edit draft :n', ['n' => $number]) : __('New :k', ['k' => mb_strtolower(__($label))]))"
-                   :subtitle="($money ? ($kind === 'money_out' ? __('Money that has already left a bank or cash account — an expense, a purchase, a fee') : __('Money that has already come in — a grant, a refund, interest, a cash sale')) : __('Number :n', ['n' => $number]))"
+                   :subtitle="($money ? ($kind === 'money_out' ? __('Money that has already left a bank or cash account — an expense, a purchase, a fee') : __('Money that has already come in — a grant, a refund, interest, a cash sale')) : ($credit ? __('Number :n — reduces what the :w owes, or what you owe them', ['n' => $number, 'w' => $customerSide ? __('customer') : __('supplier')]) : __('Number :n', ['n' => $number])))"
                    :icon="(\App\Models\Accounting\Document::KINDS[$kind][2])"
                    :breadcrumbs="['Finance' => route('accounts.dashboard'), $listName => $back, ($documentId ? $number : __('New')) => null]" />
 
@@ -26,6 +27,9 @@
           }">
         <div class="grid grid-cols-1 gap-6 xl:grid-cols-4">
             <div class="space-y-6 xl:col-span-3">
+                @if ($credited)
+                    <x-alert type="info">{{ __('Credits :k :n (:t). Lines were copied from it — change the quantities or prices for a part credit.', ['k' => mb_strtolower($credited->kindLabel()), 'n' => $credited->number, 't' => $cur->money($credited->total)]) }}</x-alert>
+                @endif
                 <x-card>
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                         <div class="lg:col-span-2">
@@ -53,11 +57,11 @@
                             </div>
                         @endif
                         <x-form.input type="date" name="form.issue_date" :label="($money ? __('Date') : __('Issue date'))" wire:model="form.issue_date" required />
-                        @unless ($money)
+                        @unless ($money || $credit)
                             <x-form.input type="date" name="form.due_date" :label="(__('Due date'))" wire:model="form.due_date" />
                         @endunless
-                        <div class="{{ $money ? 'lg:col-span-3' : 'lg:col-span-2' }}">
-                            <x-form.input name="form.reference" :label="($kind === 'bill' ? __('Supplier’s invoice number') : __('Reference'))" wire:model="form.reference"
+                        <div class="{{ $money || $credit ? 'lg:col-span-3' : 'lg:col-span-2' }}">
+                            <x-form.input name="form.reference" :label="($kind === 'bill' ? __('Supplier’s invoice number') : ($kind === 'bill_credit' ? __('Supplier’s credit note number') : __('Reference')))" wire:model="form.reference"
                                           :placeholder="($kind === 'invoice' ? __('PO number, local authority ref…') : '')" />
                         </div>
                     </div>
@@ -141,14 +145,14 @@
                         <x-button variant="ghost" class="w-full justify-center" :href="($documentId ? route('accounts.documents.show', $documentId) : $back)" wire:navigate>{{ __('Cancel') }}</x-button>
                     </div>
                     <p class="mt-4 text-xs leading-relaxed text-gray-400">
-                        {{ $money ? __('Posting puts it straight into the books and the bank account’s balance.') : __('Approving posts it to the books and it can then be paid. After that it can’t be edited — only voided and replaced.') }}
+                        {{ $money ? __('Posting puts it straight into the books and the bank account’s balance.') : ($credit ? __('Approving posts it to the books. If it was raised against an open invoice or bill it is used against it straight away; otherwise it can be used against another one or refunded.') : __('Approving posts it to the books and it can then be paid. After that it can’t be edited — only voided and replaced.')) }}
                     </p>
                 </x-card>
             </div>
         </div>
     </form>
 
-    <x-modal name="new-contact" :title="(in_array($kind, ['invoice', 'money_in']) ? __('New customer') : __('New supplier'))">
+    <x-modal name="new-contact" :title="($customerSide ? __('New customer') : __('New supplier'))">
         <form wire:submit="addContact" class="space-y-4">
             <x-form.input name="newContact.name" :label="(__('Name'))" wire:model="newContact.name" required />
             <x-form.input type="email" name="newContact.email" :label="(__('Email'))" wire:model="newContact.email" />

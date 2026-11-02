@@ -1,7 +1,10 @@
 <div>
     @php
-        $listRoute = match ($doc->kind) { 'bill' => 'accounts.bills', 'invoice' => 'accounts.invoices', default => 'accounts.money' };
-        $listName = match ($doc->kind) { 'bill' => 'Supplier bills', 'invoice' => 'Sales invoices', default => 'Money in / out' };
+        $listRoute = $doc->listRoute();
+        $listName = $doc->kind === 'money_in' || $doc->kind === 'money_out' ? 'Money in / out' : \App\Models\Accounting\Document::KINDS[$doc->kind][1];
+        $isCredit = $doc->isCredit();
+        $customer = $doc->isCustomerSide();
+        $payLabel = match ($doc->kind) { 'invoice' => __('Receive payment'), 'bill' => __('Pay bill'), 'credit_note' => __('Refund customer'), default => __('Refund received') };
         $agency = auth()->user()->agency;
     @endphp
     <x-page-header :title="($doc->kindLabel()).' '.($doc->number)" :subtitle="($doc->contact?->name ?? ($doc->bankAccount?->name ?? ''))"
@@ -12,7 +15,10 @@
             <x-button variant="secondary" :href="(route('accounts.documents.edit', $doc->id))" wire:navigate><i class="ik ik-edit-2"></i>{{ __('Edit') }}</x-button>
             <x-button wire:click="approve" wire:confirm="{{ __('Approve and post :n? It can’t be edited afterwards.', ['n' => $doc->number]) }}"><i class="ik ik-check"></i>{{ __('Approve') }}</x-button>
         @elseif ($doc->isOpen())
-            <x-button @click="$dispatch('open-drawer', 'pay-form')"><i class="ik ik-{{ $doc->kind === 'invoice' ? 'download' : 'upload' }}"></i>{{ $doc->kind === 'invoice' ? __('Receive payment') : __('Pay bill') }}</x-button>
+            <x-button :variant="($isCredit ? 'secondary' : 'primary')" @click="$dispatch('open-drawer', 'pay-form')"><i class="ik ik-{{ in_array($doc->kind, ['invoice', 'bill_credit']) ? 'download' : 'upload' }}"></i>{{ $payLabel }}</x-button>
+        @endif
+        @if ($canCredit)
+            <x-button variant="secondary" wire:click="raiseCredit"><i class="ik ik-corner-up-left"></i>{{ $customer ? __('Credit note') : __('Supplier credit') }}</x-button>
         @endif
         <x-dropdown>
             <x-slot:trigger><x-button variant="secondary"><i class="ik ik-more-horizontal"></i></x-button></x-slot:trigger>
@@ -51,6 +57,30 @@
             <x-button size="sm" variant="secondary" wire:click="applyCredit">{{ __('Use it on this :k', ['k' => $doc->kind === 'invoice' ? __('invoice') : __('bill')]) }}</x-button>
         </div>
     @endif
+    {{-- Batch 44c: open credit notes that could settle this invoice / bill --}}
+    @foreach ($openCredits as $oc)
+        <div class="mb-4 flex flex-col gap-2 rounded-lg border border-green-200 bg-green-500/10 px-4 py-3 text-sm text-green-700 sm:flex-row sm:items-center sm:justify-between" wire:key="oc-{{ $oc->id }}">
+            <span><i class="ik ik-corner-up-left mr-1"></i>{{ __(':c has :a of credit left.', ['c' => $oc->number, 'a' => $cur->money($oc->balance())]) }}</span>
+            <x-button size="sm" variant="secondary" wire:click="useCredit('{{ $oc->id }}')">{{ __('Use it on this :k', ['k' => $doc->kind === 'invoice' ? __('invoice') : __('bill')]) }}</x-button>
+        </div>
+    @endforeach
+    @if ($isCredit && $doc->isOpen())
+        <x-card class="mb-4" :title="(__('Use this credit'))">
+            @if ($openTargets->isEmpty())
+                <p class="text-sm text-gray-500">{{ __(':n has no open :k right now. Keep the credit for a later one, or refund it.', ['n' => $doc->contact?->name, 'k' => $customer ? __('invoices') : __('bills')]) }}</p>
+            @else
+                <div class="divide-y divide-gray-50">
+                    @foreach ($openTargets as $t)
+                        <div class="flex items-center justify-between py-2 text-sm" wire:key="t-{{ $t->id }}">
+                            <span><a href="{{ route('accounts.documents.show', $t->id) }}" wire:navigate class="font-medium text-gray-700 hover:text-primary-600">{{ $t->number }}</a>
+                                <span class="ml-2 text-xs text-gray-400">{{ $t->issue_date->format('d M Y') }} · {{ __('balance :b', ['b' => $cur->money($t->balance())]) }}</span></span>
+                            <x-button size="sm" variant="secondary" wire:click="applyTo('{{ $t->id }}')">{{ __('Use :a', ['a' => $cur->money(min($t->balance(), $doc->balance()))]) }}</x-button>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </x-card>
+    @endif
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div class="xl:col-span-2">
@@ -70,13 +100,14 @@
                             <dt class="text-gray-400">{{ $doc->isOnAccount() ? __('Issued') : __('Date') }}</dt><dd class="text-right font-medium">{{ $doc->issue_date->format('d M Y') }}</dd>
                             @if ($doc->due_date)<dt class="text-gray-400">{{ __('Due') }}</dt><dd @class(['text-right font-medium', 'text-accent-600' => $doc->isOverdue()])>{{ $doc->due_date->format('d M Y') }}</dd>@endif
                             @if ($doc->reference)<dt class="text-gray-400">{{ __('Reference') }}</dt><dd class="text-right font-medium">{{ $doc->reference }}</dd>@endif
+                            @if ($doc->credited)<dt class="text-gray-400">{{ __('Credits') }}</dt><dd class="text-right font-medium"><a href="{{ route('accounts.documents.show', $doc->credited_document_id) }}" wire:navigate class="text-primary-600 hover:underline">{{ $doc->credited->number }}</a></dd>@endif
                             @if ($doc->bankAccount)<dt class="text-gray-400">{{ $doc->kind === 'money_out' ? __('Paid from') : __('Paid into') }}</dt><dd class="text-right font-medium">{{ $doc->bankAccount->name }}</dd>@endif
                         </dl>
                     </div>
 
                     @if ($doc->contact)
                         <div class="border-b border-gray-200 py-5">
-                            <p class="mb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">{{ match ($doc->kind) { 'invoice' => __('Bill to'), 'bill' => __('From'), 'money_in' => __('Received from'), default => __('Paid to') } }}</p>
+                            <p class="mb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">{{ match ($doc->kind) { 'invoice' => __('Bill to'), 'credit_note' => __('Credit to'), 'bill', 'bill_credit' => __('From'), 'money_in' => __('Received from'), default => __('Paid to') } }}</p>
                             <p class="font-semibold">{{ $doc->contact->name }}</p>
                             @if ($doc->contact->address)<p class="whitespace-pre-line text-sm text-gray-500">{{ $doc->contact->address }}</p>@endif
                             @if ($doc->contact->email)<p class="text-sm text-gray-500">{{ $doc->contact->email }}</p>@endif
@@ -116,8 +147,8 @@
                             <div class="flex justify-between text-gray-500"><dt>{{ __('VAT') }}</dt><dd>{{ $cur->money($doc->vat_total) }}</dd></div>
                             <div class="flex justify-between border-t border-gray-200 pt-2 text-base font-bold"><dt>{{ __('Total') }}</dt><dd>{{ $cur->money($doc->total) }}</dd></div>
                             @if ($doc->isOnAccount() && ! $doc->isDraft() && $doc->status !== 'void')
-                                <div class="flex justify-between text-gray-500"><dt>{{ __('Paid') }}</dt><dd>{{ $cur->money($doc->amount_paid) }}</dd></div>
-                                <div class="flex justify-between rounded bg-gray-50 px-2 py-1.5 font-semibold"><dt>{{ __('Balance due') }}</dt><dd>{{ $cur->money($doc->balance()) }}</dd></div>
+                                <div class="flex justify-between text-gray-500"><dt>{{ $isCredit ? __('Used / refunded') : __('Paid and credited') }}</dt><dd>{{ $cur->money($doc->amount_paid) }}</dd></div>
+                                <div class="flex justify-between rounded bg-gray-50 px-2 py-1.5 font-semibold"><dt>{{ $isCredit ? __('Credit left') : __('Balance due') }}</dt><dd>{{ $cur->money($doc->balance()) }}</dd></div>
                             @endif
                         </dl>
                     </div>
@@ -130,7 +161,28 @@
 
         <div class="space-y-6">
             @if ($doc->isOnAccount())
-                <x-card no-padding :title="($doc->kind === 'invoice' ? __('Payments received') : __('Payments made'))">
+                @if ($creditLinks->isNotEmpty() || $creditNotes->isNotEmpty())
+                    <x-card no-padding :title="($isCredit ? __('Used against') : __('Credit notes'))">
+                        <div class="divide-y divide-gray-50">
+                            @foreach ($creditLinks as $cl)
+                                @php $other = $isCredit ? $cl->document : $cl->creditNote; @endphp
+                                <div class="flex items-center justify-between px-5 py-3 text-sm" wire:key="cl-{{ $cl->id }}">
+                                    <span><a href="{{ route('accounts.documents.show', $other->id) }}" wire:navigate class="font-medium text-gray-700 hover:text-primary-600">{{ $other->number }}</a>
+                                        <span class="block text-xs text-gray-400">{{ $cl->date->format('d M Y') }} ·
+                                            <button type="button" wire:click="unapply('{{ $cl->id }}')" wire:confirm="{{ __('Take this credit off? Both documents will be open again.') }}" class="hover:underline">{{ __('undo') }}</button></span></span>
+                                    <span class="font-semibold text-gray-700">{{ $cur->money($cl->amount) }}</span>
+                                </div>
+                            @endforeach
+                            @foreach ($creditNotes->reject(fn ($cn) => $creditLinks->contains('credit_note_id', $cn->id)) as $cn)
+                                <a href="{{ route('accounts.documents.show', $cn->id) }}" wire:navigate class="flex items-center justify-between px-5 py-3 text-sm hover:bg-gray-50" wire:key="cn-{{ $cn->id }}">
+                                    <span><span class="font-medium text-gray-700">{{ $cn->number }}</span><span class="block text-xs text-gray-400">{{ $cn->issue_date->format('d M Y') }} · {{ $cn->statusLabel() }}</span></span>
+                                    <span class="font-semibold text-gray-700">{{ $cur->money($cn->total) }}</span>
+                                </a>
+                            @endforeach
+                        </div>
+                    </x-card>
+                @endif
+                <x-card no-padding :title="($isCredit ? __('Refunds') : ($customer ? __('Payments received') : __('Payments made')))">
                     <div class="divide-y divide-gray-50">
                         @forelse ($allocations as $a)
                             <a href="{{ route('accounts.payments.show', $a->payment_id) }}" wire:navigate class="flex items-center justify-between px-5 py-3 text-sm hover:bg-gray-50">
@@ -156,12 +208,12 @@
         </div>
     </div>
 
-    <x-drawer name="pay-form" :title="($doc->kind === 'invoice' ? __('Receive payment') : __('Pay bill'))" width="w-[28rem]">
+    <x-drawer name="pay-form" :title="($payLabel)" width="w-[28rem]">
         <form wire:submit="recordPayment" id="pay-form" class="space-y-4">
             <p class="text-sm text-gray-500">{{ $doc->number }} · {{ $doc->contact?->name }} · {{ __('balance :b', ['b' => $cur->money($doc->balance())]) }}</p>
             <x-form.input type="number" step="0.01" name="pay.amount" :label="(__('Amount'))" wire:model="pay.amount" required />
             <x-form.input type="date" name="pay.date" :label="(__('Date'))" wire:model="pay.date" required />
-            <x-form.select name="pay.bank_account_id" :label="($doc->kind === 'invoice' ? __('Paid into') : __('Paid from'))" wire:model="pay.bank_account_id" required>
+            <x-form.select name="pay.bank_account_id" :label="(in_array($doc->kind, ['invoice', 'bill_credit']) ? __('Paid into') : __('Paid from'))" wire:model="pay.bank_account_id" required>
                 @foreach ($banks as $b)<option value="{{ $b->id }}">{{ $b->name }}</option>@endforeach
             </x-form.select>
             <x-form.select name="pay.method" :label="(__('How'))" wire:model="pay.method">
@@ -177,7 +229,7 @@
 
     <x-modal name="void-doc" :title="(__('Void :n', ['n' => $doc->number]))">
         <form wire:submit="void" class="space-y-4">
-            <p class="text-sm text-gray-600">{{ __('Voiding posts a reversing journal, so the books show both the original and its cancellation. Any payments matched to it stay on the account as credit.') }}</p>
+            <p class="text-sm text-gray-600">{{ $isCredit ? __('Voiding posts a reversing journal. Wherever this credit was used, those invoices become due again; any refund matched to it stays on the account.') : __('Voiding posts a reversing journal, so the books show both the original and its cancellation. Any payments matched to it stay on the account as credit, and credit notes used on it can be used again.') }}</p>
             <x-form.textarea name="voidReason" :label="(__('Reason'))" wire:model="voidReason" rows="2" required />
             <div class="flex justify-end gap-2">
                 <x-button variant="ghost" @click="$dispatch('close-modal', 'void-doc')">{{ __('Cancel') }}</x-button>

@@ -34,6 +34,9 @@ class Payment extends Model
         'other' => 'Other',
     ];
 
+    /** Batch 44c: which kind of document each kind of payment is matched to. */
+    public const SETTLES = ['receipt' => 'invoice', 'payment' => 'bill', 'refund' => 'credit_note', 'refund_in' => 'bill_credit'];
+
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
@@ -76,7 +79,24 @@ class Payment extends Model
 
     public function kindLabel(): string
     {
-        return $this->kind === 'receipt' ? __('Customer receipt') : __('Supplier payment');
+        return match ($this->kind) {
+            'receipt' => __('Customer receipt'),
+            'refund' => __('Refund to customer'),
+            'refund_in' => __('Refund from supplier'),
+            default => __('Supplier payment'),
+        };
+    }
+
+    /** Batch 44c: true when the money came into the bank (receipts, supplier refunds). */
+    public function isMoneyIn(): bool
+    {
+        return in_array($this->kind, ['receipt', 'refund_in'], true);
+    }
+
+    /** Batch 44c: the document kind this payment settles. */
+    public function settlesKind(): string
+    {
+        return Payment::SETTLES[$this->kind] ?? 'invoice';
     }
 
     public function methodLabel(): string

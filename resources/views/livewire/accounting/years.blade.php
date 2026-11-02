@@ -8,11 +8,11 @@
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div class="xl:col-span-2">
             <x-card no-padding>
+                <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-gray-400">
                             <th class="px-5 py-3 font-medium">{{ __('Year') }}</th>
-                            <th class="px-5 py-3 font-medium">{{ __('Dates') }}</th>
                             <th class="px-5 py-3 text-right font-medium">{{ __('Entries') }}</th>
                             <th class="px-5 py-3 text-right font-medium">{{ $cur->term('result_short') }}</th>
                             <th class="px-5 py-3 font-medium">{{ __('Status') }}</th>
@@ -22,8 +22,10 @@
                     <tbody class="divide-y divide-gray-50">
                         @foreach ($years as $y)
                             <tr wire:key="fy-{{ $y->id }}">
-                                <td class="px-5 py-3 font-medium text-gray-700">{{ $y->name }}@if ($y->contains(today()))<x-badge color="primary" class="ml-2">{{ __('Current') }}</x-badge>@endif</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500">{{ $y->starts_on->format('d M Y') }} – {{ $y->ends_on->format('d M Y') }}</td>
+                                <td class="px-5 py-3">
+                                    <span class="whitespace-nowrap font-medium text-gray-700">{{ $y->name }}</span>@if ($y->contains(today()))<x-badge color="primary" class="ml-2">{{ __('Current') }}</x-badge>@endif
+                                    <span class="block whitespace-nowrap text-xs text-gray-400">{{ $y->starts_on->format('d M Y') }} – {{ $y->ends_on->format('d M Y') }}</span>
+                                </td>
                                 <td class="px-5 py-3 text-right text-gray-600">{{ $y->journal_count }}</td>
                                 <td @class(['whitespace-nowrap px-5 py-3 text-right font-medium', 'text-accent-600' => $y->result < 0, 'text-gray-700' => $y->result >= 0])>{{ $cur->money($y->result) }}</td>
                                 <td class="px-5 py-3">
@@ -31,18 +33,21 @@
                                     @if ($y->closed_at)<span class="block text-xs text-gray-400">{{ $y->closed_at->format('d M Y') }}</span>@endif
                                 </td>
                                 <td class="whitespace-nowrap px-5 py-3 text-right text-sm">
-                                    <a href="{{ route('accounts.reports.show', ['report' => 'income-statement', 'year' => $y->id]) }}" wire:navigate class="text-primary-600 hover:underline">{{ __('Statements') }}</a>
-                                    <a href="{{ route('accounts.audit-pack', $y->id) }}" target="_blank" class="ml-3 text-primary-600 hover:underline">{{ __('Audit pack') }}</a>
-                                    @if ($y->isClosed())
-                                        <button type="button" wire:click="askReopen('{{ $y->id }}')" class="ml-3 text-gray-500 hover:underline">{{ __('Re-open') }}</button>
-                                    @elseif (! $y->ends_on->isFuture())
-                                        <a href="{{ route('accounts.years.close', $y->id) }}" wire:navigate class="ml-3 font-medium text-primary-600 hover:underline">{{ __('Close year') }}</a>
-                                    @endif
+                                    <div class="flex flex-col items-end gap-1">
+                                        <a href="{{ route('accounts.reports.show', ['report' => 'income-statement', 'year' => $y->id]) }}" wire:navigate class="text-primary-600 hover:underline">{{ __('Statements') }}</a>
+                                        <a href="{{ route('accounts.audit-pack', $y->id) }}" target="_blank" class="text-primary-600 hover:underline">{{ __('Audit pack') }}</a>
+                                        @if ($y->isClosed())
+                                            <button type="button" wire:click="askReopen('{{ $y->id }}')" class="text-gray-500 hover:underline">{{ __('Re-open') }}</button>
+                                        @elseif (! $y->ends_on->isFuture())
+                                            <a href="{{ route('accounts.years.close', $y->id) }}" wire:navigate class="font-medium text-primary-600 hover:underline">{{ __('Close year') }}</a>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
+                </div>
             </x-card>
             <p class="mt-3 text-xs text-gray-400">{{ __('Closing a year moves its result into retained earnings and reserves (the appropriations in Settings) and locks it. The statements for the year still show the full figures.') }}</p>
         </div>

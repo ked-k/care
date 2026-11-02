@@ -20,7 +20,7 @@ class AccountingSetting extends Model
 {
     use HasUuids, Concerns\PlainDates;
 
-    protected array $plainDates = ['lock_date', 'posting_from'];
+    protected array $plainDates = ['lock_date', 'posting_from', 'vat_start_date'];
 
     protected $table = 'acc_settings';
 
@@ -29,11 +29,13 @@ class AccountingSetting extends Model
         'currency_code', 'currency_symbol', 'currency_decimals', 'fy_start_month', 'fy_start_day',
         'lock_date', 'posting_from', 'vat_registered', 'default_vat_rate', 'payment_terms_days',
         'numbering', 'auto_post', 'accounts', 'appropriations', 'invoice_footer',
+        'vat_period_months', 'vat_period_end_month', 'vat_start_date',
     ];
 
     protected $casts = [
         'lock_date' => 'date',
         'posting_from' => 'date',
+        'vat_start_date' => 'date',
         'vat_registered' => 'boolean',
         'default_vat_rate' => 'decimal:2',
         'numbering' => 'array',
@@ -57,6 +59,11 @@ class AccountingSetting extends Model
         'money_out' => ['MO-', 1],
         'receipt' => ['RCT-', 1],
         'payment' => ['PAY-', 1],
+        // Batch 44c
+        'credit_note' => ['CN-', 1],
+        'bill_credit' => ['SCN-', 1],
+        'refund' => ['RFD-', 1],
+        'refund_in' => ['RFI-', 1],
     ];
 
     public const AUTO_POST_DEFAULTS = [

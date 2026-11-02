@@ -32,6 +32,8 @@ class DocumentIndexComponent extends AccountsComponent
         $this->list = match (Route::currentRouteName()) {
             'accounts.bills' => 'bill',
             'accounts.money' => 'money',
+            'accounts.credit-notes' => 'credit_note',
+            'accounts.supplier-credits' => 'bill_credit',
             default => 'invoice',
         };
     }
@@ -67,11 +69,13 @@ class DocumentIndexComponent extends AccountsComponent
         $title = match ($this->list) {
             'bill' => __('Supplier bills'),
             'money' => __('Money in / out'),
+            'credit_note' => __('Credit notes'),
+            'bill_credit' => __('Supplier credit notes'),
             default => __('Sales invoices'),
         };
 
         return $this->page('livewire.accounting.documents', [
-            'docs' => $this->query()->with('contact:id,name', 'bankAccount:id,name')->orderByDesc('issue_date')->orderByDesc('number')->paginate(25),
+            'docs' => $this->query()->with('contact:id,name', 'bankAccount:id,name', 'credited:id,number')->orderByDesc('issue_date')->orderByDesc('number')->paginate(25),
             'title' => $title,
             'totals' => [
                 'open' => (float) (clone $base)->whereIn('status', ['posted', 'partial'])->sum(DB::raw('total - amount_paid')),

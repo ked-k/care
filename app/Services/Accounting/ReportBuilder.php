@@ -19,6 +19,7 @@ class ReportBuilder
         'balance-sheet' => ['balance_sheet', 'What the organisation owns and owes on a date, with last year alongside', 'ik ik-layers'],
         'cash-flow' => ['Statement of cash flows', 'Where the cash came from and went to, with last year alongside', 'ik ik-activity'],
         'changes-in-equity' => ['Statement of changes in equity', 'How share capital, reserves and retained earnings moved over the year', 'ik ik-pie-chart'],
+        'budget-vs-actual' => ['Budget vs actual', 'How income and spending compare with the budget, account by account', 'ik ik-target'],
         'trial-balance' => ['Trial balance', 'Every account’s balance on a date — debits must equal credits', 'ik ik-check-square'],
         'ledger' => ['General ledger', 'Every entry on one account, with a running balance', 'ik ik-book-open'],
         'aged-receivables' => ['Aged debtors', 'Who owes you, and how overdue it is', 'ik ik-download'],
@@ -51,6 +52,7 @@ class ReportBuilder
             'as_at' => $in['as_at'] ?? null ?: $yearEnd->toDateString(),
             'compare' => array_key_exists('compare', $in) ? filter_var($in['compare'], FILTER_VALIDATE_BOOLEAN) : true,
             'account' => $in['account'] ?? null ?: $s->account('bank')->id,
+            'budget' => $in['budget'] ?? null ?: null,
         ];
         if (! empty($in['year']) && empty($in['from'])) {
             $p['from'] = $year->starts_on->toDateString();
@@ -130,6 +132,41 @@ class ReportBuilder
                     $csv[] = $line($label, $data['rows'][$k]);
                 }
                 $csv[] = $line(__('At the end'), $data['end']);
+                break;
+            case 'budget-vs-actual':
+                $year = FinancialYear::where('agency_id', $s->agency_id)->findOrFail($p['year']);
+                $budgets = new Budgets($s);
+                $budget = $p['budget'] ? \App\Models\Accounting\Budget::where('agency_id', $s->agency_id)->where('financial_year_id', $year->id)->find($p['budget']) : null;
+                $budget ??= $budgets->defaultFor($year);
+                $p['budget'] = $budget?->id;
+                $monthIndex = function ($date) use ($year) {
+                    $d = Carbon::parse($date)->startOfMonth();
+                    $start = $year->starts_on->copy()->startOfMonth();
+
+                    return max(0, min(11, ($d->year - $start->year) * 12 + $d->month - $start->month));
+                };
+                $fromM = $monthIndex($p['from']);
+                $toM = max($fromM, $monthIndex($p['to']));
+                // Whole months only.
+                $months = Budgets::months($year);
+                $p['from'] = $months[$fromM]->toDateString();
+                $p['to'] = $months[$toM]->copy()->endOfMonth()->toDateString();
+                $data = $budget ? $budgets->vsActual($budget, $fromM, $toM) : ['budget' => null, 'year' => $year];
+                $data['options'] = \App\Models\Accounting\Budget::where('agency_id', $s->agency_id)->where('financial_year_id', $year->id)->orderByDesc('is_primary')->orderBy('name')->get(['id', 'name', 'is_primary']);
+                $subtitle = ($budget ? $budget->name.' · ' : '').__(':a to :b', ['a' => $months[$fromM]->format('M Y'), 'b' => $months[$toM]->format('M Y')]);
+                $csv = [[__('Code'), __('Account'), __('Budget'), __('Actual'), __('Variance'), __('Variance %'), __('Full-year budget')]];
+                if ($budget) {
+                    foreach (['income' => $s->term('income'), 'expense' => $s->term('expenses')] as $t => $label) {
+                        $csv[] = ['', $label, '', '', '', '', ''];
+                        foreach ($data['sections'][$t] as $r) {
+                            $csv[] = [$r['account']->code, $r['account']->name, $r['budget'], $r['actual'], $r['variance'], $r['pct'], $r['year']];
+                        }
+                        $tt = $data['totals'][$t];
+                        $csv[] = ['', __('Total').' '.mb_strtolower($label), $tt['budget'], $tt['actual'], $tt['variance'], '', $tt['year']];
+                    }
+                    $r = $data['result'];
+                    $csv[] = ['', $s->term('result_short'), $r['budget'], $r['actual'], $r['variance'], '', $r['year']];
+                }
                 break;
             case 'fixed-assets':
                 $data = FixedAssets::schedule($s->agency_id, $p['from'], $p['to']);

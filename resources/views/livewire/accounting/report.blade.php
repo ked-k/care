@@ -1,7 +1,7 @@
 <div>
     @php
         $p = $rep['params'];
-        $period = in_array($report, ['income-statement', 'ledger', 'fixed-assets', 'cash-flow', 'changes-in-equity']);
+        $period = in_array($report, ['income-statement', 'ledger', 'fixed-assets', 'cash-flow', 'changes-in-equity', 'budget-vs-actual']);
         $asAtOnly = in_array($report, ['balance-sheet', 'trial-balance', 'aged-receivables', 'aged-payables']);
     @endphp
     <x-page-header :title="($rep['title'])" :subtitle="($rep['subtitle'])" :icon="(\App\Services\Accounting\ReportBuilder::REPORTS[$report][2])"
@@ -40,6 +40,14 @@
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-gray-500">{{ __('To') }}</label>
                     <input type="date" wire:model.live="to" class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 outline-none focus:border-primary-500">
+                </div>
+            @endif
+            @if ($report === 'budget-vs-actual' && ($rep['data']['options'] ?? collect())->isNotEmpty())
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-gray-500">{{ __('Budget') }}</label>
+                    <select wire:model.live="budget" class="rounded-lg border border-gray-200 bg-white py-2 pl-3 pr-9 text-sm text-gray-700 outline-none focus:border-primary-500">
+                        @foreach ($rep['data']['options'] as $b)<option value="{{ $b->id }}">{{ $b->name }}{{ $b->is_primary ? ' ★' : '' }}</option>@endforeach
+                    </select>
                 </div>
             @endif
             @if ($asAtOnly)

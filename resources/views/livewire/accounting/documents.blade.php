@@ -1,27 +1,42 @@
 <div>
     @php
         $isMoney = $list === 'money';
-        $who = $list === 'bill' ? __('Supplier') : ($isMoney ? __('Paid to / from') : __('Customer'));
+        $isCredit = in_array($list, ['credit_note', 'bill_credit']);
+        $supplier = in_array($list, ['bill', 'bill_credit']);
+        $who = $supplier ? __('Supplier') : ($isMoney ? __('Paid to / from') : __('Customer'));
+        $subtitle = match ($list) {
+            'invoice' => __('Invoices you send — care invoices appear here automatically once issued'),
+            'bill' => __('Bills from suppliers — shop deliveries appear here automatically'),
+            'credit_note' => __('Credit notes you give customers — raise one from the invoice it corrects'),
+            'bill_credit' => __('Credit notes suppliers give you — raise one from the bill it corrects'),
+            default => __('Spend or receive money straight through a bank or cash account'),
+        };
     @endphp
-    <x-page-header :title="($title)" :subtitle="($list === 'invoice' ? __('Invoices you send — care invoices appear here automatically once issued') : ($list === 'bill' ? __('Bills from suppliers — shop deliveries appear here automatically') : __('Spend or receive money straight through a bank or cash account')))"
-                   :icon="($list === 'bill' ? 'ik ik-file-minus' : ($isMoney ? 'ik ik-repeat' : 'ik ik-file-text'))"
+    <x-page-header :title="($title)" :subtitle="($subtitle)"
+                   :icon="(\App\Models\Accounting\Document::KINDS[$list][2] ?? ($isMoney ? 'ik ik-repeat' : 'ik ik-file-text'))"
                    :breadcrumbs="['Finance' => route('accounts.dashboard'), $title => null]">
         @if ($isMoney)
             <x-button variant="secondary" :href="(route('accounts.documents.create', 'money_in'))" wire:navigate><i class="ik ik-plus-circle"></i>{{ __('Receive money') }}</x-button>
             <x-button :href="(route('accounts.documents.create', 'money_out'))" wire:navigate><i class="ik ik-shopping-cart"></i>{{ __('Spend money') }}</x-button>
         @else
-            <x-button :href="(route('accounts.documents.create', $list))" wire:navigate><i class="ik ik-plus"></i>{{ $list === 'bill' ? __('New bill') : __('New invoice') }}</x-button>
+            <x-button :href="(route('accounts.documents.create', $list))" wire:navigate><i class="ik ik-plus"></i>{{ match ($list) { 'bill' => __('New bill'), 'credit_note' => __('New credit note'), 'bill_credit' => __('New supplier credit'), default => __('New invoice') } }}</x-button>
         @endif
     </x-page-header>
 
-    @unless ($isMoney)
+    @if ($isCredit)
+        <div class="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-3">
+            <x-stat-card :value="($cur->money($totals['open']))" :label="($supplier ? __('Credit still to use') : __('Credit customers still have'))" icon="ik ik-clock" color="primary" />
+            <x-stat-card :value="($cur->money($totals['month']))" :label="(__('Credited this month'))" icon="ik ik-calendar" color="green" />
+            <x-stat-card :value="($totals['drafts'])" :label="(__('Drafts'))" icon="ik ik-edit-2" color="amber" />
+        </div>
+    @elseif (! $isMoney)
         <div class="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
             <x-stat-card :value="($cur->money($totals['open']))" :label="($list === 'bill' ? __('Still to pay') : __('Still to collect'))" icon="ik ik-clock" color="primary" />
             <x-stat-card :value="($cur->money($totals['overdue']))" :label="(__('Overdue'))" icon="ik ik-alert-circle" color="accent" />
             <x-stat-card :value="($cur->money($totals['month']))" :label="($list === 'bill' ? __('Billed this month') : __('Invoiced this month'))" icon="ik ik-calendar" color="green" />
             <x-stat-card :value="($totals['drafts'])" :label="(__('Drafts'))" icon="ik ik-edit-2" color="amber" />
         </div>
-    @endunless
+    @endif
 
     <x-card no-padding>
         <div class="flex flex-col gap-3 border-b border-gray-100 p-4 lg:flex-row lg:items-center">
@@ -35,6 +50,10 @@
                 @if ($isMoney)
                     <option value="money_in">{{ __('Money in') }}</option>
                     <option value="money_out">{{ __('Money out') }}</option>
+                @elseif ($isCredit)
+                    <option value="open">{{ __('Not fully used') }}</option>
+                    <option value="paid">{{ __('Used') }}</option>
+                    <option value="draft">{{ __('Draft') }}</option>
                 @else
                     <option value="open">{{ __('Unpaid') }}</option>
                     <option value="overdue">{{ __('Overdue') }}</option>
@@ -58,7 +77,7 @@
                         <th class="px-5 py-3 font-medium">{{ __('Number') }}</th>
                         <th class="px-5 py-3 font-medium">{{ __('Date') }}</th>
                         <th class="px-5 py-3 font-medium">{{ $who }}</th>
-                        <th class="px-5 py-3 font-medium">{{ $isMoney ? __('Account') : __('Due') }}</th>
+                        <th class="px-5 py-3 font-medium">{{ $isMoney ? __('Account') : ($isCredit ? __('Credits') : __('Due')) }}</th>
                         <th class="px-5 py-3 text-right font-medium">{{ __('Total') }}</th>
                         @unless ($isMoney)<th class="px-5 py-3 text-right font-medium">{{ __('Balance') }}</th>@endunless
                         <th class="px-5 py-3 font-medium">{{ __('Status') }}</th>
@@ -78,13 +97,13 @@
                                 @if ($isMoney)<span class="block text-xs text-gray-400">{{ $d->kindLabel() }}</span>@endif
                             </td>
                             <td @class(['whitespace-nowrap px-5 py-3', 'text-accent-600 font-medium' => $d->isOverdue(), 'text-gray-500' => ! $d->isOverdue()])>
-                                {{ $isMoney ? ($d->bankAccount?->name ?? '—') : ($d->due_date?->format('d M Y') ?? '—') }}
+                                {{ $isMoney ? ($d->bankAccount?->name ?? '—') : ($isCredit ? ($d->credited?->number ?? '—') : ($d->due_date?->format('d M Y') ?? '—')) }}
                             </td>
                             <td @class(['whitespace-nowrap px-5 py-3 text-right font-semibold', 'text-gray-400 line-through' => $d->status === 'void', 'text-gray-700' => $d->status !== 'void'])>
                                 {{ $isMoney && $d->kind === 'money_out' ? '−' : '' }}{{ $cur->money($d->total) }}
                             </td>
                             @unless ($isMoney)
-                                <td class="whitespace-nowrap px-5 py-3 text-right text-gray-600">{{ $d->isOpen() ? $cur->money($d->balance()) : '—' }}</td>
+                                <td class="whitespace-nowrap px-5 py-3 text-right text-gray-600" @if ($isCredit) title="{{ __('Credit left to use') }}" @endif>{{ $d->isOpen() ? $cur->money($d->balance()) : '—' }}</td>
                             @endunless
                             <td class="px-5 py-3"><x-badge :color="($d->statusColor())">{{ $d->statusLabel() }}</x-badge></td>
                         </tr>

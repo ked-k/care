@@ -3,6 +3,7 @@
 namespace App\Services\Accounting;
 
 use App\Models\Accounting\AccountingSetting;
+use App\Models\Accounting\CreditAllocation;
 use App\Models\Accounting\Document;
 use Illuminate\Support\Facades\DB;
 
@@ -95,13 +96,15 @@ class Documents
             }
             self::validateForPosting($doc);
 
-            $sales = $doc->isSales();
+            // Invoices and money in credit income; bills and money out debit
+            // costs; a credit note posts the opposite way to what it cancels.
+            $sales = $doc->postsAsIncome();
             $name = $doc->contact?->name;
             $lines = [];
-            // The other side: the contact's account for invoices/bills, the bank for money in/out.
+            // The other side: the contact's account for invoices/bills/credit notes, the bank for money in/out.
             $control = match ($doc->kind) {
-                'invoice' => 'receivables',
-                'bill' => 'payables',
+                'invoice', 'credit_note' => 'receivables',
+                'bill', 'bill_credit' => 'payables',
                 default => $doc->bank_account_id,
             };
             $lines[] = [
@@ -149,6 +152,11 @@ class Documents
             if ($onAccount) {
                 self::refreshPaid($doc);
             }
+            // Batch 44c: a credit note raised against an invoice that's still
+            // open is used against it straight away.
+            if ($doc->isCredit() && $doc->credited_document_id && ($orig = Document::find($doc->credited_document_id)) && $orig->isOpen()) {
+                self::applyCredit($doc->fresh(), $orig, min($doc->total, $orig->balance()), $doc->issue_date->toDateString(), $userId);
+            }
 
             return $doc->fresh();
         });
@@ -158,7 +166,24 @@ class Documents
     public static function validateForPosting(Document $doc): void
     {
         if ($doc->isOnAccount() && ! $doc->contact_id) {
-            throw new LedgerException($doc->kind === 'invoice' ? __('Choose the customer.') : __('Choose the supplier.'));
+            throw new LedgerException($doc->isCustomerSide() ? __('Choose the customer.') : __('Choose the supplier.'));
+        }
+        if ($doc->isCredit() && $doc->credited_document_id) {
+            $orig = Document::find($doc->credited_document_id);
+            if (! $orig || $orig->kind !== Document::CREDIT_FOR[$doc->kind] || $orig->contact_id !== $doc->contact_id) {
+                throw new LedgerException(__('The credit note must be for the same customer or supplier as the original.'));
+            }
+            if ($orig->status === 'void' || $orig->isDraft()) {
+                throw new LedgerException(__(':n isn’t posted — there is nothing to credit.', ['n' => $orig->number]));
+            }
+            $already = (float) Document::where('credited_document_id', $orig->id)->where('id', '!=', $doc->id)
+                ->whereNotIn('status', ['draft', 'void'])->sum('total');
+            if ((float) $doc->total > round((float) $orig->total - $already, 2) + 0.004) {
+                throw new LedgerException(__('That credits more than :n is worth — :a has been credited already out of :t.', [
+                    'n' => $orig->number, 'a' => AccountingSetting::forAgency($doc->agency_id)->money($already),
+                    't' => AccountingSetting::forAgency($doc->agency_id)->money($orig->total),
+                ]));
+            }
         }
         if (! $doc->isOnAccount() && ! $doc->bank_account_id) {
             throw new LedgerException(__('Choose the bank or cash account the money went through.'));
@@ -196,6 +221,14 @@ class Documents
             }
             $released = $doc->allocations()->count();
             $doc->allocations()->delete();
+            // Batch 44c: credit used against it (or, for a credit note, where
+            // it was used) goes back to being available.
+            $linked = $doc->isCredit() ? $doc->creditUses()->pluck('document_id') : $doc->creditsApplied()->pluck('credit_note_id');
+            $released += $linked->count();
+            ($doc->isCredit() ? $doc->creditUses() : $doc->creditsApplied())->delete();
+            foreach (Document::whereIn('id', $linked)->get() as $other) {
+                self::refreshPaid($other);
+            }
             if ($doc->journal) {
                 Ledger::reverse($doc->journal, $reason, null, 'void');
             }
@@ -213,7 +246,9 @@ class Documents
         if (! $doc->isOnAccount() || in_array($doc->status, ['draft', 'void'], true)) {
             return $doc;
         }
-        $paid = round((float) $doc->allocations()->sum('amount'), 2);
+        // Payments (or, for a credit note, refunds) plus credit used.
+        $paid = round((float) $doc->allocations()->sum('amount')
+            + (float) ($doc->isCredit() ? $doc->creditUses()->sum('amount') : $doc->creditsApplied()->sum('amount')), 2);
         $status = $paid <= 0 ? 'posted' : ($paid + 0.004 >= (float) $doc->total ? 'paid' : 'partial');
         $doc->update(['amount_paid' => $paid, 'status' => $status]);
 
@@ -222,5 +257,105 @@ class Documents
         }
 
         return $doc;
+    }
+
+    // -- Batch 44c: credit notes ------------------------------------------------------
+
+    /**
+     * A draft credit note for the whole of an invoice (or a supplier credit
+     * note for a bill), copying its lines — edit it down for a part credit.
+     */
+    public static function creditFrom(Document $orig, ?int $userId = null): Document
+    {
+        $kind = array_search($orig->kind, Document::CREDIT_FOR, true);
+        if (! $kind) {
+            throw new LedgerException(__('Only sales invoices and supplier bills can be credited.'));
+        }
+        if ($orig->isDraft() || $orig->status === 'void') {
+            throw new LedgerException(__('Only a posted :k can be credited — a draft can simply be edited or deleted.', ['k' => mb_strtolower($orig->kindLabel())]));
+        }
+        $already = (float) Document::where('credited_document_id', $orig->id)->whereNotIn('status', ['draft', 'void'])->sum('total');
+        $left = round((float) $orig->total - $already, 2);
+        if ($left <= 0.004) {
+            throw new LedgerException(__(':n has already been credited in full.', ['n' => $orig->number]));
+        }
+        $lines = $orig->lines->map(fn ($l) => [
+            'account_id' => $l->account_id, 'description' => $l->description, 'qty' => (float) $l->qty,
+            'unit_price' => (float) $l->unit_price, 'discount' => (float) $l->discount, 'vat_rate' => (float) $l->vat_rate,
+        ])->all();
+        if ($already > 0) {
+            // Part credited already: one line for what's left, at the invoice's main account and rate.
+            $first = $orig->lines->first();
+            $rate = (float) ($first?->vat_rate ?? 0);
+            $lines = [[
+                'account_id' => $first?->account_id, 'description' => __('Balance of :n', ['n' => $orig->number]),
+                'qty' => 1, 'unit_price' => $orig->prices_include_vat ? $left : round($left / (1 + $rate / 100), 2),
+                'discount' => 0, 'vat_rate' => $rate,
+            ]];
+        }
+
+        $draft = self::saveDraft(null, $orig->agency_id, $kind, [
+            'contact_id' => $orig->contact_id,
+            'issue_date' => today()->toDateString(),
+            'reference' => $orig->number,
+            'prices_include_vat' => (bool) $orig->prices_include_vat,
+            'notes' => null,
+        ], $lines, $userId);
+        $draft->update(['credited_document_id' => $orig->id]);
+
+        return $draft;
+    }
+
+    /** Use (part of) a credit note against an open invoice of the same contact. */
+    public static function applyCredit(Document $credit, Document $target, float $amount, ?string $date = null, ?int $userId = null): CreditAllocation
+    {
+        return DB::transaction(function () use ($credit, $target, $amount, $date, $userId) {
+            $credit = Document::lockForUpdate()->findOrFail($credit->id);
+            $target = Document::lockForUpdate()->findOrFail($target->id);
+            if (! $credit->isCredit() || $target->kind !== Document::CREDIT_FOR[$credit->kind]
+                || $target->contact_id !== $credit->contact_id || $target->agency_id !== $credit->agency_id) {
+                throw new LedgerException(__(':c can only be used against a :k for the same contact.', [
+                    'c' => $credit->number, 'k' => mb_strtolower(__(Document::KINDS[Document::CREDIT_FOR[$credit->kind] ?? 'invoice'][0])),
+                ]));
+            }
+            if (! $credit->isOpen()) {
+                throw new LedgerException(__(':n has no credit left to use.', ['n' => $credit->number]));
+            }
+            if (! $target->isOpen()) {
+                throw new LedgerException(__(':n is not open.', ['n' => $target->number]));
+            }
+            $amount = round(min($amount, $credit->balance(), $target->balance()), 2);
+            if ($amount <= 0) {
+                throw new LedgerException(__('Nothing left to match.'));
+            }
+            $alloc = CreditAllocation::create([
+                'agency_id' => $credit->agency_id, 'credit_note_id' => $credit->id, 'document_id' => $target->id,
+                'amount' => $amount, 'date' => $date ?? today()->toDateString(), 'created_by' => $userId,
+            ]);
+            self::refreshPaid($credit);
+            self::refreshPaid($target);
+
+            return $alloc;
+        });
+    }
+
+    public static function unapplyCredit(CreditAllocation $alloc): void
+    {
+        DB::transaction(function () use ($alloc) {
+            $docs = Document::whereIn('id', [$alloc->credit_note_id, $alloc->document_id])->get();
+            $alloc->delete();
+            foreach ($docs as $d) {
+                self::refreshPaid($d);
+            }
+        });
+    }
+
+    /** Open credit notes a contact has that could be used against $doc. */
+    public static function openCreditsFor(Document $doc)
+    {
+        $kind = array_search($doc->kind, Document::CREDIT_FOR, true);
+
+        return $kind ? Document::where('agency_id', $doc->agency_id)->where('contact_id', $doc->contact_id)
+            ->where('kind', $kind)->whereIn('status', ['posted', 'partial'])->orderBy('issue_date')->get() : collect();
     }
 }

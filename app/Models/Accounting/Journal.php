@@ -43,6 +43,11 @@ class Journal extends Model
         'grn' => 'Goods received',
         'asset' => 'Fixed asset',
         'depreciation' => 'Depreciation',
+        'credit_note' => 'Credit note',
+        'bill_credit' => 'Supplier credit note',
+        'refund' => 'Customer refund',
+        'refund_in' => 'Supplier refund',
+        'vat_payment' => 'VAT payment',
         'reversal' => 'Reversal',
         'year_end' => 'Year-end close',
     ];
@@ -72,6 +77,12 @@ class Journal extends Model
         return $this->belongsTo(self::class, 'reversed_by_id');
     }
 
+    /** Batch 44c: the VAT return this journal was counted on. */
+    public function vatReturn(): BelongsTo
+    {
+        return $this->belongsTo(VatReturn::class);
+    }
+
     public function typeLabel(): string
     {
         return __(self::TYPES[$this->type] ?? ucfirst($this->type));
@@ -97,6 +108,7 @@ class Journal extends Model
             'shop_grn' => \Illuminate\Support\Facades\Route::has('shop.admin.receiving.show') ? route('shop.admin.receiving.show', $this->source_id) : null,
             'fixed_asset' => route('accounts.assets.show', $this->source_id),
             'financial_year' => route('accounts.years'),
+            'vat_return' => route('accounts.vat.show', $this->source_id),
             default => null,
         };
     }

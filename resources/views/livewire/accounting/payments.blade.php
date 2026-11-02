@@ -30,7 +30,7 @@
                         @php $free = round((float) $p->amount - (float) $p->allocations_sum_amount, 2); @endphp
                         <tr @class(['hover:bg-gray-50', 'opacity-50' => $p->isVoid()]) wire:key="pay-{{ $p->id }}">
                             <td class="px-5 py-3">
-                                <a href="{{ route('accounts.payments.show', $p->id) }}" wire:navigate class="font-medium text-gray-700 hover:text-primary-600">{{ $p->number }}</a>
+                                <a href="{{ route('accounts.payments.show', $p->id) }}" wire:navigate class="font-medium text-gray-700 hover:text-primary-600">{{ $p->number }}</a>@if (in_array($p->kind, ['refund', 'refund_in']))<span class="block text-xs text-gray-400">{{ $p->kindLabel() }}</span>@endif
                                 @if ($p->isVoid())<x-badge color="dark" class="ml-1">{{ __('Void') }}</x-badge>@endif
                                 @if ($p->reference)<span class="block text-xs text-gray-400">{{ $p->reference }}</span>@endif
                             </td>

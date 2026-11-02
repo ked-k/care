@@ -30,6 +30,9 @@ class ReportComponent extends AccountsComponent
     #[Url]
     public bool $compare = true;
 
+    #[Url]
+    public string $budget = '';
+
     public function mount(string $report): void
     {
         abort_unless(isset(ReportBuilder::REPORTS[$report]), 404);
@@ -39,13 +42,14 @@ class ReportComponent extends AccountsComponent
     public function updatedYear(): void
     {
         // Picking a year resets the dates to that year.
-        $this->from = $this->to = $this->asAt = '';
+        $this->from = $this->to = $this->asAt = $this->budget = '';
     }
 
     private function input(): array
     {
         return array_filter([
             'year' => $this->year, 'from' => $this->from, 'to' => $this->to, 'as_at' => $this->asAt, 'account' => $this->account,
+            'budget' => $this->budget,
         ]) + ['compare' => $this->compare];
     }
 
@@ -57,6 +61,9 @@ class ReportComponent extends AccountsComponent
         $this->from = $rep['params']['from'];
         $this->to = $rep['params']['to'];
         $this->asAt = $rep['params']['as_at'];
+        if ($this->report === 'budget-vs-actual') {
+            $this->budget = (string) $rep['params']['budget'];
+        }
         if ($this->report === 'ledger') {
             $this->account = $rep['params']['account'];
         }

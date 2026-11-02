@@ -125,7 +125,9 @@ class PaymentIndexComponent extends AccountsComponent
 
         return $this->page('livewire.accounting.payments', [
             'title' => $title,
-            'payments' => Payment::where('agency_id', $this->agencyId())->where('kind', $this->kind)
+            // Batch 44c: refunds sit with the money going the same way — refunds
+            // from suppliers with receipts, refunds to customers with payments.
+            'payments' => Payment::where('agency_id', $this->agencyId())->whereIn('kind', $this->kind === 'receipt' ? ['receipt', 'refund_in'] : ['payment', 'refund'])
                 ->when(trim($this->search) !== '', function ($q) {
                     $t = '%'.trim($this->search).'%';
                     $q->where(fn ($w) => $w->where('number', 'like', $t)->orWhere('reference', 'like', $t)

@@ -199,11 +199,13 @@ return [
 
         ['heading' => 'Sales'],
         ['label' => 'Sales invoices', 'icon' => 'ik ik-file-text', 'route' => 'accounts.invoices', 'active' => 'accounts/invoices*|accounts/documents/new/invoice'],
+        ['label' => 'Credit notes', 'icon' => 'ik ik-corner-up-left', 'route' => 'accounts.credit-notes', 'active' => 'accounts/credit-notes*|accounts/documents/new/credit_note'],
         ['label' => 'Receipts', 'icon' => 'ik ik-download', 'route' => 'accounts.receipts', 'active' => 'accounts/receipts*'],
         ['label' => 'Customers', 'icon' => 'ik ik-users', 'route' => 'accounts.customers', 'active' => 'accounts/customers*'],
 
         ['heading' => 'Purchases'],
         ['label' => 'Supplier bills', 'icon' => 'ik ik-file-minus', 'route' => 'accounts.bills', 'active' => 'accounts/bills*|accounts/documents/new/bill'],
+        ['label' => 'Supplier credits', 'icon' => 'ik ik-corner-down-right', 'route' => 'accounts.supplier-credits', 'active' => 'accounts/supplier-credits*|accounts/documents/new/bill_credit'],
         ['label' => 'Supplier payments', 'icon' => 'ik ik-upload', 'route' => 'accounts.payments', 'active' => 'accounts/payments'],
         ['label' => 'Suppliers', 'icon' => 'ik ik-truck', 'route' => 'accounts.suppliers', 'active' => 'accounts/suppliers*'],
 
@@ -216,6 +218,8 @@ return [
 
         ['heading' => 'Reports & year end'],
         ['label' => 'Reports', 'icon' => 'ik ik-bar-chart-2', 'route' => 'accounts.reports', 'active' => 'accounts/reports*'],
+        ['label' => 'Budgets', 'icon' => 'ik ik-target', 'route' => 'accounts.budgets', 'active' => 'accounts/budgets*'],
+        ['label' => 'VAT returns', 'icon' => 'ik ik-percent', 'route' => 'accounts.vat', 'active' => 'accounts/vat*'],
         ['label' => 'Financial years', 'icon' => 'ik ik-calendar', 'route' => 'accounts.years', 'active' => 'accounts/financial-years*'],
         ['label' => 'Settings', 'icon' => 'ik ik-settings', 'route' => 'accounts.settings', 'active' => 'accounts/settings*'],
 

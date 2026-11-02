@@ -36,7 +36,10 @@ Route::prefix('accounts')->name('accounts.')->middleware('can:manage_accounts')-
     Route::get('/invoices', DocumentIndexComponent::class)->name('invoices');
     Route::get('/bills', DocumentIndexComponent::class)->name('bills');
     Route::get('/money', DocumentIndexComponent::class)->name('money');
-    Route::get('/documents/new/{kind}', DocumentFormComponent::class)->whereIn('kind', ['invoice', 'bill', 'money_in', 'money_out'])->name('documents.create');
+    // Batch 44c: credit notes
+    Route::get('/credit-notes', DocumentIndexComponent::class)->name('credit-notes');
+    Route::get('/supplier-credits', DocumentIndexComponent::class)->name('supplier-credits');
+    Route::get('/documents/new/{kind}', DocumentFormComponent::class)->whereIn('kind', ['invoice', 'bill', 'money_in', 'money_out', 'credit_note', 'bill_credit'])->name('documents.create');
     Route::get('/documents/{documentId}', DocumentShowComponent::class)->name('documents.show');
     Route::get('/documents/{documentId}/edit', DocumentFormComponent::class)->name('documents.edit');
     Route::get('/documents/{documentId}/print', [AccountsPrintController::class, 'document'])->name('documents.print');
@@ -64,6 +67,13 @@ Route::prefix('accounts')->name('accounts.')->middleware('can:manage_accounts')-
     Route::get('/chart-of-accounts', ChartComponent::class)->name('chart');
     Route::get('/financial-years', YearsComponent::class)->name('years');
     Route::get('/financial-years/{yearId}/close', \App\Livewire\Accounting\YearEndComponent::class)->name('years.close');
+
+    // Batch 44c: budgets and VAT
+    Route::get('/budgets', \App\Livewire\Accounting\BudgetIndexComponent::class)->name('budgets');
+    Route::get('/budgets/{budgetId}', \App\Livewire\Accounting\BudgetEditComponent::class)->name('budgets.edit');
+    Route::get('/vat', \App\Livewire\Accounting\VatComponent::class)->name('vat');
+    Route::get('/vat/print', [AccountsPrintController::class, 'vat'])->name('vat.print');
+    Route::get('/vat/{returnId}', \App\Livewire\Accounting\VatShowComponent::class)->name('vat.show');
 
     Route::get('/reports', ReportIndexComponent::class)->name('reports');
     // Batch 44b

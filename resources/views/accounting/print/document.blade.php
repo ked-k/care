@@ -1,19 +1,20 @@
 @extends('accounting.print._layout')
 @section('title', $doc->kindLabel().' '.$doc->number)
 @section('heading')
-    <h1>{{ mb_strtoupper(match ($doc->kind) { 'invoice' => __('Invoice'), 'bill' => __('Supplier bill'), 'money_in' => __('Receipt'), default => __('Payment voucher') }) }}</h1>
+    <h1>{{ mb_strtoupper(match ($doc->kind) { 'invoice' => __('Invoice'), 'bill' => __('Supplier bill'), 'credit_note' => __('Credit note'), 'bill_credit' => __('Supplier credit note'), 'money_in' => __('Receipt'), default => __('Payment voucher') }) }}</h1>
     <div class="meta">
         <strong>{{ $doc->number }}</strong><br>
         {{ __('Date') }}: {{ $doc->issue_date->format('d M Y') }}<br>
         @if ($doc->due_date){{ __('Due') }}: {{ $doc->due_date->format('d M Y') }}<br>@endif
         @if ($doc->reference){{ __('Ref') }}: {{ $doc->reference }}<br>@endif
-        @if ($doc->status === 'paid')<span class="stamp paid">{{ __('Paid') }}</span>@elseif ($doc->status === 'void')<span class="stamp void">{{ __('Void') }}</span>@elseif ($doc->isOverdue())<span class="stamp overdue">{{ __('Overdue') }}</span>@endif
+        @if ($doc->credited){{ __('Credits') }}: {{ $doc->credited->number }} ({{ $doc->credited->issue_date->format('d M Y') }})<br>@endif
+        @if ($doc->status === 'paid' && ! $doc->isCredit())<span class="stamp paid">{{ __('Paid') }}</span>@elseif ($doc->status === 'void')<span class="stamp void">{{ __('Void') }}</span>@elseif ($doc->isOverdue())<span class="stamp overdue">{{ __('Overdue') }}</span>@endif
     </div>
 @endsection
 @section('content')
     <div class="cols">
         <div>
-            <h2>{{ match ($doc->kind) { 'invoice' => __('Bill to'), 'bill' => __('From'), 'money_in' => __('Received from'), default => __('Paid to') } }}</h2>
+            <h2>{{ match ($doc->kind) { 'invoice' => __('Bill to'), 'credit_note' => __('Credit to'), 'bill', 'bill_credit' => __('From'), 'money_in' => __('Received from'), default => __('Paid to') } }}</h2>
             @if ($doc->contact)
                 <strong>{{ $doc->contact->name }}</strong>
                 @if ($doc->contact->address)<div class="pre">{{ $doc->contact->address }}</div>@endif
@@ -42,8 +43,8 @@
         <tr><td>{{ __('Subtotal') }}</td><td class="r">{{ $cur->money($doc->subtotal) }}</td></tr>
         <tr><td>{{ __('VAT') }}</td><td class="r">{{ $cur->money($doc->vat_total) }}</td></tr>
         <tr class="grand"><td>{{ __('Total') }}</td><td class="r">{{ $cur->money($doc->total) }}</td></tr>
-        @if ($doc->isOnAccount() && (float) $doc->amount_paid > 0)
-            <tr><td>{{ __('Paid') }}</td><td class="r">−{{ $cur->money($doc->amount_paid) }}</td></tr>
+        @if ($doc->isOnAccount() && ! $doc->isCredit() && (float) $doc->amount_paid > 0)
+            <tr><td>{{ __('Paid / credited') }}</td><td class="r">−{{ $cur->money($doc->amount_paid) }}</td></tr>
             <tr class="grand"><td>{{ __('Balance due') }}</td><td class="r">{{ $cur->money($doc->balance()) }}</td></tr>
         @endif
     </table>

@@ -225,11 +225,14 @@ class Reports
         $paidBy = DB::table('acc_payment_allocations as a')->join('acc_payments as p', 'p.id', '=', 'a.payment_id')
             ->whereIn('a.document_id', $docs->pluck('id'))->where('p.date', '<=', $asAt)->where('p.status', 'posted')
             ->groupBy('a.document_id')->selectRaw('a.document_id, sum(a.amount) as paid')->pluck('paid', 'document_id');
+        // Batch 44c: credit notes used against them count as paid too.
+        $creditedBy = DB::table('acc_credit_allocations')->whereIn('document_id', $docs->pluck('id'))->where('date', '<=', $asAt)
+            ->groupBy('document_id')->selectRaw('document_id, sum(amount) as amt')->pluck('amt', 'document_id');
 
         $contacts = [];
         $totals = array_fill_keys(array_keys(self::AGE_BUCKETS), 0) + ['total' => 0];
         foreach ($docs as $d) {
-            $open = round((float) $d->total - (float) ($paidBy[$d->id] ?? 0), 2);
+            $open = round((float) $d->total - (float) ($paidBy[$d->id] ?? 0) - (float) ($creditedBy[$d->id] ?? 0), 2);
             if ($open <= 0.004) {
                 continue;
             }
@@ -253,6 +256,23 @@ class Reports
             if ($free > 0.004) {
                 $cid = $p->contact_id;
                 $contacts[$cid] ??= ['contact' => $p->contact, 'docs' => [], 'total' => 0] + array_fill_keys(array_keys(self::AGE_BUCKETS), 0);
+                $contacts[$cid]['credit'] = ($contacts[$cid]['credit'] ?? 0) + $free;
+                $contacts[$cid]['total'] -= $free;
+                $totals['credit'] = ($totals['credit'] ?? 0) + $free;
+                $totals['total'] -= $free;
+            }
+        }
+        // Batch 44c: credit notes not yet used (or refunded) as at the date.
+        $creditKind = array_search($kind, Document::CREDIT_FOR, true);
+        foreach (Document::where('agency_id', $this->settings->agency_id)->where('kind', $creditKind ?: '-')
+            ->whereNotIn('status', ['draft', 'void'])->whereDate('issue_date', '<=', $asAt)->with('contact:id,name')->get() as $cn) {
+            $used = (float) DB::table('acc_credit_allocations')->where('credit_note_id', $cn->id)->where('date', '<=', $asAt)->sum('amount')
+                + (float) DB::table('acc_payment_allocations as a')->join('acc_payments as p', 'p.id', '=', 'a.payment_id')
+                    ->where('a.document_id', $cn->id)->where('p.status', 'posted')->where('p.date', '<=', $asAt)->sum('a.amount');
+            $free = round((float) $cn->total - $used, 2);
+            if ($free > 0.004) {
+                $cid = $cn->contact_id ?? 'none';
+                $contacts[$cid] ??= ['contact' => $cn->contact, 'docs' => [], 'total' => 0] + array_fill_keys(array_keys(self::AGE_BUCKETS), 0);
                 $contacts[$cid]['credit'] = ($contacts[$cid]['credit'] ?? 0) + $free;
                 $contacts[$cid]['total'] -= $free;
                 $totals['credit'] = ($totals['credit'] ?? 0) + $free;

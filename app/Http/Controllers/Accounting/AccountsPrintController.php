@@ -57,15 +57,30 @@ class AccountsPrintController extends Controller
     public function report(Request $request, string $report)
     {
         $cur = AccountingSetting::forAgency($this->agencyId());
-        $rep = (new ReportBuilder($cur))->build($report, $request->only(['year', 'from', 'to', 'as_at', 'account', 'compare']));
+        $rep = (new ReportBuilder($cur))->build($report, $request->only(['year', 'from', 'to', 'as_at', 'account', 'compare', 'budget']));
 
         return view('accounting.reports.print', ['rep' => $rep, 'cur' => $cur]);
+    }
+
+    /** Batch 44c: a VAT return (filed, or the draft for ?period=) to print. */
+    public function vat(Request $request)
+    {
+        $cur = AccountingSetting::forAgency($this->agencyId());
+        $vat = new \App\Services\Accounting\VatReturns($cur);
+        $ret = $request->filled('return') ? \App\Models\Accounting\VatReturn::where('agency_id', $cur->agency_id)->findOrFail($request->input('return')) : null;
+        [$start, $end] = $ret ? [$ret->period_start, $ret->period_end] : ($request->filled('period') ? $vat->periodFor($request->date('period')) : $vat->nextPeriod());
+        $ret ??= \App\Models\Accounting\VatReturn::where('agency_id', $cur->agency_id)->where('period_start', $start->toDateString())->first();
+
+        return view('accounting.print.vat', [
+            'cur' => $cur, 'agency' => Auth::user()->agency, 'ret' => $ret,
+            'calc' => $vat->compute($start, $end, $ret), 'boxes' => \App\Services\Accounting\VatReturns::BOXES,
+        ]);
     }
 
     public function csv(Request $request, string $report)
     {
         $cur = AccountingSetting::forAgency($this->agencyId());
-        $rep = (new ReportBuilder($cur))->build($report, $request->only(['year', 'from', 'to', 'as_at', 'account', 'compare']));
+        $rep = (new ReportBuilder($cur))->build($report, $request->only(['year', 'from', 'to', 'as_at', 'account', 'compare', 'budget']));
         $name = str($rep['title'].' '.($rep['params']['as_at'] ?? ''))->slug().'.csv';
 
         return response()->streamDownload(function () use ($rep, $cur) {

@@ -53,7 +53,7 @@ class PaymentShowComponent extends AccountsComponent
     {
         $p = $this->payment();
         $open = $p->isVoid() || $p->unallocated() <= 0 ? collect() : Document::where('agency_id', $this->agencyId())
-            ->where('contact_id', $p->contact_id)->where('kind', $p->kind === 'receipt' ? 'invoice' : 'bill')
+            ->where('contact_id', $p->contact_id)->where('kind', $p->settlesKind())
             ->whereIn('status', ['posted', 'partial'])->orderBy('due_date')->get();
 
         return $this->page('livewire.accounting.payment-show', ['p' => $p, 'open' => $open], $p->kindLabel().' '.$p->number);

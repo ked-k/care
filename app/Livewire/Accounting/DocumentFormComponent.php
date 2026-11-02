@@ -48,7 +48,7 @@ class DocumentFormComponent extends AccountsComponent
                 'discount' => (float) $l->discount, 'vat_rate' => (float) $l->vat_rate,
             ])->all();
         } else {
-            $this->kind = in_array($kind, ['invoice', 'bill', 'money_in', 'money_out'], true) ? $kind : 'invoice';
+            $this->kind = array_key_exists((string) $kind, Document::KINDS) ? $kind : 'invoice';
             $this->form = [
                 'contact_id' => (string) request('contact', ''),
                 'bank_account_id' => in_array($this->kind, ['money_in', 'money_out'], true) ? $s->account('bank')->id : '',
@@ -65,7 +65,7 @@ class DocumentFormComponent extends AccountsComponent
     private function blankLine(): array
     {
         $s = $this->settings();
-        $account = $this->kind === 'invoice' ? $s->account('care_income')->id : '';
+        $account = in_array($this->kind, ['invoice', 'credit_note'], true) ? $s->account('care_income')->id : '';
 
         return ['account_id' => $account, 'description' => '', 'qty' => 1, 'unit_price' => 0, 'discount' => 0,
             'vat_rate' => $s->vat_registered ? (float) $s->default_vat_rate : 0];
@@ -103,8 +103,8 @@ class DocumentFormComponent extends AccountsComponent
             'agency_id' => $this->agencyId(),
             'name' => trim($this->newContact['name']),
             'email' => $this->newContact['email'] ?: null,
-            'is_customer' => in_array($this->kind, ['invoice', 'money_in'], true),
-            'is_supplier' => in_array($this->kind, ['bill', 'money_out'], true),
+            'is_customer' => in_array($this->kind, ['invoice', 'money_in', 'credit_note'], true),
+            'is_supplier' => in_array($this->kind, ['bill', 'money_out', 'bill_credit'], true),
         ]);
         $this->form['contact_id'] = $c->id;
         $this->newContact = ['name' => '', 'email' => ''];
@@ -130,7 +130,7 @@ class DocumentFormComponent extends AccountsComponent
             'lines.*.discount' => 'nullable|numeric|min:0',
             'lines.*.vat_rate' => 'nullable|numeric|min:0|max:100',
         ], [
-            'form.contact_id.required' => $this->kind === 'bill' ? __('Choose the supplier.') : __('Choose the customer.'),
+            'form.contact_id.required' => in_array($this->kind, ['bill', 'bill_credit'], true) ? __('Choose the supplier.') : __('Choose the customer.'),
             'form.bank_account_id.required' => __('Choose the bank or cash account.'),
         ]);
         $valid = Account::where('agency_id', $this->agencyId())->pluck('id')->all();
@@ -144,7 +144,7 @@ class DocumentFormComponent extends AccountsComponent
             'contact_id' => $this->form['contact_id'] ?: null,
             'bank_account_id' => $money ? ($this->form['bank_account_id'] ?: null) : null,
             'issue_date' => $this->form['issue_date'],
-            'due_date' => $money ? null : ($this->form['due_date'] ?: null),
+            'due_date' => $money || isset(Document::CREDIT_FOR[$this->kind]) ? null : ($this->form['due_date'] ?: null),
             'reference' => trim((string) $this->form['reference']) ?: null,
             'notes' => trim((string) $this->form['notes']) ?: null,
             'prices_include_vat' => (bool) $this->form['prices_include_vat'],
@@ -178,7 +178,7 @@ class DocumentFormComponent extends AccountsComponent
     {
         $money = in_array($this->kind, ['money_in', 'money_out'], true);
         $accounts = $this->accountOptions(null, false)->groupBy('type');
-        $order = in_array($this->kind, ['invoice', 'money_in'], true)
+        $order = in_array($this->kind, ['invoice', 'money_in', 'bill_credit'], true)
             ? ['income', 'liability', 'asset', 'equity', 'expense']
             : ['expense', 'asset', 'liability', 'equity', 'income'];
 
@@ -187,10 +187,12 @@ class DocumentFormComponent extends AccountsComponent
             'money' => $money,
             'number' => $this->documentId ? Document::find($this->documentId)?->number : $this->settings()->nextNumberPreview($this->kind),
             'contacts' => Contact::where('agency_id', $this->agencyId())->where('is_active', true)
-                ->when(! $money, fn ($q) => $q->where($this->kind === 'invoice' ? 'is_customer' : 'is_supplier', true))
+                ->when(! $money, fn ($q) => $q->where(in_array($this->kind, ['invoice', 'credit_note'], true) ? 'is_customer' : 'is_supplier', true))
                 ->orderBy('name')->get(['id', 'name']),
             'accountGroups' => collect($order)->mapWithKeys(fn ($t) => [$t => $accounts[$t] ?? collect()])->filter->isNotEmpty(),
             'banks' => $this->moneyAccounts(),
+            'credit' => isset(Document::CREDIT_FOR[$this->kind]),
+            'credited' => $this->documentId ? Document::find($this->documentId)?->credited : null,
         ], __($this->documentId ? 'Edit :k' : 'New :k', ['k' => mb_strtolower(__(Document::KINDS[$this->kind][0]))]));
     }
 }

@@ -1,10 +1,10 @@
 <div>
-    @php $receipt = $p->kind === 'receipt'; $listName = $receipt ? 'Receipts' : 'Supplier payments'; @endphp
+    @php $receipt = $p->isMoneyIn(); $listName = $receipt ? 'Receipts' : 'Supplier payments'; @endphp
     <x-page-header :title="($p->kindLabel()).' '.($p->number)" :subtitle="($p->contact?->name).' · '.($p->date->format('d M Y'))"
                    :icon="'ik ik-'.($receipt ? 'download' : 'upload')"
                    :breadcrumbs="['Finance' => route('accounts.dashboard'), $listName => route($receipt ? 'accounts.receipts' : 'accounts.payments'), $p->number => null]">
         @if ($p->isVoid())<x-badge color="dark" class="px-3 py-1 text-sm">{{ __('Void') }}</x-badge>@endif
-        <x-button variant="secondary" :href="(route('accounts.payments.print', $p->id))" target="_blank"><i class="ik ik-printer"></i>{{ $receipt ? __('Print receipt') : __('Print remittance') }}</x-button>
+        <x-button variant="secondary" :href="(route('accounts.payments.print', $p->id))" target="_blank"><i class="ik ik-printer"></i>{{ $p->kind === 'receipt' ? __('Print receipt') : ($receipt ? __('Print') : __('Print remittance')) }}</x-button>
         @unless ($p->isVoid())
             <x-button variant="ghost" @click="$dispatch('open-modal', 'void-pay')"><i class="ik ik-slash"></i>{{ __('Void') }}</x-button>
         @endunless
