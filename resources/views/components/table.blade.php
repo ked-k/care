@@ -46,7 +46,13 @@
             @if ($title)<h5 class="font-semibold text-gray-700">{{ $title }}</h5>@endif
             <div class="flex items-center gap-2 text-sm text-gray-500">
                 <span>{{ __('Show') }}</span>
-                @if ($serverMode)
+                @if ($serverMode && ($lwComponent = \Livewire\Livewire::current()) && property_exists($lwComponent, 'perPage'))
+                    <select class="{{ $selectCls }}" wire:model.live="perPage">
+                        @foreach ($perPageOptions as $opt)
+                            <option value="{{ $opt }}">{{ $opt }}</option>
+                        @endforeach
+                    </select>
+                @elseif ($serverMode)
                     <select class="{{ $selectCls }}"
                             onchange="const u=new URL(location);u.searchParams.set('per_page',this.value);u.searchParams.delete('page');location=u">
                         @foreach ($perPageOptions as $opt)

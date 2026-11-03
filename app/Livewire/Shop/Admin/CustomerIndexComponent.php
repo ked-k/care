@@ -10,6 +10,15 @@ class CustomerIndexComponent extends ShopAdminComponent
 {
     use WithPagination;
 
+    /** Rows per page (?per_page=), driven by the table's "Show N entries" select. */
+    #[Url(as: 'per_page', except: 25)]
+    public $perPage = 25;
+
+    public function updatedPerPage(): void
+    {
+        $this->resetPage();
+    }
+
     #[Url(except: '')]
     public string $search = '';
 
@@ -61,7 +70,7 @@ class CustomerIndexComponent extends ShopAdminComponent
             ->when($this->type === 'guest', fn ($q) => $q->whereNull('password'))
             ->when($this->type === 'marketing', fn ($q) => $q->where('marketing_opt_in', true))
             ->latest()
-            ->paginate((int) request('per_page', 25));
+            ->paginate(in_array((int) $this->perPage, [10, 25, 50, 100], true) ? (int) $this->perPage : 25);
 
         $viewing = $this->viewingId
             ? ShopCustomer::where('store_id', $this->store()->id)->with(['orders' => fn ($q) => $q->limit(15), 'addresses'])->find($this->viewingId)

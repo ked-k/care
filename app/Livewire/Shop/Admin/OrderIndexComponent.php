@@ -11,6 +11,15 @@ class OrderIndexComponent extends ShopAdminComponent
 {
     use WithPagination;
 
+    /** Rows per page (?per_page=), driven by the table's "Show N entries" select. */
+    #[Url(as: 'per_page', except: 25)]
+    public $perPage = 25;
+
+    public function updatedPerPage(): void
+    {
+        $this->resetPage();
+    }
+
     #[Url(except: '')]
     public string $search = '';
 
@@ -71,7 +80,7 @@ class OrderIndexComponent extends ShopAdminComponent
         ];
 
         return $this->adminPage('livewire.shop.admin.orders', [
-            'orders' => $this->query()->withCount('items')->paginate((int) request('per_page', 25)),
+            'orders' => $this->query()->withCount('items')->paginate(in_array((int) $this->perPage, [10, 25, 50, 100], true) ? (int) $this->perPage : 25),
             'counts' => $counts,
         ], __('Orders'));
     }

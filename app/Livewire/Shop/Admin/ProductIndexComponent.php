@@ -16,6 +16,15 @@ class ProductIndexComponent extends ShopAdminComponent
 {
     use WithPagination;
 
+    /** Rows per page (?per_page=), driven by the table's "Show N entries" select. */
+    #[Url(as: 'per_page', except: 25)]
+    public $perPage = 25;
+
+    public function updatedPerPage(): void
+    {
+        $this->resetPage();
+    }
+
     #[Url(except: '')]
     public string $search = '';
 
@@ -108,7 +117,7 @@ class ProductIndexComponent extends ShopAdminComponent
                 ->where(fn ($s) => $s->where('has_variants', false)->where('stock_qty', '<=', 0))
                 ->orWhereHas('variants', fn ($v) => $v->where('is_active', true)->where('stock_qty', '<=', 0))))
             ->orderBy('name')
-            ->paginate((int) request('per_page', 25));
+            ->paginate(in_array((int) $this->perPage, [10, 25, 50, 100], true) ? (int) $this->perPage : 25);
 
         return $this->adminPage('livewire.shop.admin.products', [
             'products' => $products,
